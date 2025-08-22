@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "node tools/generate-llms.js || true && vite build",
+    "build": "node tools/generate-llms.js || true && npm run vite:build",
+    "vite:build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
