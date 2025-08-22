@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700&display=swap');
+
+@layer base {
+	:root {
+		--background: 0 0% 100%;
+		--foreground: 215 14% 22%; /* #384252 */
+		--card: 0 0% 100%;
+		--card-foreground: 215 14% 22%;
+		--popover: 0 0% 100%;
+		--popover-foreground: 215 14% 22%;
+		--primary: 215 14% 22%;
+		--primary-foreground: 0 0% 100%;
+		--secondary: 220 9% 96%; /* 10% tint of #384252 on white */
+		--secondary-foreground: 215 14% 22%;
+		--muted: 220 9% 96%;
+		--muted-foreground: 215 14% 22% / 0.8; /* 80% opacity */
+		--accent: 220 9% 96%;
+		--accent-foreground: 215 14% 22%;
+		--destructive: 356 89% 35%; /* #9F121A */
+		--destructive-foreground: 0 0% 100%;
+		--border: 218 11% 90%; /* #E5E8EB */
+		--input: 218 11% 90%;
+		--ring: 215 14% 22%;
+		--radius: 8px;
+	}
+
+	.dark {
+		/* Add dark mode variables if needed */
+	}
+}
+
+@layer base {
+  body {
+    @apply bg-white text-brand-ink;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-brand-ink;
+  }
+
+  p {
+    @apply text-brand-ink/80;
+  }
+
+  /* Fluid Typography */
+  h1, .h1-style {
+    font-size: clamp(2rem, 1.4286rem + 2.8571vw, 3rem); /* 32px to 48px */
+  }
+  h2, .h2-style {
+    font-size: clamp(1.5rem, 1.1429rem + 1.7857vw, 2.25rem); /* 24px to 36px */
+  }
+  h3, .h3-style {
+    font-size: clamp(1.25rem, 1.0714rem + 0.8929vw, 1.5rem); /* 20px to 24px */
+  }
+  .body-text {
+    font-size: clamp(0.9375rem, 0.875rem + 0.3125vw, 1rem); /* 15px to 16px */
+    line-height: 1.6;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer components {
+  .btn-action {
+    @apply bg-brand-action text-white rounded-sm transition-opacity duration-200 ease-in-out hover:opacity-80;
+  }
+
+  .text-action {
+    @apply text-brand-action;
+  }
+
+  .content-wrapper {
+    @apply w-full max-w-[1200px] mx-auto px-[8%] md:px-[5%];
+  }
+
+  .section-padding {
+    @apply py-12 md:py-20;
+  }
+
+  .text-column {
+    @apply max-w-[680px] mx-auto;
+  }
+
+  .h1-style {
+    @apply font-bold font-display;
+  }
+  .h2-style {
+    @apply font-bold font-display;
+  }
+  .h3-style {
+    @apply font-bold font-display;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .carousel-container {
+    @apply flex overflow-x-auto snap-x snap-mandatory no-scrollbar -mx-4 px-4;
+    scroll-padding: 1rem;
+  }
+
+  .carousel-item {
+    @apply flex-shrink-0 w-full snap-center;
+  }
+}
