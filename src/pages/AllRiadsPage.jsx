@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
-import { Filter, Loader2, XCircle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Filter, XCircle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import RiadCard from '@/components/RiadCard';
@@ -34,25 +34,18 @@ const RiadCardSkeleton = () => (
 const AllRiadsPage = () => {
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
-  const [riads, setRiads] = useState([]);
+
+  // data
+  const [riadsAll, setRiadsAll] = useState([]);     // full set for current filters (search uses this)
   const [loading, setLoading] = useState(true);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
-  // 🔎 local search (client-side on current page)
+  // ui state
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [q, setQ] = useState('');
-  const norm = (s = '') => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
-  const filtered = useMemo(() => {
-    if (!q) return riads;
-    const n = norm(q);
-    return riads.filter(r => {
-      const name = norm(r.name || '');
-      const city = norm(r.city || '');
-      const quartier = norm(r.quartier || '');
-      return name.includes(n) || city.includes(n) || quartier.includes(n);
-    });
-  }, [q, riads]);
+  const isSearching = q.trim().length > 0;
 
+  // url params (server-side filters + sort + page)
   const [query, setQuery] = useQueryParams({
     amenities: ArrayParam,
     cities: ArrayParam,
@@ -77,31 +70,31 @@ const AllRiadsPage = () => {
   const handleFiltersChange = useCallback((newFilters) => {
     setQuery({
       ...newFilters,
-      amenities: newFilters.amenities?.length > 0 ? newFilters.amenities : undefined,
-      cities: newFilters.cities?.length > 0 ? newFilters.cities : undefined,
-      areas: newFilters.areas?.length > 0 ? newFilters.areas : undefined,
-      quartiers: newFilters.quartiers?.length > 0 ? newFilters.quartiers : undefined,
-      rating: newFilters.rating || undefined,
+      amenities: newFilters.amenities?.length ? newFilters.amenities : undefined,
+      cities:    newFilters.cities?.length    ? newFilters.cities    : undefined,
+      areas:     newFilters.areas?.length     ? newFilters.areas     : undefined,
+      quartiers: newFilters.quartiers?.length ? newFilters.quartiers : undefined,
+      rating:    newFilters.rating || undefined,
       page: 1,
     }, 'push');
   }, [setQuery]);
 
-  const handleSortChange = (newSort) => { setQuery({ sort: newSort, page: 1 }, 'push'); };
+  const handleSortChange = (newSort) => setQuery({ sort: newSort, page: 1 }, 'push');
   const handlePageChange = (newPage) => { setQuery({ page: newPage }); window.scrollTo(0, 0); };
 
+  // fetch ALL for current filters (so search works across all)
   useEffect(() => {
-    const fetchRiads = async () => {
+    const fetchAll = async () => {
       setLoading(true);
-
       const rpcParams = {
-        p_cities:    filters.cities.length     > 0 ? filters.cities     : null,
-        p_areas:     filters.areas.length      > 0 ? filters.areas      : null,
-        p_quartiers: filters.quartiers.length  > 0 ? filters.quartiers  : null,
-        p_amenities: filters.amenities.length  > 0 ? filters.amenities  : null,
+        p_cities:    filters.cities.length    ? filters.cities    : null,
+        p_areas:     filters.areas.length     ? filters.areas     : null,
+        p_quartiers: filters.quartiers.length ? filters.quartiers : null,
+        p_amenities: filters.amenities.length ? filters.amenities : null,
         p_rating:    filters.rating ? parseFloat(filters.rating) : null,
         p_sort: sort,
-        p_page: page,
-        p_page_size: ITEMS_PER_PAGE,
+        p_page: 1,
+        p_page_size: 1000, // big enough for your dataset (~200)
         p_lang: currentLanguage
       };
 
@@ -110,44 +103,65 @@ const AllRiadsPage = () => {
       if (error) {
         console.error('Error fetching riads:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch the list of riads.' });
-        setRiads([]);
+        setRiadsAll([]);
         setTotalCount(0);
-      } else {
-        const { data: riadsData, error: riadsError } = await supabase
-          .from('riads')
-          .select('id, property_type')
-          .in('id', data.map(r => r.id));
-
-        const propertyTypeMap = riadsError ? {} : riadsData.reduce((acc, item) => {
-          acc[item.id] = item.property_type;
-          return acc;
-        }, {});
-
-        const formattedRiads = data.map((riad) => ({
-          id: riad.id,
-          slug: riad.name.toLowerCase().replace(/\s+/g, '-'),
-          name: riad.name,
-          area: riad.area,
-          city: riad.city,
-          quartier: riad.quartier,
-          imageUrl: riad.image_urls?.length ? riad.image_urls[0]
-            : 'https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png',
-          amenities: riad.amenities || [],
-          google_notes: riad.google_notes,
-          google_reviews_count: riad.google_reviews_count,
-          sblink: riad.sblink,
-          property_type: propertyTypeMap[riad.id] || null,
-        }));
-        setRiads(formattedRiads);
-        setTotalCount(data[0]?.total_count || 0);
+        setLoading(false);
+        return;
       }
+
+      // optional: enrich with property_type
+      const { data: types } = await supabase
+        .from('riads')
+        .select('id, property_type')
+        .in('id', data.map(r => r.id));
+
+      const typeMap = (types || []).reduce((acc, it) => { acc[it.id] = it.property_type; return acc; }, {});
+
+      const formatted = (data || []).map((r) => ({
+        id: r.id,
+        slug: r.name.toLowerCase().replace(/\s+/g, '-'),
+        name: r.name,
+        area: r.area,
+        city: r.city,
+        quartier: r.quartier,
+        imageUrl: r.image_urls?.length ? r.image_urls[0]
+          : 'https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png',
+        amenities: r.amenities || [],
+        google_notes: r.google_notes,
+        google_reviews_count: r.google_reviews_count,
+        sblink: r.sblink,
+        property_type: typeMap[r.id] || null,
+      }));
+
+      setRiadsAll(formatted);
+      setTotalCount(data[0]?.total_count || formatted.length);
       setLoading(false);
     };
 
-    fetchRiads();
-  }, [filters, sort, page, toast, currentLanguage]);
+    fetchAll();
+  }, [filters, sort, currentLanguage, toast]);
 
-  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+  // client search over full set
+  const norm = (s = '') => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  const filteredAll = useMemo(() => {
+    if (!isSearching) return riadsAll;
+    const n = norm(q);
+    return riadsAll.filter(r => {
+      const name = norm(r.name || '');
+      const city = norm(r.city || '');
+      const quartier = norm(r.quartier || '');
+      return name.includes(n) || city.includes(n) || quartier.includes(n);
+    });
+  }, [isSearching, q, riadsAll]);
+
+  // derive page slice only when NOT searching
+  const paged = useMemo(() => {
+    if (isSearching) return filteredAll;
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    return filteredAll.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredAll, page, isSearching]);
+
+  const totalPages = Math.ceil(filteredAll.length / ITEMS_PER_PAGE);
 
   const ActiveFiltersDisplay = () => {
     const active = Object.entries(filters).flatMap(([key, value]) => {
@@ -170,8 +184,11 @@ const AllRiadsPage = () => {
             </button>
           </Badge>
         ))}
-        <Button variant="link" size="sm"
-          onClick={() => handleFiltersChange({ cities: [], areas: [], quartiers: [], amenities: [], rating: null })}>
+        <Button
+          variant="link"
+          size="sm"
+          onClick={() => handleFiltersChange({ cities: [], areas: [], quartiers: [], amenities: [], rating: null })}
+        >
           {t('resetFilters')}
         </Button>
       </div>
@@ -184,6 +201,7 @@ const AllRiadsPage = () => {
         <title>{t('allRiads')} · MGH</title>
         <meta name="description" content={t('exploreAllOurCertifiedRiads')} />
       </Helmet>
+
       <div className="bg-white">
         <div className="content-wrapper section-padding pt-32">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -191,6 +209,7 @@ const AllRiadsPage = () => {
               <h1 className="h1-style text-brand-ink">{t('allRiads')}</h1>
               <p className="body-text mt-2">{t('exploreAllOurCertifiedRiads')}</p>
             </div>
+
             <div className="flex items-center justify-center gap-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -205,14 +224,18 @@ const AllRiadsPage = () => {
                   <DropdownMenuItem onClick={() => handleSortChange('name_desc')}>{t('sort_name_desc')}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="outline" className="flex items-center space-x-2 rounded-sm h-12 min-w-[48px]" onClick={() => setIsFilterOpen(true)}>
+              <Button
+                variant="outline"
+                className="flex items-center space-x-2 rounded-sm h-12 min-w-[48px]"
+                onClick={() => setIsFilterOpen(true)}
+              >
                 <Filter className="w-5 h-5" />
                 <span className="hidden sm:inline">{t('filters')}</span>
               </Button>
             </div>
           </div>
 
-          {/* 🔍 search bar (client-side, current page) */}
+          {/* 🔍 search bar */}
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="relative w-full max-w-xl">
               <input
@@ -222,14 +245,18 @@ const AllRiadsPage = () => {
                 className="w-full h-12 rounded-xl border px-4 outline-none"
               />
               {q && (
-                <button onClick={() => setQ('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
+                <button
+                  onClick={() => setQ('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500"
+                >
                   Clear
                 </button>
               )}
             </div>
             <div className="text-sm text-neutral-500">
-              {t('searchCount', { shown: filtered.length+'/'+riads.length, total: totalCount })}
+              {isSearching
+                ? `${filteredAll.length} ${t('results') || 'results'}`
+                : `${paged.length}/${filteredAll.length} ${t('onThisPageTotal') || 'on this page · total'}`}
             </div>
           </div>
 
@@ -237,12 +264,12 @@ const AllRiadsPage = () => {
 
           {loading ? (
             <div className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-              {Array.from({ length: ITEMS_PER_PAGE }).map((_, index) => <RiadCardSkeleton key={index} />)}
+              {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => <RiadCardSkeleton key={i} />)}
             </div>
           ) : (
             <>
               <div className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-                {filtered.map((riad, index) => (
+                {(isSearching ? filteredAll : paged).map((riad, index) => (
                   <motion.div
                     key={riad.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -254,7 +281,7 @@ const AllRiadsPage = () => {
                 ))}
               </div>
 
-              {!loading && filtered.length === 0 && (
+              {!loading && (isSearching ? filteredAll.length === 0 : paged.length === 0) && (
                 <div className="text-center py-20 border border-dashed border-gray-300 rounded-lg col-span-full">
                   <XCircle className="w-12 h-12 mx-auto text-gray-400" />
                   <h3 className="mt-4 text-lg font-medium text-gray-900">{t('noRiadsMatchFilters')}</h3>
@@ -262,7 +289,8 @@ const AllRiadsPage = () => {
                 </div>
               )}
 
-              {totalPages > 1 && (
+              {/* hide pagination while searching */}
+              {!isSearching && totalPages > 1 && (
                 <div className="mt-12 flex justify-center items-center gap-4">
                   <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page <= 1}>
                     <ChevronLeft className="h-4 w-4" />
@@ -284,7 +312,7 @@ const AllRiadsPage = () => {
           onOpenChange={setIsFilterOpen}
           filters={filters}
           onFiltersChange={handleFiltersChange}
-          resultCount={totalCount}
+          resultCount={filteredAll.length}
         />
       </div>
     </>
