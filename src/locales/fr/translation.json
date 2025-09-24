@@ -157,6 +157,7 @@
   "searchPlaceholder": "Rechercher par nom, ville, quartier…",
   "searchCount": "{{shown}} sur cette page · {{total}} au total",
   "allProperties": "Toutes les propriétés",
+  "experiences": "Experiences",
   "viewMore": "Voir plus",
   "viewLess": "Voir moins"
 }

@@ -53,7 +53,7 @@ import React, { useState } from 'react';
               <Toaster />
               <BackToTopButton />
                <img 
-                src="images/Badge-reservez-en-direct.png" 
+                src="/images/Badge-reservez-en-direct.png" 
                 alt="Réservez en Direct"
                 class="fixed bottom-5 left-5 w-36 z-50 cursor-pointer"
               />
