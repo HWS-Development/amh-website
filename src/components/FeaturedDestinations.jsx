@@ -101,7 +101,7 @@ export default function FeaturedDestinations() {
                     variants={cardVariants}
                   >
                     <Link to={`/destinations/${dest.slug}`} className="block group">
-                      <div className="relative overflow-hidden h-96">
+                      <div className="relative overflow-hidden h-96 rounded">
                         {dest.img ? (
                           <img
                             src={dest.img}
