@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, CheckCircle, CreditCard, Lock } from 'lucide-react';

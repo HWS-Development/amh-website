@@ -1,105 +1,132 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Wifi, MapPin, Star, Waves, Utensils, Mountain, Bath, Sun, Wind, Tv, Users, ConciergeBell, Dog, ShieldCheck } from 'lucide-react';
+import { Wifi, MapPin, Star, Waves, Utensils, Bath, Sun, Wind, Tv, Users, ConciergeBell, Dog, MoreHorizontal } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Badge } from '@/components/ui/badge';
+import { getTranslated } from '@/lib/utils';
 
-const AmenityIcon = ({ amenity }) => {
-  const defaultIcon = <Star className="w-4 h-4 text-brand-ink" />;
-  const icons = {
-    'Yoga': '🧘',
-    'Spa': '🧖',
-    'Rooftop': '🍹',
-    'Jazz': '🎷',
-    'Luxury': '👑',
-    'Medina': '🏘️',
-    'Restaurant': '🍴',
-    'Pool': '🏊',
-    'TripAdvisor': '🦉',
-    'Hammam': <Bath className="w-4 h-4 text-brand-ink" />,
-    'Terrace': <Sun className="w-4 h-4 text-brand-ink" />,
-    'Air conditioning': <Wind className="w-4 h-4 text-brand-ink" />,
-    'Wifi': <Wifi className="w-4 h-4 text-brand-ink" />,
-    'Family rooms': <Users className="w-4 h-4 text-brand-ink" />,
-    'Room service': <ConciergeBell className="w-4 h-4 text-brand-ink" />,
-    'Airport shuttle': <ConciergeBell className="w-4 h-4 text-brand-ink" />,
-    'Television': <Tv className="w-4 h-4 text-brand-ink" />,
-    'Pet Friendly': <Dog className="w-4 h-4 text-brand-ink" />,
-    'Suites': <Users className="w-4 h-4 text-brand-ink" />,
-    'Accessible': <ShieldCheck className="w-4 h-4 text-brand-ink" />,
+const AmenityIcon = ({ amenity, className = "w-4 h-4" }) => {
+  const iconMap = {
+    'Pool': <Waves className={className} />,
+    'Piscine': <Waves className={className} />,
+    'Hammam': <Bath className={className} />,
+    'Spa': <Star className={className} />,
+    'Terrace': <Sun className={className} />,
+    'Terrasse': <Sun className={className} />,
+    'Restaurant': <Utensils className={className} />,
+    'Air conditioning': <Wind className={className} />,
+    'Climatisation': <Wind className={className} />,
+    'Wifi': <Wifi className={className} />,
+    'Family rooms': <Users className={className} />,
+    'Chambres familiales': <Users className={className} />,
+    'Room service': <ConciergeBell className={className} />,
+    'Airport shuttle': <ConciergeBell className={className} />,
+    'Navette aéroport': <ConciergeBell className={className} />,
+    'Television': <Tv className={className} />,
+    'Pet Friendly': <Dog className={className} />,
+    'Animaux acceptés': <Dog className={className} />,
+    'Rooftop': <Sun className={className} />,
+    'Toit-terrasse': <Sun className={className} />,
+    'Garden': <Sun className={className} />,
+    'Jardin': <Sun className={className} />,
+    'Luxury': <Star className={className} />,
+    'Luxe': <Star className={className} />,
+    'Families': <Users className={className} />,
+    'Familles': <Users className={className} />,
+    'Yoga': <Users className={className} />,
+    'Bar': <Utensils className={className} />,
   };
 
-  const icon = icons[amenity];
+  const normalizedAmenity = Object.keys(iconMap).find(key => 
+    amenity.toLowerCase().includes(key.toLowerCase())
+  );
 
-  if (typeof icon === 'string') {
-    return <span className="text-base leading-none">{icon}</span>;
-  }
-  return icon || defaultIcon;
+  return iconMap[normalizedAmenity] || <Star className={className} />;
+};
+
+
+const normalizeQuartier = (quartier) => {
+  if (!quartier) return '';
+  try {
+    const parsed = JSON.parse(quartier);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+  } catch (e) {}
+  return quartier.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
 const RiadCard = ({ riad }) => {
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
+  const slug = riad.id;
+  const locationParts = [normalizeQuartier(riad.quartier), riad.area, riad.city].filter(Boolean).join(', ');
+  const displayedAmenities = riad.amenities ? riad.amenities.slice(0, 6) : [];
+  const hiddenAmenitiesCount = riad.amenities ? riad.amenities.length - displayedAmenities.length : 0;
+  
+  const rating = riad.google_notes ? parseFloat(riad.google_notes) : null;
+  const reviewCount = riad.google_reviews_count || null;
+  const propertyType = getTranslated(riad.property_type, currentLanguage);
+
   return (
-    <div className="bg-white rounded-none border border-[#E5E8EB] h-full flex flex-col transition-all duration-300">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden h-full flex flex-col transition-shadow duration-300 hover:shadow-xl group">
       <div className="relative">
-        <Link to={`/riad/${riad.id}`}>
+        <Link to={`/riad/${slug}`}>
           <img
-            className="w-full h-56 object-cover"
-            alt={riad.imageDescription}
-            src={riad.imageUrl || "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png"} />
+            className="w-full h-56 object-cover transform transition-transform duration-500 group-hover:scale-105"
+            alt={riad.name}
+            src={riad.imageUrl || "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png"}
+          />
         </Link>
-        {riad.category && (
-        <div className="absolute top-3 left-3 px-3 py-1 rounded-sm text-xs font-semibold bg-brand-action/20 text-brand-action">
-          {riad.category}
-        </div>
+        {rating && (
+          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1 text-sm shadow">
+              <Star className="w-4 h-4 text-red-500" fill="currentColor" />
+              <span className="font-semibold text-brand-ink">{rating.toFixed(1)}</span>
+              {reviewCount && <span className="text-brand-ink/60">({reviewCount})</span>}
+          </div>
         )}
       </div>
 
-      <div className="p-5 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-xl font-bold text-brand-ink">
-            <Link to={`/riad/${riad.id}`} className="hover:text-brand-action transition-colors">
-              {riad.name}
-            </Link>
-          </h3>
-          {riad.rating && (
-            <div className="flex items-center space-x-1 text-sm text-brand-ink/80 flex-shrink-0 ml-2">
-                <Star className="w-4 h-4 text-brand-action" fill="currentColor" />
-                <span className="font-semibold text-brand-ink">{riad.rating}</span>
-                <span className="text-brand-ink/80">({riad.reviews})</span>
-            </div>
-          )}
+      <div className="p-4 flex flex-col flex-grow">
+        <h3 className="text-lg font-bold text-brand-ink mb-1 truncate">
+          <Link to={`/riad/${slug}`} className="hover:text-brand-action transition-colors">
+            {riad.name}
+          </Link>
+        </h3>
+
+        {propertyType && (
+          <p className="text-sm font-medium text-brand-ink/60 mb-2 capitalize">{propertyType}</p>
+        )}
+
+        <div className="text-xs text-brand-ink/60 mb-3 flex items-start gap-1.5">
+          <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span className="truncate">{locationParts}</span>
         </div>
 
-        <div className="flex items-center space-x-2 text-brand-ink/80 text-sm mb-4">
-          <MapPin className="w-4 h-4" />
-          <span>{riad.location}, {riad.city}</span>
-        </div>
-
-        <div className="flex items-center flex-wrap gap-2 text-brand-ink mb-4 border-t border-b border-[#E5E8EB] py-3">
-            {riad.amenities && riad.amenities.map(amenity => (
-                <div key={amenity} className="flex items-center gap-1.5 capitalize px-2 py-1 rounded-sm bg-brand-ink/10">
-                    <AmenityIcon amenity={amenity} />
-                    <span className="text-sm font-medium">{amenity}</span>
-                </div>
-            ))}
-        </div>
+        {riad.amenities && riad.amenities.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+              {displayedAmenities.map(amenity => (
+                  <div key={amenity} title={amenity}>
+                    <AmenityIcon amenity={amenity} className="w-5 h-5 text-brand-ink/70" />
+                  </div>
+              ))}
+              {hiddenAmenitiesCount > 0 && (
+                 <div className="text-xs font-medium text-brand-ink/70">
+                   +{hiddenAmenitiesCount}
+                 </div>
+              )}
+          </div>
+        )}
         
-        <div className="flex justify-between items-center mt-auto space-x-2">
-            {riad.bookNowLink ? (
-              <>
-                <Button asChild variant="outline" className="flex-1 font-semibold">
-                  <Link to={`/riad/${riad.id}`}>{t('details')}</Link>
+        <div className="mt-auto grid grid-cols-2 gap-2">
+            <Button asChild variant="outline" className="w-full font-semibold col-span-1">
+                <Link to={`/riad/${slug}`}>{t('moreDetails')}</Link>
+            </Button>
+            {riad.sblink && (
+                 <Button asChild className="w-full font-semibold col-span-1 bg-brand-action hover:bg-brand-action/90">
+                    <a href={riad.sblink} target="_blank" rel="noopener noreferrer">{t('reserveNow')}</a>
                 </Button>
-                <Button asChild className="btn-action flex-1 font-semibold">
-                  <a href={riad.bookNowLink} target="_blank" rel="noopener noreferrer">{t('reserve')}</a>
-                </Button>
-              </>
-            ) : (
-              <Button asChild variant="outline" className="w-full font-semibold">
-                <Link to={`/riad/${riad.id}`}>{t('details')}</Link>
-              </Button>
+            )}
+             {!riad.sblink && (
+                 <div className="col-span-1"></div>
             )}
         </div>
       </div>

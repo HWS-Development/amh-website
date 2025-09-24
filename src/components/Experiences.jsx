@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -96,7 +95,7 @@ const Experiences = () => {
                 </div>
                 <CardContent className="relative z-10 flex flex-col justify-end h-96 p-6">
                   <div>
-                    <h3 className="text-2xl font-bold font-display mb-2">{experience.title}</h3>
+                    <h3 className="text-2xl font-bold text-white/80 font-display mb-2">{experience.title}</h3>
                     <p className="text-white/90 text-sm mb-4">{experience.short_intro}</p>
                     <Button asChild variant="link" className="p-0 h-auto text-white font-semibold">
                       <Link to={`/experiences/${experience.slug}`} className="flex items-center gap-2 group-hover:gap-3 transition-all duration-300">

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
@@ -54,11 +53,13 @@ const CollectionsLandingPage = () => {
   return (
     <>
       <Helmet>
-        <title>{t('riadCollections')} | Association Maisons d'Hôtes de Marrakech</title>
+        <title>{t('riadCollections')} · MGH</title>
         <meta name="description" content={t('collectionsLandingDescription')} />
+        <meta property="og:title" content={`${t('riadCollections')} · MGH`} />
+        <meta property="og:description" content={t('collectionsLandingDescription')} />
       </Helmet>
       <div className="bg-white min-h-screen">
-        <section className="section-padding bg-gray-50">
+        <section className="section-padding pt-32 bg-gray-50">
           <div className="content-wrapper">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

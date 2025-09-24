@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ const NotFoundPage = () => {
   return (
     <>
       <Helmet>
-        <title>404 - Page Not Found | AMH</title>
+        <title>404 - Page Not Found · MGH</title>
         <meta name="description" content="The page you are looking for could not be found." />
       </Helmet>
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-160px)] bg-white text-center px-4">

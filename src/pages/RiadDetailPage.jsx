@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, ExternalLink, Star, MapPin, Check, Shield, Loader2, Wifi, Waves, 
-  Utensils, Sun, Phone, Mail, Globe, Bath, Dumbbell, Music, Crown, Building
+  Utensils, Sun, Phone, Mail, Globe
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -19,10 +18,10 @@ const AmenityIcon = ({ amenity }) => {
   const amenityKey = amenity.toLowerCase();
   const iconMap = {
     'pool': <Waves className="w-5 h-5 text-brand-action" />,
-    'hammam': <Bath className="w-5 h-5 text-brand-action" />,
+    'hammam': <span className="text-xl">🛁</span>,
     'spa': <span className="text-xl">🧖</span>,
     'terrace': <Sun className="w-5 h-5 text-brand-action" />,
-    'restaurant': <span className="text-xl">🍴</span>,
+    'restaurant': <Utensils className="w-5 h-5 text-brand-action" />,
     'air conditioning': <Check className="w-5 h-5 text-brand-action" />,
     'wifi': <Wifi className="w-5 h-5 text-brand-action" />,
     'family rooms': <Check className="w-5 h-5 text-brand-action" />,
@@ -31,13 +30,13 @@ const AmenityIcon = ({ amenity }) => {
     'television': <Check className="w-5 h-5 text-brand-action" />,
     'pet friendly': <Check className="w-5 h-5 text-brand-action" />,
     'suites': <Check className="w-5 h-5 text-brand-action" />,
-    'rooftop': <span className="text-xl">🍹</span>,
+    'rooftop': <Sun className="w-5 h-5 text-brand-action" />,
     'accessible': <Check className="w-5 h-5 text-brand-action" />,
     'yoga': <span className="text-xl">🧘</span>,
     'jazz': <span className="text-xl">🎷</span>,
     'luxury': <span className="text-xl">👑</span>,
     'medina': <span className="text-xl">🏘️</span>,
-    'tripadvisor': <span className="text-xl">🦉</span>,
+    'tripadvisor': <Star className="w-5 h-5 text-brand-action" />,
     'default': <Check className="w-5 h-5 text-brand-action" />,
   };
   return iconMap[amenityKey] || iconMap.default;
@@ -99,18 +98,23 @@ const RiadDetailPage = () => {
     );
   }
 
-  const name = getTranslated(riad.name_tr, currentLanguage);
-  const description = getTranslated(riad.description_tr, currentLanguage);
-  const area = getTranslated(riad.area_tr, currentLanguage);
+  const name = getTranslated(riad.name_tr, currentLanguage, riad.name);
+  const propertyType = getTranslated(riad.property_type, currentLanguage);
+  const description = getTranslated(riad.description_tr, currentLanguage, riad.description);
+  const area = getTranslated(riad.area_tr, currentLanguage, riad.area);
 
   const heroImage = riad.image_urls && riad.image_urls.length > 0 ? riad.image_urls[0] : "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
   const galleryImages = riad.image_urls?.slice(1, 5) || [];
+  const pageDescription = `${description?.substring(0, 160) || `Discover ${name}, a beautiful Riad in Marrakech.`}...`;
 
   return (
     <>
       <Helmet>
-        <title>{name} | Association Maisons d'Hôtes de Marrakech</title>
-        <meta name="description" content={`${description?.substring(0, 160) || 'Discover this beautiful Riad in Marrakech.'}...`} />
+        <title>{`${name} · MGH`}</title>
+        <meta name="description" content={pageDescription} />
+        <meta property="og:title" content={`${name} · MGH`} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={heroImage} />
       </Helmet>
 
       <div className="bg-white pt-24 pb-12">
@@ -171,9 +175,12 @@ const RiadDetailPage = () => {
                     )}
                   </div>
 
-                  <h1 className="text-4xl font-bold text-brand-ink mb-2">
+                  <h1 className="text-4xl font-bold text-brand-ink mb-1">
                     {name}
                   </h1>
+                  {propertyType && (
+                    <p className="text-xl text-brand-ink/70 font-light mb-4">{propertyType}</p>
+                  )}
                    <div className="flex items-center space-x-2 text-brand-ink/80 mb-6">
                         <MapPin className="w-5 h-5 text-brand-ink/80" />
                         <span>{riad.address || area}</span>

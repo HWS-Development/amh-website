@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -90,13 +89,15 @@ const CollectionPage = () => {
   }, [type, toast, t, currentLanguage, staticCollectionData.titleKey, staticCollectionData.descriptionKey]);
 
   const pageTitle = collectionInfo ? collectionInfo.name : t(staticCollectionData.titleKey);
-  const pageDescription = collectionInfo ? collectionInfo.long_description : t(staticCollectionData.descriptionKey);
+  const pageDescription = collectionInfo ? collectionInfo.long_description || collectionInfo.short_description : t(staticCollectionData.descriptionKey);
 
   return (
     <>
       <Helmet>
-        <title>{pageTitle} | Association Maisons d'Hôtes de Marrakech</title>
+        <title>{`${pageTitle} · MGH`}</title>
         <meta name="description" content={pageDescription} />
+        <meta property="og:title" content={`${pageTitle} · MGH`} />
+        <meta property="og:description" content={pageDescription} />
       </Helmet>
 
       <div className="min-h-screen bg-white">

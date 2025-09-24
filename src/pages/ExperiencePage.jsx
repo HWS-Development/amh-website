@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -7,7 +6,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { 
-  ArrowLeft, CheckCircle, Info, MapPin, Sun, Users, DollarSign, AlertTriangle, Camera, Star,
+  ArrowLeft, CheckCircle, Info, MapPin, Sun, Users, DollarSign, Camera, Star,
   ShieldCheck, Box, Utensils, Coffee, Moon, Mountain, Droplets, Bath, Ticket, Wind, Waves
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -136,8 +135,11 @@ const ExperiencePage = () => {
   return (
     <>
       <Helmet>
-        <title>{seo_title || `${title} | AMH`}</title>
+        <title>{seo_title || `${title} · MGH`}</title>
         <meta name="description" content={seo_description || subtitle} />
+        <meta property="og:title" content={seo_title || `${title} · MGH`} />
+        <meta property="og:description" content={seo_description || subtitle} />
+        {experience.hero_image_url && <meta property="og:image" content={experience.hero_image_url} />}
       </Helmet>
 
       <motion.div

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Loader2 } from 'lucide-react';
@@ -38,16 +37,16 @@ const RiadListings = () => {
       } else {
         const formattedRiads = data.map(riad => ({
           id: riad.id,
-          name: getTranslated(riad.name_tr, currentLanguage),
-          location: getTranslated(riad.area_tr, currentLanguage) || riad.address,
+          name: getTranslated(riad.name_tr, currentLanguage, riad.name),
+          area: getTranslated(riad.area_tr, currentLanguage, riad.area),
           city: riad.city,
+          quartier: riad.quartier,
           imageUrl: riad.image_urls && riad.image_urls.length > 0 ? riad.image_urls[0] : "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png",
-          imageDescription: `Image of ${getTranslated(riad.name_tr, currentLanguage)}`,
           amenities: riad.amenities || [],
-          reviews: riad.google_reviews_count,
-          rating: riad.google_notes ? parseFloat(riad.google_notes) : 4.5,
-          bookNowLink: riad.sblink,
-          category: riad.collections && riad.collections.length > 0 ? riad.collections[0] : 'Recommended'
+          google_reviews_count: riad.google_reviews_count,
+          google_notes: riad.google_notes,
+          sblink: riad.sblink,
+          property_type: riad.property_type,
         }));
         setRiads(formattedRiads);
       }

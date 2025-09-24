@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { supabase } from '@/lib/customSupabaseClient';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated } from '@/lib/utils';
 
@@ -44,21 +43,24 @@ const DestinationsLandingPage = () => {
         );
     }
     
+    const pageTitle = t('exploreOurDestinations');
+    const pageDescription = t('discoverTheSoulOfMorocco');
+
     return (
         <>
             <Helmet>
-                <title>{t('destinations')} | AMH</title>
-                <meta name="description" content="Discover the unique charm of Morocco's most iconic cities. Explore our travel guides for Marrakech, Essaouira, Ouarzazate, and more." />
-                <link rel="canonical" href="https://yourdomain.com/destinations" />
-                <meta property="og:title" content={`${t('destinations')} | AMH`} />
-                <meta property="og:description" content="Explore our travel guides for Marrakech, Essaouira, Ouarzazate, and more." />
+                <title>{`${pageTitle} · MGH`}</title>
+                <meta name="description" content={pageDescription} />
+                <link rel="canonical" href="https://amh.ma/destinations" />
+                <meta property="og:title" content={`${pageTitle} · MGH`} />
+                <meta property="og:description" content={pageDescription} />
             </Helmet>
             <div className="bg-white">
                 <section className="pt-32 pb-16 text-center bg-brand-ink/5">
                     <div className="content-wrapper">
-                        <h1 className="h1-style text-brand-ink">{t('exploreOurDestinations')}</h1>
+                        <h1 className="h1-style text-brand-ink">{pageTitle}</h1>
                         <p className="body-text text-lg mt-4 max-w-3xl mx-auto">
-                            {t('discoverTheSoulOfMorocco')}
+                           {pageDescription}
                         </p>
                     </div>
                 </section>

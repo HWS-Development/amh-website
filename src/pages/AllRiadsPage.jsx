@@ -1,15 +1,35 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Filter, Loader2, XCircle } from 'lucide-react';
+import { Helmet } from 'react-helmet';
+import { Filter, Loader2, XCircle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import RiadCard from '@/components/RiadCard';
 import FilterDrawer from '@/components/FilterDrawer';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
-import { useQueryParams, StringParam, ArrayParam } from 'use-query-params';
-import { getTranslated } from '@/lib/utils';
+import { useQueryParams, StringParam, ArrayParam, NumberParam } from 'use-query-params';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from '@/components/ui/badge';
+
+const ITEMS_PER_PAGE = 12;
+
+const RiadCardSkeleton = () => (
+  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div className="w-full h-56 bg-gray-200 animate-pulse"></div>
+    <div className="p-4">
+      <div className="h-6 bg-gray-200 rounded w-3/4 mb-2 animate-pulse"></div>
+      <div className="h-4 bg-gray-200 rounded w-1/4 mb-2 animate-pulse"></div>
+      <div className="h-4 bg-gray-200 rounded w-1/2 mb-4 animate-pulse"></div>
+      <div className="flex gap-2 mb-4">
+        <div className="h-5 w-5 bg-gray-200 rounded-full animate-pulse"></div>
+        <div className="h-5 w-5 bg-gray-200 rounded-full animate-pulse"></div>
+        <div className="h-5 w-5 bg-gray-200 rounded-full animate-pulse"></div>
+      </div>
+      <div className="h-10 bg-gray-200 rounded w-full animate-pulse"></div>
+    </div>
+  </div>
+);
 
 const AllRiadsPage = () => {
   const { t, currentLanguage } = useLanguage();
@@ -17,154 +37,257 @@ const AllRiadsPage = () => {
   const [riads, setRiads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  
+  const [totalCount, setTotalCount] = useState(0);
+
+  // 🔎 local search (client-side on current page)
+  const [q, setQ] = useState('');
+  const norm = (s = '') => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  const filtered = useMemo(() => {
+    if (!q) return riads;
+    const n = norm(q);
+    return riads.filter(r => {
+      const name = norm(r.name || '');
+      const city = norm(r.city || '');
+      const quartier = norm(r.quartier || '');
+      return name.includes(n) || city.includes(n) || quartier.includes(n);
+    });
+  }, [q, riads]);
+
   const [query, setQuery] = useQueryParams({
     amenities: ArrayParam,
-    collections: ArrayParam,
-    rating: StringParam,
     cities: ArrayParam,
+    areas: ArrayParam,
+    quartiers: ArrayParam,
+    rating: StringParam,
+    sort: StringParam,
+    page: NumberParam,
   });
 
   const filters = useMemo(() => ({
     amenities: query.amenities || [],
-    collections: query.collections || [],
-    rating: query.rating || null,
     cities: query.cities || [],
+    areas: query.areas || [],
+    quartiers: query.quartiers || [],
+    rating: query.rating || null,
   }), [query]);
 
-  const handleFiltersChange = (newFilters) => {
+  const sort = query.sort || 'rating_desc';
+  const page = query.page || 1;
+
+  const handleFiltersChange = useCallback((newFilters) => {
     setQuery({
-      amenities: newFilters.amenities.length > 0 ? newFilters.amenities : undefined,
-      collections: newFilters.collections.length > 0 ? newFilters.collections : undefined,
+      ...newFilters,
+      amenities: newFilters.amenities?.length > 0 ? newFilters.amenities : undefined,
+      cities: newFilters.cities?.length > 0 ? newFilters.cities : undefined,
+      areas: newFilters.areas?.length > 0 ? newFilters.areas : undefined,
+      quartiers: newFilters.quartiers?.length > 0 ? newFilters.quartiers : undefined,
       rating: newFilters.rating || undefined,
-      cities: newFilters.cities.length > 0 ? newFilters.cities : undefined,
+      page: 1,
     }, 'push');
-  };
+  }, [setQuery]);
+
+  const handleSortChange = (newSort) => { setQuery({ sort: newSort, page: 1 }, 'push'); };
+  const handlePageChange = (newPage) => { setQuery({ page: newPage }); window.scrollTo(0, 0); };
 
   useEffect(() => {
     const fetchRiads = async () => {
       setLoading(true);
-      const { data, error } = await supabase.from('riads').select('*');
+
+      const rpcParams = {
+        p_cities:    filters.cities.length     > 0 ? filters.cities     : null,
+        p_areas:     filters.areas.length      > 0 ? filters.areas      : null,
+        p_quartiers: filters.quartiers.length  > 0 ? filters.quartiers  : null,
+        p_amenities: filters.amenities.length  > 0 ? filters.amenities  : null,
+        p_rating:    filters.rating ? parseFloat(filters.rating) : null,
+        p_sort: sort,
+        p_page: page,
+        p_page_size: ITEMS_PER_PAGE,
+        p_lang: currentLanguage
+      };
+
+      const { data, error } = await supabase.rpc('filter_riads', rpcParams);
 
       if (error) {
         console.error('Error fetching riads:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not fetch the list of riads.',
-        });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch the list of riads.' });
         setRiads([]);
+        setTotalCount(0);
       } else {
+        const { data: riadsData, error: riadsError } = await supabase
+          .from('riads')
+          .select('id, property_type')
+          .in('id', data.map(r => r.id));
+
+        const propertyTypeMap = riadsError ? {} : riadsData.reduce((acc, item) => {
+          acc[item.id] = item.property_type;
+          return acc;
+        }, {});
+
         const formattedRiads = data.map((riad) => ({
           id: riad.id,
-          name: getTranslated(riad.name_tr, currentLanguage),
-          location: getTranslated(riad.area_tr, currentLanguage) || riad.address,
+          slug: riad.name.toLowerCase().replace(/\s+/g, '-'),
+          name: riad.name,
+          area: riad.area,
           city: riad.city,
-          imageUrl: riad.image_urls && riad.image_urls.length > 0 ? riad.image_urls[0] : 'https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png',
-          imageDescription: `Image of ${getTranslated(riad.name_tr, currentLanguage)}`,
+          quartier: riad.quartier,
+          imageUrl: riad.image_urls?.length ? riad.image_urls[0]
+            : 'https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png',
           amenities: riad.amenities || [],
-          collections: riad.collections || [],
-          reviews: riad.google_reviews_count,
-          rating: riad.google_notes ? parseFloat(riad.google_notes) : 4.5,
-          bookNowLink: riad.sblink,
-          category: riad.collections && riad.collections.length > 0 ? riad.collections[0] : 'Certified',
+          google_notes: riad.google_notes,
+          google_reviews_count: riad.google_reviews_count,
+          sblink: riad.sblink,
+          property_type: propertyTypeMap[riad.id] || null,
         }));
         setRiads(formattedRiads);
+        setTotalCount(data[0]?.total_count || 0);
       }
       setLoading(false);
     };
 
     fetchRiads();
-  }, [toast, currentLanguage]);
+  }, [filters, sort, page, toast, currentLanguage]);
 
-  const filteredRiads = useMemo(() => {
-    return riads.filter((riad) => {
-      const amenityMatch =
-        filters.amenities.length === 0 ||
-        filters.amenities.every((amenity) => riad.amenities.includes(amenity));
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-      const collectionMatch =
-        filters.collections.length === 0 ||
-        filters.collections.every((collection) => riad.collections.includes(collection));
-      
-      const cityMatch = 
-        filters.cities.length === 0 ||
-        filters.cities.includes(riad.city);
-
-      const ratingMatch = (() => {
-        if (!filters.rating) return true;
-        const rating = riad.rating;
-        switch (filters.rating) {
-          case '4.9+':
-            return rating >= 4.9;
-          case '4.5+':
-            return rating >= 4.5;
-          case '4.0+':
-            return rating >= 4.0;
-          default:
-            return true;
-        }
-      })();
-
-      return amenityMatch && ratingMatch && collectionMatch && cityMatch;
+  const ActiveFiltersDisplay = () => {
+    const active = Object.entries(filters).flatMap(([key, value]) => {
+      if (Array.isArray(value) && value.length > 0) return value.map(v => ({ key, value: v, label: v }));
+      if (typeof value === 'string' && value) return [{ key, value, label: `${t('guestRating')} ${value}+` }];
+      return [];
     });
-  }, [riads, filters]);
+    if (active.length === 0) return null;
+
+    return (
+      <div className="mb-4 flex flex-wrap gap-2 items-center">
+        {active.map(({ key, value, label }, index) => (
+          <Badge key={index} variant="secondary" className="flex items-center gap-1.5">
+            <span className="capitalize">{label}</span>
+            <button onClick={() => {
+              const newValues = key === 'rating' ? null : filters[key].filter(v => v !== value);
+              handleFiltersChange({ ...filters, [key]: newValues });
+            }}>
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        ))}
+        <Button variant="link" size="sm"
+          onClick={() => handleFiltersChange({ cities: [], areas: [], quartiers: [], amenities: [], rating: null })}>
+          {t('resetFilters')}
+        </Button>
+      </div>
+    );
+  };
 
   return (
-    <div className="bg-white">
-      <div className="content-wrapper section-padding">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
-          <div className="text-center md:text-left">
-            <h1 className="h1-style text-brand-ink">{t('allRiads')}</h1>
-            <p className="body-text mt-2">
-              {t('exploreAllOurCertifiedRiads')}
-            </p>
+    <>
+      <Helmet>
+        <title>{t('allRiads')} · MGH</title>
+        <meta name="description" content={t('exploreAllOurCertifiedRiads')} />
+      </Helmet>
+      <div className="bg-white">
+        <div className="content-wrapper section-padding pt-32">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div className="text-center md:text-left mb-4 md:mb-0">
+              <h1 className="h1-style text-brand-ink">{t('allRiads')}</h1>
+              <p className="body-text mt-2">{t('exploreAllOurCertifiedRiads')}</p>
+            </div>
+            <div className="flex items-center justify-center gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-12 w-48 justify-between">
+                    <span>{t(`sort_${sort}`)}</span>
+                    {sort.endsWith('_asc') ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => handleSortChange('rating_desc')}>{t('sort_rating_desc')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSortChange('name_asc')}>{t('sort_name_asc')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSortChange('name_desc')}>{t('sort_name_desc')}</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="outline" className="flex items-center space-x-2 rounded-sm h-12 min-w-[48px]" onClick={() => setIsFilterOpen(true)}>
+                <Filter className="w-5 h-5" />
+                <span className="hidden sm:inline">{t('filters')}</span>
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center justify-center space-x-4 mt-4 md:mt-0">
-            <Button
-              variant="outline"
-              className="flex items-center space-x-2 rounded-sm h-12 min-w-[48px]"
-              onClick={() => setIsFilterOpen(true)}
-            >
-              <Filter className="w-5 h-5" />
-              <span className="hidden sm:inline">{t('filters')}</span>
-            </Button>
-            <FilterDrawer
-              filters={filters}
-              onFiltersChange={handleFiltersChange}
-              isOpen={isFilterOpen}
-              onToggle={() => setIsFilterOpen(!isFilterOpen)}
-            />
+
+          {/* 🔍 search bar (client-side, current page) */}
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="relative w-full max-w-xl">
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t('searchPlaceholder') || 'Search by name, city, quartier…'}
+                className="w-full h-12 rounded-xl border px-4 outline-none"
+              />
+              {q && (
+                <button onClick={() => setQ('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="text-sm text-neutral-500">
+              {t('searchCount', { shown: filtered.length+'/'+riads.length, total: totalCount })}
+            </div>
           </div>
+
+          <ActiveFiltersDisplay />
+
+          {loading ? (
+            <div className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+              {Array.from({ length: ITEMS_PER_PAGE }).map((_, index) => <RiadCardSkeleton key={index} />)}
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                {filtered.map((riad, index) => (
+                  <motion.div
+                    key={riad.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: (index % ITEMS_PER_PAGE) * 0.05 }}
+                  >
+                    <RiadCard riad={riad} />
+                  </motion.div>
+                ))}
+              </div>
+
+              {!loading && filtered.length === 0 && (
+                <div className="text-center py-20 border border-dashed border-gray-300 rounded-lg col-span-full">
+                  <XCircle className="w-12 h-12 mx-auto text-gray-400" />
+                  <h3 className="mt-4 text-lg font-medium text-gray-900">{t('noRiadsMatchFilters')}</h3>
+                  <p className="mt-1 text-sm text-gray-500">{t('tryAdjustingFilters')}</p>
+                </div>
+              )}
+
+              {totalPages > 1 && (
+                <div className="mt-12 flex justify-center items-center gap-4">
+                  <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page <= 1}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium">
+                    {t('page')} {page} {t('of')} {totalPages}
+                  </span>
+                  <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page >= totalPages}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="w-12 h-12 text-brand-action animate-spin" />
-          </div>
-        ) : (
-          <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {filteredRiads.map((riad, index) => (
-              <motion.div
-                key={riad.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.05 }}
-              >
-                <RiadCard riad={riad} />
-              </motion.div>
-            ))}
-          </div>
-        )}
-        { !loading && filteredRiads.length === 0 && (
-            <div className="text-center py-20 border border-dashed border-gray-300 rounded-lg">
-                <XCircle className="w-12 h-12 mx-auto text-gray-400" />
-                <h3 className="mt-4 text-lg font-medium text-gray-900">{t('noRiadsMatchFilters')}</h3>
-                <p className="mt-1 text-sm text-gray-500">Try adjusting or resetting your filters.</p>
-            </div>
-        )}
+        <FilterDrawer
+          open={isFilterOpen}
+          onOpenChange={setIsFilterOpen}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          resultCount={totalCount}
+        />
       </div>
-    </div>
+    </>
   );
 };
 
