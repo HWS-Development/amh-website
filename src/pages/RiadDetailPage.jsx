@@ -402,6 +402,27 @@ const RiadDetailPage = () => {
                             <ExternalLink className="w-4 h-4 ml-1" />
                           </Link>
                         </div>
+                      <div className="space-y-3">
+                        <h3 className="font-bold text-brand-ink text-center mb-2">{t('contactInformation')}</h3>
+                        {riad.phone && (
+                          <a href={`tel:${riad.phone}`} className="flex items-center space-x-3 text-brand-ink/80 hover:text-brand-action">
+                            <Phone className="w-4 h-4" />
+                            <span>{riad.phone}</span>
+                          </a>
+                        )}
+                        {riad.email && (
+                          <a href={`mailto:${riad.email}`} className="flex items-center space-x-3 text-brand-ink/80 hover:text-brand-action">
+                            <Mail className="w-4 h-4" />
+                            <span>{riad.email}</span>
+                          </a>
+                        )}
+                        {riad.website && (
+                          <a href={riad.website} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 text-brand-ink/80 hover:text-brand-action">
+                            <Globe className="w-4 h-4" />
+                            <span>{t('visitWebsite')}</span>
+                          </a>
+                        )}
+                      </div>
                       </div>
                     )}
                   </CardContent>

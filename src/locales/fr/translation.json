@@ -170,6 +170,12 @@
   "map": "Carte",
   "learnMore": "En savoir plus",
   "whenToVisit": "Quand visiter",
+  "share": "compartir",
   "viewMore": "Voir plus",
-  "viewLess": "Voir moins"
+  "viewLess": "Voir moins",
+  "onThisPageTotal": "sur cette page · total",
+  "cardsView": "Cartes",
+  "listView": "Liste",
+  "noOptionsAvailable": "Aucune option disponible",
+  "clear": "Effacer"
 }

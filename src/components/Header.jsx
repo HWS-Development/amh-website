@@ -344,7 +344,7 @@ const Header = ({
             duration: 0.25,
             ease: "easeInOut"
           }} className="overflow- border-t border-brand-ink/10">
-                  <div className="content-wrapper py-4 flex items-end justify-center gap-10 space-y-2 z-10">
+                  <div className="content-wrapper py-4 flex flex-col md:flex-row md:items-end items-center justify-center gap-10 space-y-2 z-10">
                     {/* {navLinks.map(link => <Link key={link.labelKey} to={link.dropdown ? '#' : link.href} onClick={e => {
                 if (link.href === '#') handleFeatureClick(e, link.href);
                 if (link.dropdown) e.preventDefault();

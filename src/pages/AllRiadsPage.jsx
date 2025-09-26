@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
-import { Filter, XCircle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import {
+  Filter,
+  XCircle,
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  LayoutGrid,
+  List
+} from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import RiadCard from '@/components/RiadCard';
@@ -14,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 
 const ITEMS_PER_PAGE = 12;
 
+/* ===== Skeletons ===== */
 const RiadCardSkeleton = () => (
   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
     <div className="w-full h-56 bg-gray-200 animate-pulse"></div>
@@ -31,12 +42,87 @@ const RiadCardSkeleton = () => (
   </div>
 );
 
+const RiadListSkeleton = () => (
+  <div className="flex items-stretch gap-4 p-4 border border-gray-200 rounded-xl bg-white">
+    <div className="h-28 w-36 md:h-32 md:w-40 bg-gray-200 animate-pulse rounded-lg" />
+    <div className="flex-1">
+      <div className="h-5 w-2/3 bg-gray-200 animate-pulse rounded mb-2" />
+      <div className="h-4 w-1/5 bg-gray-200 animate-pulse rounded mb-3" />
+      <div className="h-4 w-1/2 bg-gray-200 animate-pulse rounded mb-4" />
+      <div className="h-9 w-28 bg-gray-200 animate-pulse rounded" />
+    </div>
+  </div>
+);
+
+/* ===== List item for list view ===== */
+const RiadListItem = ({ riad }) => {
+  return (
+    <div className="group flex flex-col md:flex-row items-stretch gap-4 p-4 border border-gray-200 rounded-xl bg-white hover:shadow-md transition">
+      <div className="relative shrink-0">
+        <img
+          src={riad.imageUrl}
+          alt={riad.name}
+          className="h-40 w-full md:h-32 md:w-48 rounded-lg object-cover"
+          loading="lazy"
+        />
+        {riad.google_rating ? (
+          <div className="absolute bottom-2 left-2 rounded-md bg-white/90 px-2 py-0.5 text-xs font-semibold shadow">
+            ★ {Number(riad.google_rating).toFixed(1)} {riad.google_reviews_count ? `(${riad.google_reviews_count})` : ''}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900 truncate">{riad.name}</h3>
+          {riad.property_type && (
+            <span className="text-xs rounded-md border px-2 py-1 text-gray-600">{riad.property_type}</span>
+          )}
+        </div>
+        <p className="mt-1 text-sm text-gray-600">
+          {[riad.quartier, riad.area, riad.city].filter(Boolean).join(' · ')}
+        </p>
+
+        {!!(riad.amenities && riad.amenities.length) && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {riad.amenities.slice(0, 5).map((a, i) => (
+              <span key={i} className="text-xs rounded-full bg-gray-100 px-2 py-1 text-gray-700">
+                {a}
+              </span>
+            ))}
+            {riad.amenities.length > 5 && (
+              <span className="text-xs text-gray-500">+{riad.amenities.length - 5}</span>
+            )}
+          </div>
+        )}
+
+        <div className="mt-3">
+          {riad.sblink ? (
+            <a
+              href={riad.sblink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-gray-50"
+            >
+              View details
+            </a>
+          ) : (
+            <span className="inline-flex h-9 items-center rounded-md border px-3 text-sm text-gray-400">
+              Details
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AllRiadsPage = () => {
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
 
   // data
-  const [riadsAll, setRiadsAll] = useState([]);     // full set for current filters (search uses this)
+  const [riadsAll, setRiadsAll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -45,7 +131,7 @@ const AllRiadsPage = () => {
   const [q, setQ] = useState('');
   const isSearching = q.trim().length > 0;
 
-  // url params (server-side filters + sort + page)
+  // url params (server-side filters + sort + page + view)
   const [query, setQuery] = useQueryParams({
     amenities: ArrayParam,
     cities: ArrayParam,
@@ -54,7 +140,10 @@ const AllRiadsPage = () => {
     rating: StringParam,
     sort: StringParam,
     page: NumberParam,
+    view: StringParam
   });
+
+  const view = (query.view === 'list' || query.view === 'cards') ? query.view : 'cards';
 
   const filters = useMemo(() => ({
     amenities: query.amenities || [],
@@ -66,6 +155,8 @@ const AllRiadsPage = () => {
 
   const sort = query.sort || 'rating_desc';
   const page = query.page || 1;
+
+  const setView = (v) => setQuery({ view: v }, 'push');
 
   const handleFiltersChange = useCallback((newFilters) => {
     setQuery({
@@ -94,7 +185,7 @@ const AllRiadsPage = () => {
         p_rating:    filters.rating ? parseFloat(filters.rating) : null,
         p_sort: sort,
         p_page: 1,
-        p_page_size: 1000, // big enough for your dataset (~200)
+        p_page_size: 1000,
         p_lang: currentLanguage
       };
 
@@ -210,7 +301,8 @@ const AllRiadsPage = () => {
               <p className="body-text mt-2">{t('exploreAllOurCertifiedRiads')}</p>
             </div>
 
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-3">
+              {/* Sort */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="h-12 w-48 justify-between">
@@ -224,6 +316,8 @@ const AllRiadsPage = () => {
                   <DropdownMenuItem onClick={() => handleSortChange('name_desc')}>{t('sort_name_desc')}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* Filters */}
               <Button
                 variant="outline"
                 className="flex items-center space-x-2 rounded-sm h-12 min-w-[48px]"
@@ -232,6 +326,26 @@ const AllRiadsPage = () => {
                 <Filter className="w-5 h-5" />
                 <span className="hidden sm:inline">{t('filters')}</span>
               </Button>
+
+              {/* View toggle */}
+              <div className="flex rounded-md border overflow-hidden">
+                <button
+                  aria-label="Cards view"
+                  className={`inline-flex items-center gap-1 px-3 h-12 text-sm ${view === 'cards' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                  onClick={() => setView('cards')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  <span className="hidden md:inline">{t('cardsView')}</span>
+                </button>
+                <button
+                  aria-label="List view"
+                  className={`inline-flex items-center gap-1 px-3 h-12 text-sm border-l ${view === 'list' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                  onClick={() => setView('list')}
+                >
+                  <List className="h-4 w-4" />
+                  <span className="hidden md:inline">{t('listView')}</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -249,38 +363,60 @@ const AllRiadsPage = () => {
                   onClick={() => setQ('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500"
                 >
-                  Clear
+                  {t('clear')}
                 </button>
               )}
             </div>
             <div className="text-sm text-neutral-500">
               {isSearching
                 ? `${filteredAll.length} ${t('results') || 'results'}`
-                : `${paged.length}/${filteredAll.length} ${t('onThisPageTotal') || 'on this page · total'}`}
+                : `${Math.min(paged.length, ITEMS_PER_PAGE)}/${filteredAll.length} ${t('onThisPageTotal') || 'on this page · total'}`}
             </div>
           </div>
 
           <ActiveFiltersDisplay />
 
           {loading ? (
-            <div className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-              {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => <RiadCardSkeleton key={i} />)}
-            </div>
+            view === 'cards' ? (
+              <div className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => <RiadCardSkeleton key={i} />)}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => <RiadListSkeleton key={i} />)}
+              </div>
+            )
           ) : (
             <>
-              <div className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-                {(isSearching ? filteredAll : paged).map((riad, index) => (
-                  <motion.div
-                    key={riad.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: (index % ITEMS_PER_PAGE) * 0.05 }}
-                  >
-                    <RiadCard riad={riad} />
-                  </motion.div>
-                ))}
-              </div>
+              {view === 'cards' ? (
+                <div className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                  {(isSearching ? filteredAll : paged).map((riad, index) => (
+                    <motion.div
+                      key={riad.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: (index % ITEMS_PER_PAGE) * 0.05 }}
+                    >
+                      <RiadCard riad={riad} />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {(isSearching ? filteredAll : paged).map((riad, index) => (
+                    <motion.div
+                      key={riad.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, delay: (index % ITEMS_PER_PAGE) * 0.03 }}
+                    >
+                      <RiadListItem riad={riad} />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
 
+              {/* Empty state */}
               {!loading && (isSearching ? filteredAll.length === 0 : paged.length === 0) && (
                 <div className="text-center py-20 border border-dashed border-gray-300 rounded-lg col-span-full">
                   <XCircle className="w-12 h-12 mx-auto text-gray-400" />

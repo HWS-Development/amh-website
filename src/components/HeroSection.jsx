@@ -10,7 +10,7 @@ const heroSlidesData = {
     {
       destination: 'Marrakech',
       title: 'Discover Authentic Moroccan Riads',
-      subtitle: 'Over 250 licensed riads in Marrakech, Essaouira & Ouarzazate.',
+      subtitle: 'Over 250 listed riads and guesthouses in Marrakech, Essaouira & Ouarzazate!',
       tagline: 'The vibrant heart of Morocco',
       riadCount: 190,
       availableText: 'available riads',
@@ -45,7 +45,7 @@ const heroSlidesData = {
     {
       destination: 'Marrakech',
       title: 'Découvrez d\'Authentiques Riads Marocains',
-      subtitle: 'Plus de 250 riads autorisés à Marrakech, Essaouira & Ouarzazate.',
+      subtitle: 'Plus de 250 riads et maisons d´hôtes classés à Marrakech, Essaouira & Ouarzazate!',
       tagline: 'Le cœur vibrant du Maroc',
       riadCount: 190,
       availableText: 'riads disponibles',
@@ -80,7 +80,7 @@ const heroSlidesData = {
     {
       destination: 'Marrakech',
       title: 'Descubra Auténticos Riads Marroquíes',
-      subtitle: 'Más de 250 riads con licencia en Marrakech, Esauira y Uarzazat.',
+      subtitle: 'Más de 250 riads y casas de huéspedes clasificados en Marrakech, Esauira y Uarzazat!',
       tagline: 'El vibrante corazón de Marruecos',
       riadCount: 190,
       availableText: 'riads disponibles',

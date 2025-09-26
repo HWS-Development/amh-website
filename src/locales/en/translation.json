@@ -170,6 +170,12 @@
   "map": "Map",
   "learnMore": "Learn More",
   "whenToVisit": "When to Visit",
+  "share": "share",
   "viewMore": "View more",
-  "viewLess": "View less"
+  "viewLess": "View less",
+  "onThisPageTotal": "on this page · total",
+  "cardsView": "Cards",
+  "noOptionsAvailable": "no options available",
+  "listView": "List",
+  "clear": "Clear"
 }

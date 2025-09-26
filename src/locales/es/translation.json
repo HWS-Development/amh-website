@@ -132,6 +132,12 @@
   "map": "Mapa",
   "learnMore": "Saber más",
   "whenToVisit": "Cuándo visitar",
+  "share": "share",
   "viewMore": "Ver más",
-  "viewLess": "Ver menos"
+  "viewLess": "Ver menos",
+  "onThisPageTotal": "en esta página · total",
+  "cardsView": "Tarjetas",
+  "listView": "Lista",
+  "noOptionsAvailable": "No hay opciones disponibles",
+  "clear": "Borrar"
 }
