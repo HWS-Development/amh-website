@@ -1,13 +1,14 @@
-import React from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Check } from 'lucide-react';
 
 const DestinationGoodToKnow = ({ goodToKnow, sectionRef }) => {
+  const { t } = useLanguage();
   if (!goodToKnow || goodToKnow.length === 0) return null;
 
   return (
     <section id="good-to-know" ref={sectionRef} className="bg-brand-ink/5 section-padding">
       <div className="content-wrapper text-column">
-        <h2 className="h2-style text-center mb-12">Good to Know</h2>
+        <h2 className="h2-style text-center mb-12">{t('goodToKnow')}</h2>
         <ul className="space-y-4">
           {goodToKnow.map((item, index) => (
             <li key={index} className="flex items-start">

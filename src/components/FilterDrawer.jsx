@@ -41,7 +41,7 @@ import React, { useState, useEffect, useMemo } from 'react';
           if (!open) return;
           setLoading(true);
 
-          let query = supabase.from('riads').select('city, amenities');
+          let query = supabase.from('mgh_properties').select('city, amenities');
           
           const { data, error } = await query;
           
@@ -67,7 +67,7 @@ import React, { useState, useEffect, useMemo } from 'react';
             }
 
             setLoadingDependents(true);
-            let query = supabase.from('riads').select('quartier').in('city', selectedCities);
+            let query = supabase.from('mgh_properties').select('quartier').in('city', selectedCities);
 
             const { data, error } = await query;
 

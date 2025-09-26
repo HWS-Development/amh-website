@@ -25,13 +25,14 @@ export default function FeaturedDestinations() {
 
   useEffect(() => {
     let isMounted = true;
+
     const fetchDestinations = async () => {
       setLoading(true);
       setError(null);
 
       const { data, error } = await supabase
-        .from('destinations')
-        .select('name_tr, slug, subtitle_tr, hero_image_urls, sort_order, is_published')
+        .from('mgh_destinations')
+        .select('name, subtitle, slug, hero_image_urls, sort_order, is_published')
         .in('slug', ['marrakech', 'essaouira', 'ouarzazate'])
         .eq('is_published', true)
         .order('sort_order', { ascending: true, nullsFirst: false });
@@ -47,8 +48,8 @@ export default function FeaturedDestinations() {
 
       const mapped = (data || []).map((dest) => ({
         slug: dest.slug,
-        name: getTranslated(dest.name_tr, currentLanguage) || '',
-        subtitle: getTranslated(dest.subtitle_tr, currentLanguage) || '',
+        name: getTranslated(dest.name, currentLanguage) || '',
+        subtitle: getTranslated(dest.subtitle, currentLanguage) || '',
         img: dest.hero_image_urls?.[0] || null,
       }));
 
@@ -89,7 +90,7 @@ export default function FeaturedDestinations() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {destinations.map((dest, index) => {
-                const imgAlt = t('destinationAlt', { name: dest.name }); // e.g. "Vue de {{name}}"
+                const imgAlt = t('destinationAlt', { name: dest.name || '' });
                 const MotionDiv = prefersReducedMotion ? 'div' : motion.div;
 
                 return (

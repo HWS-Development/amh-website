@@ -16,27 +16,32 @@ export default function Experiences() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("experiences")
-        .select("title_tr, slug, hero_image_url, short_intro_tr, sort_order")
-        .order("sort_order", { ascending: true });
 
-      setItems(
-        (data || []).map((x) => ({
+      const { data, error } = await supabase
+        .from("mgh_experiences") // 👈 NEW TABLE
+        .select("title_tr, slug, hero_image_url, short_intro_tr, sort_order, is_published")
+        .eq("is_published", true) // 👈 plays nicely with RLS: allow public read of published rows
+        .order("sort_order", { ascending: true, nullsFirst: false });
+
+      if (error) {
+        console.error("mgh_experiences fetch error:", error);
+        setItems([]);
+      } else {
+        const mapped = (data || []).map((x) => ({
           title: getTranslated(x.title_tr, currentLanguage),
           desc: getTranslated(x.short_intro_tr, currentLanguage),
           img: x.hero_image_url,
           href: `/experiences/${x.slug}`,
-        }))
-      );
+          sort: x.sort_order ?? 9999,
+        }));
+        setItems(mapped);
+      }
+
       setLoading(false);
     })();
   }, [currentLanguage]);
 
-  const visible = useMemo(
-    () => (showAll ? items : items.slice(0, 3)),
-    [items, showAll]
-  );
+  const visible = useMemo(() => (showAll ? items : items.slice(0, 3)), [items, showAll]);
 
   return (
     <section className="section-padding bg-white">
@@ -67,7 +72,12 @@ export default function Experiences() {
                     <div className="absolute inset-0 bg-gray-200 animate-pulse" />
                   ) : (
                     <>
-                      <img src={it.img} alt={it.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" loading="lazy" />
+                      <img
+                        src={it.img}
+                        alt={it.title || "Experience"}
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                        loading="lazy"
+                      />
                       <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-black/10 to-transparent" />
                     </>
                   )}
@@ -75,14 +85,25 @@ export default function Experiences() {
                 <div className="p-6 md:p-8 flex flex-col justify-center">
                   <div className="max-w-[46ch]">
                     <h3 className="text-2xl md:text-[28px] font-extrabold text-brand-ink tracking-tight">
-                      {loading ? <span className="inline-block h-7 w-64 bg-gray-200 animate-pulse rounded" /> : it.title}
+                      {loading ? (
+                        <span className="inline-block h-7 w-64 bg-gray-200 animate-pulse rounded" />
+                      ) : (
+                        it.title
+                      )}
                     </h3>
                     <p className="mt-3 text-[15px] leading-6 text-brand-ink/70">
-                      {loading ? <span className="inline-block h-4 w-full bg-gray-200 animate-pulse rounded" /> : it.desc}
+                      {loading ? (
+                        <span className="inline-block h-4 w-full bg-gray-200 animate-pulse rounded" />
+                      ) : (
+                        it.desc
+                      )}
                     </p>
                     {!loading && (
                       <div className="mt-5">
-                        <Link to={it.href} className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow hover:shadow-md transition-all">
+                        <Link
+                          to={it.href}
+                          className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow hover:shadow-md transition-all"
+                        >
                           {t("discoverMore")} <ArrowRight className="h-4 w-4" />
                         </Link>
                       </div>
@@ -94,7 +115,6 @@ export default function Experiences() {
           ))}
         </div>
 
-        {/* View more / less */}
         {!loading && items.length > 3 && (
           <div className="mt-8 text-center">
             <button

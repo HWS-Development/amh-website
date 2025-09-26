@@ -111,7 +111,7 @@ const AllRiadsPage = () => {
 
       // optional: enrich with property_type
       const { data: types } = await supabase
-        .from('riads')
+        .from('mgh_properties')
         .select('id, property_type')
         .in('id', data.map(r => r.id));
 
@@ -127,7 +127,7 @@ const AllRiadsPage = () => {
         imageUrl: r.image_urls?.length ? r.image_urls[0]
           : 'https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png',
         amenities: r.amenities || [],
-        google_notes: r.google_notes,
+        google_rating: r.google_rating,
         google_reviews_count: r.google_reviews_count,
         sblink: r.sblink,
         property_type: typeMap[r.id] || null,

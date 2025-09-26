@@ -1,15 +1,16 @@
-import React from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Link as RouterLink } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
 const DestinationWhatToDo = ({ whatToDo, sectionRef }) => {
+  const { t } = useLanguage();
   if (!whatToDo || whatToDo.length === 0) return null;
 
   return (
     <section id="what-to-do" ref={sectionRef} className="section-padding">
       <div className="content-wrapper">
-        <h2 className="h2-style text-center mb-12">What to Do & See</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <h2 className="h2-style text-center mb-12">{t('whatToDo')}</h2>
+        <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(250px,1fr))] justify-around">
           {whatToDo.map((activity, index) => (
             <div key={index} className="bg-white rounded-none border border-[#E5E8EB] overflow-hidden group h-full flex flex-col">
               <div className="h-48 overflow-hidden relative">
@@ -20,7 +21,7 @@ const DestinationWhatToDo = ({ whatToDo, sectionRef }) => {
                 <p className="text-sm text-brand-ink/80 flex-grow">{activity.blurb}</p>
                 {activity.link_url && (
                   <RouterLink to={activity.link_url} className="text-sm font-semibold text-brand-action mt-4 inline-flex items-center">
-                    Learn More <ArrowRight className="w-4 h-4 ml-1" />
+                    {t('learnMore')} <ArrowRight className="w-4 h-4 ml-1" />
                   </RouterLink>
                 )}
               </div>

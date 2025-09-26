@@ -62,7 +62,7 @@ const RiadCard = ({ riad }) => {
   const displayedAmenities = riad.amenities ? riad.amenities.slice(0, 6) : [];
   const hiddenAmenitiesCount = riad.amenities ? riad.amenities.length - displayedAmenities.length : 0;
   
-  const rating = riad.google_notes ? parseFloat(riad.google_notes) : null;
+  const rating = riad.google_rating ? parseFloat(riad.google_rating) : null;
   const reviewCount = riad.google_reviews_count || null;
   const propertyType = getTranslated(riad.property_type, currentLanguage);
 

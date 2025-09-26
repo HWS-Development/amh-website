@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -9,7 +9,7 @@ import { getTranslated } from '@/lib/utils';
 const RelatedExperiencesSlider = ({ experienceSlugs }) => {
   const [experiences, setExperiences] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { currentLanguage } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
 
   useEffect(() => {
     const fetchExperiences = async () => {
@@ -44,7 +44,7 @@ const RelatedExperiencesSlider = ({ experienceSlugs }) => {
   return (
     <section className="section-padding">
       <div className="content-wrapper">
-        <h2 className="h2-style text-center mb-12">Related Experiences</h2>
+        <h2 className="h2-style text-center mb-12">{t('learnMore')}</h2>
         <Carousel
           opts={{
             align: "start",
@@ -72,7 +72,7 @@ const RelatedExperiencesSlider = ({ experienceSlugs }) => {
                           <h3 className="text-2xl font-bold font-display mb-2">{exp.title}</h3>
                           <p className="text-white/90 text-sm mb-4">{exp.short_intro}</p>
                           <span className="flex items-center gap-2 font-semibold text-white">
-                            Discover More
+                           {t('discoverMore')}
                             <ArrowRight className="w-4 h-4" />
                           </span>
                         </div>

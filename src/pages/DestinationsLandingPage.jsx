@@ -16,7 +16,7 @@ const DestinationsLandingPage = () => {
         const fetchDestinations = async () => {
             setLoading(true);
             const { data, error } = await supabase
-                .from('destinations')
+                .from('mgh_destinations')
                 .select('name_tr, slug, subtitle_tr, hero_image_urls')
                 .eq('is_published', true)
                 .order('sort_order');

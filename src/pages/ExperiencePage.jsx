@@ -51,7 +51,7 @@ const ExperiencePage = () => {
     const fetchExperience = async () => {
       setLoading(true);
       const { data, error } = await supabase
-        .from('experiences')
+        .from('mgh_experiences')
         .select('*')
         .eq('slug', slug)
         .single();
@@ -76,7 +76,7 @@ const ExperiencePage = () => {
 
     const fetchRecommendedRiads = async (riadIds) => {
       const { data, error } = await supabase
-        .from('riads')
+        .from('mgh_properties')
         .select('*')
         .in('id', riadIds);
 
@@ -92,7 +92,7 @@ const ExperiencePage = () => {
           imageDescription: `Image of ${getTranslated(riad.name_tr, currentLanguage)}`,
           amenities: riad.amenities || [],
           reviews: riad.google_reviews_count,
-          rating: riad.google_notes ? parseFloat(riad.google_notes) : 4.5,
+          rating: riad.google_rating ? parseFloat(riad.google_rating) : 4.7,
           bookNowLink: riad.sblink,
           category: 'Recommended'
         }));
@@ -172,13 +172,13 @@ const ExperiencePage = () => {
                     <Button asChild variant="ghost" className="text-brand-ink/80 hover:text-brand-ink">
                         <Link to="/#experiences">
                             <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back to Experiences
+                            {t('backToExperiences')}
                         </Link>
                     </Button>
                     <div className="hidden md:flex items-center space-x-4">
-                        <Button variant="outline" onClick={() => toast({ title: "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀" })}>Plan this Experience</Button>
+                        <Button variant="outline" onClick={() => toast({ title: "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀" })}>{t('planThisExperience')}</Button>
                         <Button asChild className="btn-action">
-                            <Link to="/all-riads">See Member Riads</Link>
+                            <Link to="/all-riads">{t('seeMemberRiads')}</Link>
                         </Button>
                     </div>
                 </div>
@@ -193,7 +193,7 @@ const ExperiencePage = () => {
                 id="overview" className="mb-12"
               >
                 <div className="prose max-w-none text-brand-ink/90 text-lg leading-relaxed">
-                  <div dangerouslySetInnerHTML={{ __html: description_rich?.replace(/##/g, '<h2 class="h2-style text-brand-ink mb-4 mt-8">').replace(/\n/g, '<br/>') }} />
+                  <div dangerouslySetInnerHTML={{ __html: description_rich?.replace(/##/g, '<h2 class="h6-style text-lg text-brand-ink mb-4 mt-8">').replace(/\n/g, '<br/>') }} />
                 </div>
               </motion.section>
 
@@ -201,7 +201,7 @@ const ExperiencePage = () => {
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} viewport={{ once: true }}
                 id="what-to-do" className="mb-12"
               >
-                <h2 className="h2-style text-brand-ink mb-6">What to Do & See</h2>
+                <h2 className="h2-style text-brand-ink mb-6">{t('whatToDo')}</h2>
                 <ul className="space-y-4">
                   {what_to_do?.map((item, index) => (
                     <li key={index} className="flex items-start space-x-4">
@@ -219,13 +219,13 @@ const ExperiencePage = () => {
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} viewport={{ once: true }}
                 id="gallery"
               >
-                <h2 className="h2-style text-brand-ink mb-6">Photo Gallery</h2>
+                <h2 className="h2-style text-brand-ink mb-6">{t('photoGallery')}</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {experience.gallery_urls?.map((url, index) => (
                     <div key={index} className="aspect-square bg-gray-200 rounded-none overflow-hidden">
                       <img src={url} alt={`Gallery image ${index + 1}`} className="w-full h-full object-cover" />
                     </div>
-                  )) || <p>Gallery coming soon!</p>}
+                  )) || <p>{t('galleryComingSoon')}!</p>}
                 </div>
               </motion.section>
             </main>
@@ -236,7 +236,7 @@ const ExperiencePage = () => {
                   initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }} viewport={{ once: true }}
                   className="border border-brand-ink/10 p-6 rounded-none"
                 >
-                  <h3 className="h3-style text-brand-ink mb-4">Good to Know</h3>
+                  <h3 className="h3-style text-brand-ink mb-4">{t('goodToKnow')}</h3>
                   <ul className="space-y-4">
                     {good_to_know?.map((item, index) => (
                       <li key={index} className="flex items-start space-x-3">

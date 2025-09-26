@@ -1,12 +1,13 @@
-import React from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const DestinationMap = ({ mapUrl, destinationName, sectionRef }) => {
+  const { t } = useLanguage();
   if (!mapUrl) return null;
 
   return (
     <section id="map" ref={sectionRef} className="section-padding bg-brand-ink/5">
       <div className="content-wrapper">
-        <h2 className="h2-style text-center mb-12">Map</h2>
+        <h2 className="h2-style text-center mb-12">{t('map')}</h2>
         <div className="aspect-video">
           <iframe
             src={mapUrl}

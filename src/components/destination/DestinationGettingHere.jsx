@@ -1,4 +1,4 @@
-import React from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Plane, Train, Bus, Car, Star } from 'lucide-react';
 
 const iconMap = {
@@ -10,13 +10,14 @@ const iconMap = {
 };
 
 const DestinationGettingHere = ({ gettingHere, sectionRef }) => {
+  const { t } = useLanguage();
   if (!gettingHere || gettingHere.length === 0) return null;
 
   return (
     <section id="getting-here" ref={sectionRef} className="bg-brand-ink/5 section-padding">
       <div className="content-wrapper">
-        <h2 className="h2-style text-center mb-12">Getting Here</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <h2 className="h2-style text-center mb-12">{t('gettingHere')}</h2>
+        <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(250px,1fr))] justify-around">
           {gettingHere.map((item, index) => {
             const Icon = iconMap[item.mode] || iconMap.default;
             return (

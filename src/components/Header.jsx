@@ -57,7 +57,7 @@ const Header = ({
   const showFullHeader = !showStickyHeader;
   useEffect(() => {
     const fetchNavData = async () => {
-      const fetchExperiences = supabase.from('experiences').select('title_tr, slug').order('sort_order');
+      const fetchExperiences = supabase.from('mgh_experiences').select('title_tr, slug').order('sort_order');
       const [experiencesRes] = await Promise.all([fetchExperiences]);
       if (experiencesRes.error) {
         console.error("Error fetching experiences:", experiencesRes.error);
@@ -136,7 +136,7 @@ const Header = ({
         console.log('heyyyyyyyyyy');
         
         const { data, error } = await supabase
-          .from('riads')
+          .from('mgh_properties')
           .select(`
             id,
             name,
@@ -145,7 +145,6 @@ const Header = ({
             area,
             area_tr,
             quartier,
-            google_notes,
             google_reviews_count,
             image_urls,
             amenities,
@@ -170,7 +169,6 @@ const Header = ({
             quartier: riad.quartier,
             imageUrl: riad.image_urls && riad.image_urls.length > 0 ? riad.image_urls[0] : 'https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png',
             amenities: riad.amenities || [],
-            google_notes: riad.google_notes,
             google_reviews_count: riad.google_reviews_count,
             sblink: riad.sblink,
             property_type: riad.property_type,
@@ -240,7 +238,7 @@ const Header = ({
       }} className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-brand-ink/10">
             <div className="content-wrapper flex items-center justify-between h-20">
                 <Link to="/" className="flex items-center space-x-2">
-                  <img alt="MGH Riad logo" className="h-10 md:h-12 w-auto" src="https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/screenshot-2025-09-16-at-08.34.25-5bezC.png" />
+                  <img alt="MGH Riad logo" className="h-10 md:h-12 w-auto" src="/images/slazzer-preview-v541a.png" />
                 </Link>
                 <nav className="hidden lg:flex items-center space-x-8">
                   {navLinks.map(link => link.dropdown && link.dropdown.length > 0 ? <DropdownNav key={link.labelKey} link={link} /> : link.href === '#' ? <button key={link.labelKey} onClick={e => handleFeatureClick(e, link.href)} className="uppercase font-medium text-sm text-brand-ink hover:text-brand-action transition-colors duration-200">{t(link.labelKey)}</button> : <NavItem key={link.labelKey} to={link.href}>{t(link.labelKey)}</NavItem>)}
@@ -345,15 +343,16 @@ const Header = ({
           }} transition={{
             duration: 0.25,
             ease: "easeInOut"
-          }} className="overflow-hidden border-t border-brand-ink/10">
-                  <div className="content-wrapper py-4 flex items-center space-y-2">
-                    {navLinks.map(link => <Link key={link.labelKey} to={link.dropdown ? '#' : link.href} onClick={e => {
+          }} className="overflow- border-t border-brand-ink/10">
+                  <div className="content-wrapper py-4 flex items-end justify-center gap-10 space-y-2 z-10">
+                    {/* {navLinks.map(link => <Link key={link.labelKey} to={link.dropdown ? '#' : link.href} onClick={e => {
                 if (link.href === '#') handleFeatureClick(e, link.href);
                 if (link.dropdown) e.preventDefault();
                 setIsStickyMenuOpen(false);
               }} className="w-full text-center py-3 text-brand-ink uppercase text-sm font-medium rounded-sm hover:bg-brand-ink/5">
-                        {t(link.labelKey)}
-                      </Link>)}
+                        {t(link.labelKey)} 
+                      </Link>)} */}
+                      {navLinks.map(link => link.dropdown && link.dropdown.length > 0 ? <DropdownNav key={link.labelKey} link={link} /> : link.href === '#' ? <button key={link.labelKey} onClick={e => handleFeatureClick(e, link.href)} className="uppercase font-medium text-sm text-brand-ink hover:text-brand-action transition-colors duration-200">{t(link.labelKey)}</button> : <NavItem key={link.labelKey} to={link.href}>{t(link.labelKey)}</NavItem>)}
                   </div>
                 </motion.nav>}
             </AnimatePresence>

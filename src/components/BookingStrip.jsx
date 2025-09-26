@@ -36,7 +36,7 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
     const checkin = format(date.from, 'yyyy-MM-dd');
     const checkout = format(date.to, 'yyyy-MM-dd');
     
-    let url = `https://www.simplebooking.it/portal/256?lang=${currentLanguage.toUpperCase()}&cur=EUR&in=${checkin}&out=${checkout}&guests=A%2CA`;
+    let url = `https://www.simplebooking.it/portal/256?lang=${currentLanguage.toUpperCase()}&cur=EUR&in=${checkin}&out=${checkout}&guests=A%2CA&map=JPPSV`;
 
     if (promoCode) {
       url += `&coupon=${encodeURIComponent(promoCode)}`;

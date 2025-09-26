@@ -53,7 +53,7 @@ const CollectionPage = () => {
       }
 
       const { data, error } = await supabase
-        .from('riads')
+        .from('mgh_properties')
         .select('*')
         .contains('collections', [type]);
 

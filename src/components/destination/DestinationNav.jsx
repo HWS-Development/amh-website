@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 
 const DestinationNav = ({ destination, stickyNavRef, scrollToSection }) => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const anchorLinks = useMemo(() => [
