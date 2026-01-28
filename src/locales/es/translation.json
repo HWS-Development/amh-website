@@ -139,5 +139,8 @@
   "cardsView": "Tarjetas",
   "listView": "Lista",
   "noOptionsAvailable": "No hay opciones disponibles",
-  "clear": "Borrar"
+  "clear": "Borrar",
+  "results": "resultados",
+  "location":"Ubicación",
+  "bookNow": "Reservar ahora"
 }

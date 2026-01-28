@@ -177,5 +177,8 @@
   "cardsView": "Cartes",
   "listView": "Liste",
   "noOptionsAvailable": "Aucune option disponible",
-  "clear": "Effacer"
+  "clear": "Effacer",
+  "results": "résultats",
+  "location":"Emplacement",
+  "bookNow": "Réserver maintenant"
 }

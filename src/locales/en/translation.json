@@ -13,7 +13,7 @@
   "heroSubtitle": "Discover handpicked guest houses in Marrakech & Essaouira, certified for quality and charm.",
   "marrakech": "Marrakech",
   "essaouira": "Essaouira",
-  "ouarzazate": "Ouarzazate",  
+  "ouarzazate": "Ouarzazate",
   "agadir": "Agadir",
   "fes": "Fès",
   "trustBarTitle": "Certified by the Association of Guest Houses of Marrakech",
@@ -177,5 +177,8 @@
   "cardsView": "Cards",
   "noOptionsAvailable": "no options available",
   "listView": "List",
-  "clear": "Clear"
+  "clear": "Clear",
+  "results": "results",
+  "location":"Location",
+  "bookNow": "Book Now"
 }
