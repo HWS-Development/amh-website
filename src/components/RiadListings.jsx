@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -22,9 +22,18 @@ const RiadListings = () => {
     const fetchRiads = async () => {
       setLoading(true);
       const { data, error } = await supabase
-        .from('mgh_properties')
-        .select('*')
-        .limit(3);
+  .from('mgh_properties_final')
+  .select(`
+    id,
+    name,
+    city,
+    neighborhood,
+    amenities,
+    rating_avg,
+    reviews_count,
+    property_type
+  `)
+  .limit(3);
 
       if (error) {
         console.error('Error fetching riads:', error);

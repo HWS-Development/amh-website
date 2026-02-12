@@ -5,6 +5,7 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
+/*
 export function getTranslated(jsonb, lang, fallbackValue = '') {
   if (!jsonb) return fallbackValue;
   if (typeof jsonb === 'string') {
@@ -17,6 +18,17 @@ export function getTranslated(jsonb, lang, fallbackValue = '') {
   }
   return jsonb[lang] || jsonb['en'] || Object.values(jsonb)[0] || fallbackValue;
 }
+*/
+
+export const getTranslated = (value, lang, fallbackLang = 'fr') => {
+  if (!value) return '';
+  if (typeof value === 'object') {
+    return value[lang] || value[fallbackLang] || Object.values(value)[0];
+  }
+  return value;
+};
+
+
 
 export function getTranslatedArray(jsonb, lang, fallback = 'en') {
   if (!jsonb) return [];

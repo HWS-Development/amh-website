@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Star, MapPin } from "lucide-react";
+import { MapPin, Star } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import AmenityIcon from "@/components/AmenityIcon";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -8,29 +9,31 @@ import { useLanguage } from "@/contexts/LanguageContext";
 const FALLBACK_IMAGE =
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
 
-const RiadCard = ({ riad }) => {
+const MAX_AMENITIES = 4;
+
+const RiadListItem = ({ riad }) => {
   const { t, currentLanguage } = useLanguage();
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
 
   return (
-    <div className="h-full flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition-shadow">
+    <div className="group flex flex-col md:flex-row gap-4 p-4 bg-white border border-gray-200 rounded-2xl hover:shadow-lg transition-shadow">
       {/* IMAGE */}
-      <div className="relative">
+      <div className="relative shrink-0">
         <Link to={`/riad/${riad.id}`}>
           <img
             src={riad.imageUrl || FALLBACK_IMAGE}
             alt={riad.name}
-            className="h-56 w-full object-cover"
+            className="h-44 w-full md:h-32 md:w-52 object-cover rounded-xl"
             loading="lazy"
           />
         </Link>
 
         {hasRating && (
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-1 shadow-md">
+          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
             <Star className="w-4 h-4 text-yellow-500" fill="currentColor" />
-            <span className="font-semibold text-sm text-gray-900">
+            <span className="text-sm font-semibold">
               {riad.rating_avg.toFixed(1)}
             </span>
             {riad.reviews_count && (
@@ -43,10 +46,10 @@ const RiadCard = ({ riad }) => {
       </div>
 
       {/* CONTENT */}
-      <div className="p-4 flex flex-col flex-1">
+      <div className="flex-1 min-w-0 flex flex-col">
         {/* TITLE */}
-        <Link to={`/riad/${riad.id}`} className="min-h-[2.75rem]">
-          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 hover:text-brand-action transition-colors">
+        <Link to={`/riad/${riad.id}`}>
+          <h3 className="text-lg font-semibold text-gray-950 truncate group-hover:text-brand-action transition-colors">
             {riad.name}
           </h3>
         </Link>
@@ -57,32 +60,29 @@ const RiadCard = ({ riad }) => {
         )}
 
         {/* LOCATION */}
-        <div className="mt-2 flex items-start gap-2 text-sm text-gray-600">
+        <div className="mt-1 flex items-start gap-2 text-sm text-gray-600">
           <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
           <span className="line-clamp-1">
             {[riad.neighborhood, riad.city].filter(Boolean).join(", ")}
           </span>
         </div>
+
         {/* AMENITIES */}
         {riad.amenities?.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {riad.amenities.slice(0, 6).map((label) => (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {riad.amenities.slice(0, MAX_AMENITIES).map((label) => (
               <span
                 key={label}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
-                   bg-gray-50 border border-gray-200 text-xs text-gray-800"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f5f5f5] border border-gray-200 rounded-md text-xs font-medium text-gray-800 uppercase"
               >
-                <AmenityIcon label={label} className="w-4 h-4 text-gray-500" />
-                <span className="line-clamp-1 max-w-[11rem]">{label}</span>
+                <AmenityIcon label={label} className="w-4 h-4 text-gray-600" />
+                {label}
               </span>
             ))}
 
-            {riad.amenities.length > 6 && (
-              <span
-                className="inline-flex items-center px-2.5 py-1 rounded-full
-                   bg-gray-100 border border-gray-200 text-xs text-gray-700"
-              >
-                +{riad.amenities.length - 6}
+            {riad.amenities.length > MAX_AMENITIES && (
+              <span className="inline-flex items-center px-3 py-1.5 bg-[#f5f5f5] border border-gray-200 rounded-md text-xs font-medium text-orange-600">
+                +{riad.amenities.length - MAX_AMENITIES}
               </span>
             )}
           </div>
@@ -91,13 +91,13 @@ const RiadCard = ({ riad }) => {
         {/* CTA */}
         <div className="mt-auto pt-5">
           <div className="flex gap-2">
-            {/* More details - toujours visible */}
+            {/* More details  */}
             <Button
               asChild
               variant="outline"
               className="flex-1 h-11 rounded-xl"
             >
-              <Link to={`/riad/${riad.id}`}>{t("moreDetails")}</Link>
+              <Link to={`/riad/${riad.id}`}>More details</Link>
             </Button>
 
             {/* Réserver - seulement si simple_booking_link existe */}
@@ -122,4 +122,4 @@ const RiadCard = ({ riad }) => {
   );
 };
 
-export default RiadCard;
+export default RiadListItem;
