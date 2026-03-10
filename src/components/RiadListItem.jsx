@@ -12,7 +12,8 @@ const FALLBACK_IMAGE =
 const MAX_AMENITIES = 4;
 
 const RiadListItem = ({ riad }) => {
-  const { t, currentLanguage } = useLanguage();
+  const { t } = useLanguage();
+  const featureLabels = [...(riad.amenities || []), ...(riad.services || [])];
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
@@ -53,6 +54,11 @@ const RiadListItem = ({ riad }) => {
             {riad.name}
           </h3>
         </Link>
+        {riad.description && (
+          <p className="mt-1 text-sm text-gray-600 line-clamp-2">
+            {riad.description}
+          </p>
+        )}
 
         {/* PROPERTY TYPE */}
         {riad.propertyType && (
@@ -68,11 +74,11 @@ const RiadListItem = ({ riad }) => {
         </div>
 
         {/* AMENITIES */}
-        {riad.amenities?.length > 0 && (
+        {featureLabels.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            {riad.amenities.slice(0, MAX_AMENITIES).map((label) => (
+            {featureLabels.slice(0, MAX_AMENITIES).map((label, index) => (
               <span
-                key={label}
+                key={`${label}-${index}`}
                 className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f5f5f5] border border-gray-200 rounded-md text-xs font-medium text-gray-800 uppercase"
               >
                 <AmenityIcon label={label} className="w-4 h-4 text-gray-600" />
@@ -80,9 +86,9 @@ const RiadListItem = ({ riad }) => {
               </span>
             ))}
 
-            {riad.amenities.length > MAX_AMENITIES && (
+            {featureLabels.length > MAX_AMENITIES && (
               <span className="inline-flex items-center px-3 py-1.5 bg-[#f5f5f5] border border-gray-200 rounded-md text-xs font-medium text-orange-600">
-                +{riad.amenities.length - MAX_AMENITIES}
+                +{featureLabels.length - MAX_AMENITIES}
               </span>
             )}
           </div>

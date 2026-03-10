@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import RiadCard from "@/components/RiadCard";
 import RiadListItem from "@/components/RiadListItem";
 import FilterDrawer from "@/components/FilterDrawer";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/lib/customSupabaseClient";
 import { useToast } from "@/components/ui/use-toast";
 import { useQueryParams, StringParam, NumberParam } from "use-query-params";
@@ -26,14 +27,80 @@ const normalize = (s = "") =>
   s
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
+    .toLowerCase()
+    .trim();
+
+const slugify = (s = "") =>
+  normalize(s)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const getSlugTokens = (s = "") =>
+  slugify(s)
+    .split("-")
+    .filter(Boolean);
+
+const matchNeighborhoodParam = (entries, value) => {
+  if (!value) return null;
+
+  const normalizedValue = normalize(value);
+  const exactMatch = entries.find(
+    ([id, label]) =>
+      id === value ||
+      normalize(label) === normalizedValue ||
+      slugify(label) === normalizedValue,
+  );
+
+  if (exactMatch) return exactMatch[0];
+
+  const valueTokens = getSlugTokens(value);
+  if (valueTokens.length === 0) return null;
+
+  let bestMatch = null;
+  let bestScore = 0;
+
+  entries.forEach(([id, label]) => {
+    const labelTokens = new Set(getSlugTokens(label));
+    if (labelTokens.size === 0) return;
+
+    const sharedTokens = valueTokens.filter((token) => labelTokens.has(token));
+    const score = sharedTokens.length / valueTokens.length;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = id;
+    }
+  });
+
+  return bestScore >= 0.5 ? bestMatch : null;
+};
+
+const fetchServicesCatalog = async (language) => {
+  try {
+    return await fetchCatalog("mgh_services_catalog", language);
+  } catch {
+    return fetchCatalog("mgh_serivces_catalog", language);
+  }
+};
+
+const hasValidSimpleBookingLink = (value) => {
+  if (typeof value !== "string" || !value.trim()) return false;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
 
 const AllRiadsPage = () => {
   const [cities, setCities] = useState({});
   const [neighborhoods, setNeighborhoods] = useState({});
   const [propertyTypes, setPropertyTypes] = useState({});
-  const [amenitiesCatalog, setAmenitiesCatalog] = useState({});
+  const [quartierSlugMap, setQuartierSlugMap] = useState({});
 
+  const location = useLocation();
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
 
@@ -47,6 +114,7 @@ const AllRiadsPage = () => {
     neighborhood: null,
     amenities: [],
     rating: null,
+    onlyBookable: false,
   });
 
   const [query, setQuery] = useQueryParams({
@@ -68,20 +136,26 @@ const AllRiadsPage = () => {
           neighborhoodsArr,
           propertyTypesArr,
           amenitiesArr,
+          servicesArr,
+          quartiersArr,
           { data, error },
         ] = await Promise.all([
           fetchCatalog("mgh_cities", currentLanguage),
           fetchCatalog("mgh_neighborhoods", currentLanguage),
           fetchCatalog("mgh_property_types", currentLanguage),
           fetchCatalog("mgh_amenities_catalog", currentLanguage),
+          fetchServicesCatalog(currentLanguage).catch(() => []),
+          supabase.from("amh_quartiers").select("slug, name_tr"),
           supabase.from("mgh_properties_final").select(`
           id,
           name,
+          description,
           address,
           city_id,
           neighborhood_id,
           property_type_id,
           amenity_ids,
+          service_ids,
           image_urls,
           rating_avg,
           reviews_count,
@@ -105,11 +179,20 @@ const AllRiadsPage = () => {
         const amenitiesMap = Object.fromEntries(
           amenitiesArr.map((a) => [a.id, a.label]),
         );
+        const servicesMap = Object.fromEntries(
+          servicesArr.map((service) => [service.id, service.label]),
+        );
+        const quartiersMap = Object.fromEntries(
+          (quartiersArr.data || []).map((quartier) => [
+            quartier.slug,
+            getTranslated(quartier.name_tr, currentLanguage),
+          ]),
+        );
 
         setCities(citiesMap);
         setNeighborhoods(neighborhoodsMap);
         setPropertyTypes(propertyTypesMap);
-        setAmenitiesCatalog(amenitiesMap);
+        setQuartierSlugMap(quartiersMap);
 
         // 3️⃣ mapper les riads (MAINTENANT cities existe)
         setRiads(
@@ -117,6 +200,7 @@ const AllRiadsPage = () => {
             id: r.id,
 
             name: getTranslated(r.name, currentLanguage),
+            description: getTranslated(r.description, currentLanguage),
             address: getTranslated(r.address, currentLanguage),
 
             city_id: r.city_id,
@@ -130,6 +214,10 @@ const AllRiadsPage = () => {
             amenity_ids: r.amenity_ids || [],
             amenities: (r.amenity_ids || [])
               .map((id) => amenitiesMap[id])
+              .filter(Boolean),
+            service_ids: r.service_ids || [],
+            services: (r.service_ids || [])
+              .map((id) => servicesMap[id])
               .filter(Boolean),
 
             rating_avg: r.rating_avg,
@@ -193,6 +281,12 @@ const AllRiadsPage = () => {
       list = list.filter((r) => (r.rating_avg || 0) >= filters.rating);
     }
 
+    if (filters.onlyBookable) {
+      list = list.filter((r) =>
+        hasValidSimpleBookingLink(r.simple_booking_link),
+      );
+    }
+
     return list;
   }, [riads, search, filters]);
 
@@ -208,6 +302,89 @@ const AllRiadsPage = () => {
     if (page > totalPages) setQuery({ page: 1 }, "push");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalPages]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const cityParam = params.get("city");
+    const neighborhoodParam =
+      params.get("quartier") || params.get("neighborhood");
+    const searchParam = params.get("search");
+    const ratingParam = params.get("rating");
+    const amenitiesParam = params.get("amenities");
+
+    if (
+      !cityParam &&
+      !neighborhoodParam &&
+      !searchParam &&
+      !ratingParam &&
+      !amenitiesParam
+    ) {
+      return;
+    }
+
+    const matchByIdOrLabel = (entries, value) => {
+      const normalizedValue = normalize(value);
+      return entries.find(
+        ([id, label]) =>
+          id === value ||
+          normalize(label) === normalizedValue ||
+          slugify(label) === normalizedValue,
+      )?.[0] || null;
+    };
+
+    const matchedCity = cityParam
+      ? matchByIdOrLabel(Object.entries(cities), cityParam)
+      : null;
+
+    const neighborhoodMap = new Map();
+    riads.forEach((riad) => {
+      if (!riad.neighborhood_id || !riad.neighborhood) return;
+      if (matchedCity && riad.city_id !== matchedCity) return;
+      neighborhoodMap.set(riad.neighborhood_id, riad.neighborhood);
+    });
+    const neighborhoodEntries = Array.from(neighborhoodMap.entries());
+
+    const quartierLabel =
+      neighborhoodParam && quartierSlugMap[neighborhoodParam]
+        ? quartierSlugMap[neighborhoodParam]
+        : neighborhoodParam;
+
+    const matchedNeighborhood = quartierLabel
+      ? matchNeighborhoodParam(neighborhoodEntries, quartierLabel)
+      : null;
+
+    const validAmenityIds = (amenitiesParam || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .filter((id) => riads.some((riad) => riad.amenity_ids?.includes(id)));
+
+    const nextFilters = {
+      city: matchedCity,
+      neighborhood: matchedNeighborhood,
+      amenities: validAmenityIds,
+      rating:
+        ratingParam && !Number.isNaN(Number(ratingParam))
+          ? Number(ratingParam)
+          : null,
+      onlyBookable: params.get("bookable") === "true",
+    };
+
+    setFilters((prev) => {
+      const prevSerialized = JSON.stringify(prev);
+      const nextSerialized = JSON.stringify(nextFilters);
+      return prevSerialized === nextSerialized ? prev : nextFilters;
+    });
+
+    if (typeof searchParam === "string") {
+      setSearch((prev) => (prev === searchParam ? prev : searchParam));
+    }
+
+    if (page !== 1) {
+      setQuery({ page: 1 }, "push");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, cities, neighborhoods, quartierSlugMap, riads, page]);
 
   const neighborhoodsForCity = useMemo(() => {
     if (!filters.city) return [];

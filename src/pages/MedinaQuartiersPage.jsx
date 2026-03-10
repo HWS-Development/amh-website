@@ -377,7 +377,7 @@ const MedinaQuartiersPage = () => {
                               </Link>
                             </Button>
                             <Button asChild variant="secondary" className="w-full sm:w-auto">
-                              <Link to={`/all-riads?quartier=${quartier.slug}`}>
+                              <Link to={`/all-riads?city=marrakech&quartier=${quartier.slug}`}>
                                 {t('viewGuestHousesInThisDistrict')}
                               </Link>
                             </Button>

@@ -44,6 +44,14 @@ import { fetchCatalog } from "@/lib/catalogs";
 const FALLBACK_IMAGE =
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
 
+const fetchServicesCatalog = async (language) => {
+  try {
+    return await fetchCatalog("mgh_services_catalog", language);
+  } catch {
+    return fetchCatalog("mgh_serivces_catalog", language);
+  }
+};
+
 const RiadDetailPage = () => {
   const { id } = useParams();
   const { t, currentLanguage } = useLanguage();
@@ -57,6 +65,7 @@ const RiadDetailPage = () => {
   const [neighborhoods, setNeighborhoods] = useState({});
   const [propertyTypes, setPropertyTypes] = useState({});
   const [amenitiesCatalog, setAmenitiesCatalog] = useState({});
+  const [servicesCatalog, setServicesCatalog] = useState({});
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -68,26 +77,31 @@ const RiadDetailPage = () => {
           neighborhoodsArr,
           propertyTypesArr,
           amenitiesArr,
+          servicesArr,
           { data, error },
         ] = await Promise.all([
           fetchCatalog("mgh_cities", currentLanguage),
           fetchCatalog("mgh_neighborhoods", currentLanguage),
           fetchCatalog("mgh_property_types", currentLanguage),
           fetchCatalog("mgh_amenities_catalog", currentLanguage),
+          fetchServicesCatalog(currentLanguage),
           supabase
             .from("mgh_properties_final")
             .select(
               `
     id,
     name,
+    description,
     address,
     city_id,
     neighborhood_id,
     property_type_id,
     amenity_ids,
+    service_ids,
     image_urls,
     rating_avg,
     reviews_count,
+    simple_booking_link,
     phone,
     email,
     website,
@@ -110,6 +124,9 @@ const RiadDetailPage = () => {
         );
         setAmenitiesCatalog(
           Object.fromEntries(amenitiesArr.map((a) => [a.id, a.label])),
+        );
+        setServicesCatalog(
+          Object.fromEntries(servicesArr.map((service) => [service.id, service.label])),
         );
 
         setRiad(data);
@@ -161,6 +178,7 @@ const RiadDetailPage = () => {
   if (!riad) return null;
 
   const name = getTranslated(riad.name, currentLanguage);
+  const description = getTranslated(riad.description, currentLanguage);
   const images =
     Array.isArray(riad.image_urls) && riad.image_urls.length > 0
       ? riad.image_urls
@@ -174,6 +192,9 @@ const RiadDetailPage = () => {
 
   const amenities = (riad.amenity_ids || [])
     .map((id) => amenitiesCatalog[id])
+    .filter(Boolean);
+  const services = (riad.service_ids || [])
+    .map((id) => servicesCatalog[id])
     .filter(Boolean);
 
   // Position pour la carte Leaflet
@@ -231,8 +252,8 @@ const RiadDetailPage = () => {
 
               <h1 className="text-4xl font-bold mb-2">{name}</h1>
 
-              {propertyType && (
-                <p className="text-xl text-brand-ink/70 mb-4">{propertyType}</p>
+              {description && (
+                <p className="text-base text-brand-ink/75 mb-4">{description}</p>
               )}
 
               <div className="flex items-center gap-2 text-gray-500 mb-6">
@@ -248,10 +269,27 @@ const RiadDetailPage = () => {
                 <div className="border-t pt-8">
                   <h2 className="text-2xl font-bold mb-4">{t("amenities")}</h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {amenities.map((a) => (
-                      <div key={a} className="flex items-center gap-2">
+                    {amenities.map((a, index) => (
+                      <div key={`${a}-${index}`} className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-brand-action" />
                         <span>{a}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {services.length > 0 && (
+                <div className="border-t pt-8">
+                  <h2 className="text-2xl font-bold mb-4">{t("services")}</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {services.map((service, index) => (
+                      <div
+                        key={`${service}-${index}`}
+                        className="flex items-center gap-2"
+                      >
+                        <Check className="w-4 h-4 text-brand-action" />
+                        <span>{service}</span>
                       </div>
                     ))}
                   </div>
@@ -268,13 +306,23 @@ const RiadDetailPage = () => {
                       {t("licensedAndSecure")}
                     </h3>
                   </div>
-
-                  {riad.phone && (
+                  {riad.simple_booking_link && (
                     <Button
                       asChild
-                      variant="outline"
-                      className="w-full justify-start py-4"
+                      className="w-full h-11 rounded-xl bg-brand-action text-white hover:bg-brand-action/90"
                     >
+                      <a
+                        href={riad.simple_booking_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {t("bookNow")}
+                      </a>
+                    </Button>
+                  )}
+
+                  {riad.phone && (
+                    <div className="pt-2">
                       <a
                         href={`tel:${riad.phone}`}
                         className="flex items-center gap-3 text-gray-800 hover:underline transition-all"
@@ -282,7 +330,7 @@ const RiadDetailPage = () => {
                         <Phone className="w-4 h-4" />
                         <span className="font-medium">{riad.phone}</span>
                       </a>
-                    </Button>
+                    </div>
                   )}
 
                   {riad.email && (
@@ -370,6 +418,7 @@ const RiadDetailPage = () => {
                       </div>
                     </div>
                   )}
+
                 </CardContent>
               </Card>
             </div>

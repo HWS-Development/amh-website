@@ -77,7 +77,13 @@ const FilterDrawer = ({
   };
 
   const reset = () => {
-    const r = { city: null, amenities: [], rating: null, neighborhood: null };
+    const r = {
+      city: null,
+      amenities: [],
+      rating: null,
+      neighborhood: null,
+      onlyBookable: false,
+    };
     setLocalFilters(r);
     onFiltersChange(r);
     onOpenChange(false);
@@ -126,6 +132,34 @@ const FilterDrawer = ({
                 </RadioGroup>
               </div>
 
+              {localFilters.city && neighborhoods.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-4">{t("quartier")}</h3>
+
+                  <RadioGroup
+                    value={localFilters.neighborhood || ""}
+                    onValueChange={(v) =>
+                      setLocalFilters({
+                        ...localFilters,
+                        neighborhood: v || null,
+                      })
+                    }
+                  >
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="" />
+                      <Label>{t("all")}</Label>
+                    </div>
+
+                    {neighborhoods.map((n) => (
+                      <div key={n.id} className="flex items-center gap-2">
+                        <RadioGroupItem value={n.id} />
+                        <Label>{n.label}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              )}
+
               {/* RATING */}
               <div>
                 <h3 className="font-semibold mb-4">{t("guestRating")}</h3>
@@ -156,34 +190,6 @@ const FilterDrawer = ({
                 </RadioGroup>
               </div>
 
-              {localFilters.city && neighborhoods.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-4">{t("quartier")}</h3>
-
-                  <RadioGroup
-                    value={localFilters.neighborhood || ""}
-                    onValueChange={(v) =>
-                      setLocalFilters({
-                        ...localFilters,
-                        neighborhood: v || null,
-                      })
-                    }
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="" />
-                      <Label>{t("all")}</Label>
-                    </div>
-
-                    {neighborhoods.map((n) => (
-                      <div key={n.id} className="flex items-center gap-2">
-                        <RadioGroupItem value={n.id} />
-                        <Label>{n.label}</Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
-              )}
-
               {/* AMENITIES */}
               <div>
                 <h3 className="font-semibold mb-4">{t("amenities")}</h3>
@@ -197,6 +203,22 @@ const FilterDrawer = ({
                       <Label>{a.label}</Label>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-4">{t("booking")}</h3>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={Boolean(localFilters.onlyBookable)}
+                    onCheckedChange={(checked) =>
+                      setLocalFilters({
+                        ...localFilters,
+                        onlyBookable: Boolean(checked),
+                      })
+                    }
+                  />
+                  <Label>{t("onlyShowBookableRiads")}</Label>
                 </div>
               </div>
             </div>

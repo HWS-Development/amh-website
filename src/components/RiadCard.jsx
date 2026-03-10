@@ -7,9 +7,27 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 const FALLBACK_IMAGE =
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
+const MAX_AMENITIES = 3;
+const PRIORITY_AMENITY_IDS = [
+  "pool",
+  "spa_hammam",
+  "on_site_fitness_room",
+  "on_site_restaurant_guest_table",
+  "rooftop",
+  "garden",
+];
 
 const RiadCard = ({ riad }) => {
-  const { t, currentLanguage } = useLanguage();
+  const { t } = useLanguage();
+  const amenityEntries = (riad.amenity_ids || []).map((id, index) => ({
+    id,
+    label: riad.amenities?.[index],
+  }));
+  const prioritizedAmenities = [
+    ...amenityEntries.filter((entry) => PRIORITY_AMENITY_IDS.includes(entry.id)),
+    ...amenityEntries.filter((entry) => !PRIORITY_AMENITY_IDS.includes(entry.id)),
+  ].filter((entry) => Boolean(entry.label));
+  const visibleAmenities = prioritizedAmenities.slice(0, MAX_AMENITIES);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
@@ -45,11 +63,16 @@ const RiadCard = ({ riad }) => {
       {/* CONTENT */}
       <div className="p-4 flex flex-col flex-1">
         {/* TITLE */}
-        <Link to={`/riad/${riad.id}`} className="min-h-[2.75rem]">
+        <Link to={`/riad/${riad.id}`} className="min-h-[1.2rem]">
           <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 hover:text-brand-action transition-colors">
             {riad.name}
           </h3>
         </Link>
+        {riad.description && (
+          <p className="mt-1 min-h-[2.5rem] text-sm text-gray-600 line-clamp-2">
+            {riad.description}
+          </p>
+        )}
 
         {/* PROPERTY TYPE */}
         {riad.propertyType && (
@@ -64,11 +87,11 @@ const RiadCard = ({ riad }) => {
           </span>
         </div>
         {/* AMENITIES */}
-        {riad.amenities?.length > 0 && (
+        {visibleAmenities.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {riad.amenities.slice(0, 6).map((label) => (
+            {visibleAmenities.map(({ id, label }, index) => (
               <span
-                key={label}
+                key={`${id}-${index}`}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
                    bg-gray-50 border border-gray-200 text-xs text-gray-800"
               >
@@ -77,12 +100,12 @@ const RiadCard = ({ riad }) => {
               </span>
             ))}
 
-            {riad.amenities.length > 6 && (
+            {prioritizedAmenities.length > MAX_AMENITIES && (
               <span
                 className="inline-flex items-center px-2.5 py-1 rounded-full
                    bg-gray-100 border border-gray-200 text-xs text-gray-700"
               >
-                +{riad.amenities.length - 6}
+                +{prioritizedAmenities.length - MAX_AMENITIES}
               </span>
             )}
           </div>

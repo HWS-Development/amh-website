@@ -1,5 +1,6 @@
 // src/lib/catalogs.js
 import { supabase } from "@/lib/customSupabaseClient";
+import { getTranslated } from "@/lib/utils";
 
 export const fetchCatalog = async (table, lang) => {
   const { data, error } = await supabase
@@ -10,6 +11,6 @@ export const fetchCatalog = async (table, lang) => {
 
   return data.map((row) => ({
     id: row.id,
-    label: row.label?.[lang] || row.id,
+    label: getTranslated(row.label, lang),
   }));
 };
