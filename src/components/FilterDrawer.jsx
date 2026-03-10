@@ -103,6 +103,23 @@ const FilterDrawer = ({
             </div>
           ) : (
             <div className="space-y-8">
+
+              <div>
+                <h3 className="font-semibold mb-4">{t("booking")}</h3>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={Boolean(localFilters.onlyBookable)}
+                    onCheckedChange={(checked) =>
+                      setLocalFilters({
+                        ...localFilters,
+                        onlyBookable: Boolean(checked),
+                      })
+                    }
+                  />
+                  <Label>{t("onlyShowBookableRiads")}</Label>
+                </div>
+              </div>
+              
               {/* CITY */}
               <div>
                 <h3 className="font-semibold mb-4">{t("cities")}</h3>
@@ -203,22 +220,6 @@ const FilterDrawer = ({
                       <Label>{a.label}</Label>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-4">{t("booking")}</h3>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={Boolean(localFilters.onlyBookable)}
-                    onCheckedChange={(checked) =>
-                      setLocalFilters({
-                        ...localFilters,
-                        onlyBookable: Boolean(checked),
-                      })
-                    }
-                  />
-                  <Label>{t("onlyShowBookableRiads")}</Label>
                 </div>
               </div>
             </div>
