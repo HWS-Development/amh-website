@@ -49,7 +49,7 @@
   "details": "Detalles",
   "reserve": "Reservar",
   "amenities": "Comodidades",
-  "booking": "Reserva directa",
+  "booking": "Reserva ahora",
   "pool": "Piscina",
   "hammam": "Hammam",
   "spa": "Spa",
@@ -143,7 +143,7 @@
   "noOptionsAvailable": "No hay opciones disponibles",
   "clear": "Borrar",
   "results": "resultados",
-  "onlyShowBookableRiads": "Mostrar solo los alojamientos con reserva disponible",
+  "onlyShowBookableRiads": "Reserva tu estancia directamente online aquí",
   "location":"Ubicación",
   "bookNow": "Reservar ahora"
 }
