@@ -22,8 +22,8 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
   const inputRef = useRef(null);
 
   const results = q.trim()
-    ? fuse.search(q).slice(0, 20).map(r => r.item)
-    : riads.slice(0, 12);
+    ? fuse.search(q).map(r => r.item)
+    : riads;
 
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 10); }, [open]);
   useEffect(() => { setI(0); }, [q, open]);
@@ -34,7 +34,7 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowDown") { e.preventDefault(); setI(x => Math.min(x + 1, results.length - 1)); }
       if (e.key === "ArrowUp")   { e.preventDefault(); setI(x => Math.max(x - 1, 0)); }
-      if (e.key === "Enter" && results[i]) window.location.href = `/riads/${results[i].id}`;
+      if (e.key === "Enter" && results[i]) window.location.href = `/riad/${results[i].id}`;
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
