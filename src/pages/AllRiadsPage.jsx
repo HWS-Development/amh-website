@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet";
 import { motion } from "framer-motion";
 import {
@@ -108,6 +108,8 @@ const AllRiadsPage = () => {
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const listStartRef = useRef(null);
+  const hasPaginatedRef = useRef(false);
 
   const [filters, setFilters] = useState({
     city: null,
@@ -304,6 +306,18 @@ const AllRiadsPage = () => {
   }, [totalPages]);
 
   useEffect(() => {
+    if (!hasPaginatedRef.current) {
+      hasPaginatedRef.current = true;
+      return;
+    }
+
+    listStartRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [page]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const cityParam = params.get("city");
     const neighborhoodParam =
@@ -465,6 +479,8 @@ const AllRiadsPage = () => {
             {filtered.length} {t("results")}
           </div>
         </div>
+
+        <div ref={listStartRef} className="scroll-mt-32" />
 
         {/* CONTENT */}
         {loading ? (
