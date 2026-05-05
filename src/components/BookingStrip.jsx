@@ -54,13 +54,13 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
       initial={containerVariants.initial}
       animate={containerVariants.animate}
       transition={containerVariants.transition}
-      className={cn("bg-white", isSticky && !isMobile ? 'py-0' : 'py-2')}
+      className={cn("bg-transparent", isSticky && !isMobile ? 'py-0' : 'py-0')}
     >
-      <div className={cn(!isSticky && "content-wrapper")}>
+      <div className={cn(!isSticky && !isMobile && "content-wrapper px-0")}>
         <div className={cn(
-          "bg-white grid items-stretch gap-2", 
+          "bg-white grid items-stretch gap-3 md:gap-4", 
           isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3',
-          isSticky && !isMobile ? 'shadow-none border-0 p-0' : 'border border-brand-ink/20 p-2 rounded-lg'
+          isSticky && !isMobile ? 'shadow-none border-0 p-0' : isMobile ? 'border border-brand-ink/15 p-3' : 'border-0 p-0'
         )}>
           
           <Popover>
@@ -68,15 +68,14 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal h-auto text-brand-ink hover:bg-brand-ink/5 col-span-1 border-brand-ink/20",
-                  isSticky && !isMobile ? "py-2 px-3 text-xs rounded-sm" : "py-3 rounded-sm",
-                  isMobile ? "h-14" : ""
+                  "w-full justify-start text-left font-normal h-auto text-brand-ink hover:bg-brand-ink/5 col-span-1 border-brand-ink/15",
+                  isSticky && !isMobile ? "py-2 px-3 text-xs" : isMobile ? "h-16 py-2 border-brand-ink/20" : "py-4 border-brand-ink/15 text-base shadow-sm hover:shadow-md transition-shadow"
                 )}
               >
-                <Calendar className={cn("mr-2 text-brand-ink/80", isSticky ? "h-4 w-4" : "h-5 w-5")} />
+                <Calendar className={cn("mr-3 text-brand-ink/60", isSticky ? "h-4 w-4" : isMobile ? "h-5 w-5" : "h-6 w-6")} />
                 <div className="truncate">
-                    <p className={cn("font-semibold text-brand-ink/80", isSticky ? "text-xs" : "text-xs")}>{t('selectYourDates')}</p>
-                    <p className={cn("font-medium truncate", isSticky ? "text-xs" : "text-sm")}>
+                    <p className={cn("font-semibold text-brand-ink/70 leading-tight", isSticky ? "text-xs" : isMobile ? "text-xs" : "text-sm")}>{t('selectYourDates')}</p>
+                    <p className={cn("font-medium truncate text-brand-ink", isSticky ? "text-xs" : isMobile ? "text-sm" : "text-base")}>
                         {date?.from ? (
                             date.to ? (
                             <>
@@ -92,7 +91,7 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
                 </div>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 shadow-xl" align="start">
               <CalendarComponent
                 initialFocus
                 mode="range"
@@ -106,12 +105,12 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
           </Popover>
           
           <div className={cn(
-            "relative col-span-1 flex items-center border border-brand-ink/20 rounded-sm",
-            isMobile ? "px-3 h-14" : "px-3"
+            "relative col-span-1 flex items-center border border-brand-ink/15",
+            isSticky && !isMobile ? "px-3" : isMobile ? "px-3 h-16" : "px-4 py-4 shadow-sm hover:shadow-md transition-shadow"
           )}>
-             <Tag className={cn("mr-2 text-brand-ink/80", isSticky ? "h-4 w-4" : "h-5 w-5")} />
+             <Tag className={cn("mr-3 text-brand-ink/60", isSticky ? "h-4 w-4" : isMobile ? "h-5 w-5" : "h-6 w-6")} />
              <div className="w-full">
-                 <label htmlFor="promo-code" className={cn("font-semibold text-brand-ink/80", isSticky ? "text-xs" : "text-xs")}>{t('havePromoCode')}</label>
+                 <label htmlFor="promo-code" className={cn("font-semibold text-brand-ink/70", isSticky ? "text-xs" : isMobile ? "text-xs" : "text-sm")}>{t('havePromoCode')}</label>
                  <Input
                      id="promo-code"
                      type="text"
@@ -119,8 +118,8 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
                      onChange={(e) => setPromoCode(e.target.value)}
                      placeholder={t('enterCode')}
                      className={cn(
-                       "w-full border-0 p-0 h-auto placeholder:text-brand-ink/50 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent",
-                       isSticky ? "text-xs" : "text-sm"
+                       "w-full border-0 p-0 h-auto placeholder:text-brand-ink/40 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-brand-ink font-medium",
+                       isSticky ? "text-xs" : isMobile ? "text-sm" : "text-base"
                      )}
                  />
              </div>
@@ -129,12 +128,12 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
           <Button 
             onClick={handleSearchClick}
             className={cn(
-              "w-full h-full btn-action font-bold col-span-1",
-              isSticky && !isMobile ? "text-sm py-2" : "text-base",
-              isMobile ? "h-14" : "py-5"
+              "w-full h-full btn-action font-bold col-span-1 transition-all hover:shadow-lg",
+              isSticky && !isMobile ? "text-sm py-2" : isMobile ? "h-16 text-base" : "text-lg py-4 shadow-md",
+              !isSticky && !isMobile ? "text-white font-bold tracking-wide" : ""
             )}
           >
-            <Search className={cn("mr-2", isSticky ? "h-4 w-4" : "h-5 w-5")} />
+            <Search className={cn("mr-2", isSticky ? "h-4 w-4" : isMobile ? "h-5 w-5" : "h-6 w-6")} />
             {t('findMyRiad')}
           </Button>
 

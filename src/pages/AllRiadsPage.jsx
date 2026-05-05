@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutGrid,
   List,
   ChevronLeft,
   ChevronRight,
   Filter,
+  Search,
+  Sparkles,
 } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -22,6 +24,17 @@ import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
 
 const ITEMS_PER_PAGE = 12;
+
+const shuffleArray = (array = []) => {
+  const shuffled = [...array];
+
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled;
+};
 
 const normalize = (s = "") =>
   s
@@ -197,8 +210,7 @@ const AllRiadsPage = () => {
         setQuartierSlugMap(quartiersMap);
 
         // 3️⃣ mapper les riads (MAINTENANT cities existe)
-        setRiads(
-          (data || []).map((r) => ({
+        const mappedRiads = (data || []).map((r) => ({
             id: r.id,
 
             name: getTranslated(r.name, currentLanguage),
@@ -230,8 +242,9 @@ const AllRiadsPage = () => {
                 ? r.image_urls[0]
                 : null,
             simple_booking_link: r.simple_booking_link,
-          })),
-        );
+          }));
+
+setRiads(shuffleArray(mappedRiads));
       } catch (err) {
         toast({
           variant: "destructive",
@@ -424,126 +437,222 @@ const AllRiadsPage = () => {
         <meta name="description" content={t("exploreAllOurCertifiedRiads")} />
       </Helmet>
 
-      <div className="bg-white pt-32 section-padding content-wrapper">
+      <div className="bg-gradient-to-b from-white via-white to-gray-50 pt-32 section-padding content-wrapper">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col md:flex-row justify-between mb-12 gap-6"
+        >
           <div>
-            <h1 className="h1-style">{t("allRiads")}</h1>
-            <p className="body-text mt-2">{t("exploreAllOurCertifiedRiads")}</p>
+        
+            <h1 className="h1-style bg-gradient-to-r from-brand-ink to-brand-action bg-clip-text text-transparent">
+              {t("allRiads")}
+            </h1>
+            <p className="body-text mt-3 text-gray-600">
+              {t("exploreAllOurCertifiedRiads")}
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              className="h-11 rounded-xl"
+          {/* CONTROLS */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="flex items-center gap-3"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setIsFilterOpen(true)}
+              className="h-12 px-6 rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 border border-gray-200 hover:border-gray-300 flex items-center gap-2 font-semibold text-gray-700 transition-all shadow-sm hover:shadow-md"
             >
-              <Filter className="w-4 h-4 mr-2" />
+              <Filter className="w-5 h-5" />
               {t("filters")}
-            </Button>
+            </motion.button>
 
-            <div className="flex border rounded-xl overflow-hidden h-11">
-              <button
-                onClick={() => setQuery({ view: "cards" }, "push")}
-                className={`px-3 h-11 ${
-                  view === "cards"
-                    ? "bg-black text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setQuery({ view: "list" }, "push")}
-                className={`px-3 h-11 border-l ${
-                  view === "list"
-                    ? "bg-black text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <List className="w-4 h-4" />
-              </button>
+            {/* VIEW TOGGLE */}
+            <div className="flex border border-gray-300 rounded-xl overflow-hidden bg-white shadow-sm">
+              {["cards", "list"].map((viewOption, idx) => (
+                <motion.button
+                  key={viewOption}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setQuery({ view: viewOption }, "push")}
+                  className={`px-4 h-12 font-semibold transition-all ${
+                    view === viewOption
+                      ? "bg-gradient-to-r from-brand-action to-brand-action/80 text-white shadow-lg"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {viewOption === "cards" ? (
+                    <LayoutGrid className="w-5 h-5" />
+                  ) : (
+                    <List className="w-5 h-5" />
+                  )}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* SEARCH BAR */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="mb-10"
+        >
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-action/20 to-brand-ink/20 rounded-2xl blur-lg group-hover:blur-xl transition-all opacity-0 group-hover:opacity-100"></div>
+            <div className="relative flex items-center bg-white rounded-2xl border-2 border-gray-200 hover:border-brand-action/50 transition-all shadow-lg hover:shadow-xl">
+              <Search className="w-5 h-5 text-gray-400 ml-4" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("searchPlaceholder")}
+                className="w-full h-14 bg-transparent px-4 outline-none text-gray-800 placeholder:text-gray-400"
+              />
             </div>
           </div>
-        </div>
-
-        {/* SEARCH */}
-        <div className="mb-8">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("searchPlaceholder")}
-            className="w-full h-12 border border-gray-200 rounded-2xl px-4 outline-none focus:ring-2 focus:ring-black/10"
-          />
-          <div className="mt-2 text-sm text-gray-500">
-            {filtered.length} {t("results")}
-          </div>
-        </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-3 flex items-center justify-between px-2"
+          >
+            <span className="text-sm font-semibold text-gray-600">
+              {filtered.length}{" "}
+              <span className="text-brand-action">{t("results")}</span>
+            </span>
+            {filtered.length > 0 && (
+              <span className="text-xs text-gray-500">
+                {t("page")} {page} {t("of")} {totalPages}
+              </span>
+            )}
+          </motion.div>
+        </motion.div>
 
         <div ref={listStartRef} className="scroll-mt-32" />
 
         {/* CONTENT */}
-        {loading ? (
-          <p className="text-center py-20">Loading…</p>
-        ) : view === "cards" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paged.map((riad, idx) => (
-              <motion.div
-                key={riad.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.35,
-                  delay: (idx % 12) * 0.02,
-                }}
-              >
-                <RiadCard riad={riad} />
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {paged.map((riad, idx) => (
-              <motion.div
-                key={riad.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.25,
-                  delay: (idx % 12) * 0.015,
-                }}
-              >
-                <RiadListItem riad={riad} />
-              </motion.div>
-            ))}
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center justify-center py-32"
+            >
+              <div className="text-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 border-3 border-gray-200 border-t-brand-action rounded-full mx-auto mb-4"
+                />
+                <p className="text-gray-600 font-medium">{t("loading")}</p>
+              </div>
+            </motion.div>
+          ) : paged.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-20"
+            >
+              <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-600 font-medium">{t("noResults")}</p>
+            </motion.div>
+          ) : view === "cards" ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+            >
+              {paged.map((riad, idx) => (
+                <motion.div
+                  key={riad.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{
+                    duration: 0.4,
+                    delay: (idx % 12) * 0.05,
+                  }}
+                  layout
+                >
+                  <RiadCard riad={riad} />
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-5"
+            >
+              {paged.map((riad, idx) => (
+                <motion.div
+                  key={riad.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{
+                    duration: 0.4,
+                    delay: (idx % 12) * 0.05,
+                  }}
+                  layout
+                >
+                  <RiadListItem riad={riad} />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* PAGINATION */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-12">
-            <Button
-              variant="outline"
-              className="h-11 w-11 rounded-xl"
+        {totalPages > 1 && paged.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            className="flex justify-center items-center gap-6 mt-16"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               disabled={page <= 1}
               onClick={() => setQuery({ page: page - 1 }, "push")}
+              className="h-12 w-12 rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
             >
-              <ChevronLeft />
-            </Button>
+              <ChevronLeft className="w-5 h-5 text-gray-700" />
+            </motion.button>
 
-            <span className="text-sm text-gray-700">
-              {t("page")} {page} {t("of")} {totalPages}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold text-gray-700">
+                {t("page")} <span className="text-brand-action">{page}</span>
+              </span>
+              <span className="text-gray-400">/</span>
+              <span className="text-sm font-bold text-gray-700">
+                {totalPages}
+              </span>
+            </div>
 
-            <Button
-              variant="outline"
-              className="h-11 w-11 rounded-xl"
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               disabled={page >= totalPages}
               onClick={() => setQuery({ page: page + 1 }, "push")}
+              className="h-12 w-12 rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
             >
-              <ChevronRight />
-            </Button>
-          </div>
+              <ChevronRight className="w-5 h-5 text-gray-700" />
+            </motion.button>
+          </motion.div>
         )}
       </div>
 

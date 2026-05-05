@@ -51,21 +51,9 @@ const HomePage = () => {
         <div ref={heroRef}>
           <HeroSection />
         </div>
-        <div className="md:hidden">
-          <BookingStrip date={date} onDateChange={onDateChange} isMobile={true} />
-        </div>
+    
         <AnimatePresence>
-          {showBookingStrip && (
-            <motion.div
-              className="hidden md:block transform -translate-y-1/2 z-30 relative"
-              initial={{ opacity: 0, y: "-70%" }}
-              animate={{ opacity: 1, y: "-0%" }}
-              exit={{ opacity: 0, y: "-70%" }}
-              transition={{ duration: 0.25 }}
-            >
-             <BookingStrip date={date} onDateChange={onDateChange} />
-            </motion.div>
-          )}
+        
         </AnimatePresence>
         <FeaturedDestinations />
         <FeaturedQuartiers />

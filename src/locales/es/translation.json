@@ -145,5 +145,10 @@
   "results": "resultados",
   "onlyShowBookableRiads": "Reserva tu estancia directamente online aquí",
   "location":"Ubicación",
-  "bookNow": "Reservar ahora"
+  "bookNow": "Reservar ahora",
+   "loading": "Cargando",
+  "otherPhotos": "fotos más",
+  "viewPhotos": "Ver fotos",
+  "certifiedSecure": "Certificado y seguro",
+  "googleMaps": "Google Maps"
 }

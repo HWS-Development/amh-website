@@ -183,5 +183,10 @@
   "clear": "Effacer",
   "results": "résultats",
   "location":"Emplacement",
-  "bookNow": "Réserver maintenant"
+  "bookNow": "Réserver maintenant",
+  "loading": "Chargement",
+  "otherPhotos": "autres photos",
+  "viewPhotos": "Voir les photos",
+  "certifiedSecure": "Certifié & Sécurisé",
+  "googleMaps": "Google Maps"
 }

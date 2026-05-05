@@ -183,5 +183,10 @@
   "clear": "Clear",
   "results": "results",
   "location":"Location",
-  "bookNow": "Book Now"
+  "bookNow": "Book Now",
+  "loading": "Loading",
+  "otherPhotos": "more photos",
+  "viewPhotos": "View photos",
+  "certifiedSecure": "Certified & Secure",
+  "googleMaps": "Google Maps"
 }

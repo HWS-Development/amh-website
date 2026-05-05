@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import AmenityIcon from "@/components/AmenityIcon";
+import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const FALLBACK_IMAGE =
@@ -14,6 +15,7 @@ const MAX_AMENITIES = 4;
 const RiadListItem = ({ riad }) => {
   const { t } = useLanguage();
   const featureLabels = [...(riad.amenities || []), ...(riad.services || [])];
+  const [amenitiesOpen, setAmenitiesOpen] = useState(false);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
@@ -87,9 +89,22 @@ const RiadListItem = ({ riad }) => {
             ))}
 
             {featureLabels.length > MAX_AMENITIES && (
-              <span className="inline-flex items-center px-3 py-1.5 bg-[#f5f5f5] border border-gray-200 rounded-md text-xs font-medium text-orange-600">
-                +{featureLabels.length - MAX_AMENITIES}
-              </span>
+              <>
+                <button
+                  onClick={() => setAmenitiesOpen(true)}
+                  aria-label={`Show all ${featureLabels.length} amenities and services`}
+                  className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#02162a] via-[#063a65] to-[#0b66b0] text-white rounded-md text-xs font-medium shadow-lg hover:scale-105 transition-transform"
+                >
+                  +{featureLabels.length - MAX_AMENITIES}
+                </button>
+
+                <AmenitiesModal
+                  open={amenitiesOpen}
+                  onOpenChange={setAmenitiesOpen}
+                  amenities={featureLabels}
+                  riadName={riad.name}
+                />
+              </>
             )}
           </div>
         )}

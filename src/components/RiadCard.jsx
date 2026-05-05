@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Star, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AmenityIcon from "@/components/AmenityIcon";
+import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const FALLBACK_IMAGE =
@@ -28,6 +29,7 @@ const RiadCard = ({ riad }) => {
     ...amenityEntries.filter((entry) => !PRIORITY_AMENITY_IDS.includes(entry.id)),
   ].filter((entry) => Boolean(entry.label));
   const visibleAmenities = prioritizedAmenities.slice(0, MAX_AMENITIES);
+  const [amenitiesOpen, setAmenitiesOpen] = useState(false);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
@@ -101,12 +103,22 @@ const RiadCard = ({ riad }) => {
             ))}
 
             {prioritizedAmenities.length > MAX_AMENITIES && (
-              <span
-                className="inline-flex items-center px-2.5 py-1 rounded-full
-                   bg-gray-100 border border-gray-200 text-xs text-gray-700"
-              >
-                +{prioritizedAmenities.length - MAX_AMENITIES}
-              </span>
+              <>
+                <button
+                  onClick={() => setAmenitiesOpen(true)}
+                  aria-label={`Show all ${prioritizedAmenities.length} amenities`}
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-[#02162a] via-[#063a65] to-[#0b66b0] text-white text-xs font-semibold shadow-lg transform hover:scale-105 transition-transform"
+                >
+                  +{prioritizedAmenities.length - MAX_AMENITIES}
+                </button>
+
+                <AmenitiesModal
+                  open={amenitiesOpen}
+                  onOpenChange={setAmenitiesOpen}
+                  amenities={prioritizedAmenities.map((p) => p.label)}
+                  riadName={riad.name}
+                />
+              </>
             )}
           </div>
         )}
