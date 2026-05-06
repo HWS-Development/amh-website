@@ -21,10 +21,12 @@ const poiIcons = {
     cafe: Coffee, artisan: Brush, religious: Mosque, market: ShoppingCart, other: MapPin, default: MapPin
 };
 
+const leafletCdn = import.meta.env.VITE_LEAFLET_CDN_BASE || 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1';
+
 const customIcon = new L.Icon({
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconUrl: `${leafletCdn}/images/marker-icon.png`,
+    iconRetinaUrl: `${leafletCdn}/images/marker-icon-2x.png`,
+    shadowUrl: `${leafletCdn}/images/marker-shadow.png`,
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
@@ -33,7 +35,7 @@ const customIcon = new L.Icon({
 
 const poiIcon = (type) => new L.Icon({
     iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${type === 'quartier' ? 'red' : 'blue'}.png`,
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    shadowUrl: `${leafletCdn}/images/marker-shadow.png`,
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],

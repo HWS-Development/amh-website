@@ -50,7 +50,7 @@ const RiadListings = () => {
           area: getTranslated(riad.area_tr, currentLanguage, riad.area),
           city: riad.city,
           quartier: riad.quartier,
-          imageUrl: riad.image_urls && riad.image_urls.length > 0 ? riad.image_urls[0] : "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png",
+          imageUrl: riad.image_urls && riad.image_urls.length > 0 ? riad.image_urls[0] : (import.meta.env.VITE_FALLBACK_IMAGE || "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png"),
           amenities: riad.amenities || [],
           google_reviews_count: riad.google_reviews_count,
           google_rating: riad.google_rating,

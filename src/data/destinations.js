@@ -13,11 +13,13 @@ const slugify = (text) => {
     .replace(/--+/g, '-');
 };
 
+const storageBase = import.meta.env.VITE_SUPABASE_STORAGE_BASE || 'https://dzuwwfttnigeisicqyto.supabase.co';
+
 export const destinationsData = {
   marrakech: {
     color: "#C14924",
     heroImage: "a stunning panoramic view of Marrakech's old city medina with the Koutoubia mosque at sunset",
-    heroImageUrl: "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/sign/amhimages/rotative/Marrakech_rota1.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvcm90YXRpdmUvTWFycmFrZWNoX3JvdGExLmpwZyIsImlhdCI6MTc1NDUwMDc3NCwiZXhwIjoyMDY5ODYwNzc0fQ.t8MPi000Llmo_LNpVtf5nTOI3aEguq3jPWuiUBFZpLA",
+    heroImageUrl: `${storageBase}/storage/v1/object/public/amhimages/rotative/Marrakech_rota1.jpg`,
     themes: [
       { titleKey: "marrakech_theme_heritage", slug: "heritage-icons", image: "A close-up view of the Koutoubia minaret in Marrakech with the setting sun behind it" },
       { titleKey: "marrakech_theme_souks", slug: "souks-crafts", image: "A bustling Moroccan souk with colorful spices, traditional lamps, and artisan crafts" },
@@ -70,7 +72,7 @@ export const destinationsData = {
   essaouira: {
     color: "#277DA1",
     heroImage: "panoramic view of Essaouira's historic ramparts and medina overlooking the Atlantic Ocean",
-    heroImageUrl: "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/sign/amhimages/rotative/Essaouira_rota1.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvcm90YXRpdmUvRXNzYW91aXJhX3JvdGExLmpwZyIsImlhdCI6MTc1NDUwMDcwOSwiZXhwIjo0OTA4MTAwNzA5fQ.Hkq7WQxYe2eBFS2MLUh8Erh2KbpHs3wCqvwRXAlKKNg",
+    heroImageUrl: `${storageBase}/storage/v1/object/public/amhimages/rotative/Essaouira_rota1.jpg`,
     themes: [
         { titleKey: "essaouira_theme_beach", slug: "beach-surf", image: "Kitesurfers on the windy beach of Essaouira with turquoise waves and clear sky" },
         { titleKey: "essaouira_theme_ramparts", slug: "ramparts-medina", image: "The ancient stone ramparts of Essaouira with cannons facing the Atlantic Ocean at sunset, showing the blue-and-white medina" },
@@ -124,7 +126,7 @@ export const destinationsData = {
   ouarzazate: {
     color: "#D96C06",
     heroImage: "The famous Kasbah of Ait Benhaddou near Ouarzazate at sunrise, a UNESCO World Heritage site",
-    heroImageUrl: "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/sign/amhimages/rotative/Ouarzazate_rota1.jpeg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvcm90YXRpdmUvT3VhcnphemF0ZV9yb3RhMS5qcGVnIiwiaWF0IjoxNzU0NTAwNzk3LCJleHAiOjIwNjk4NjA3OTd9.ZVqwsDonRGgbRdfn0ilj8zO9srTzSbsCe65WwlfYb6E",
+    heroImageUrl: `${storageBase}/storage/v1/object/public/amhimages/rotative/Ouarzazate_rota1.jpeg`,
     themes: [],
     sections: {
        gettingHere: {

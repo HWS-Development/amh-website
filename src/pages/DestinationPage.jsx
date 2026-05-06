@@ -117,7 +117,7 @@ const DestinationPage = () => {
           name="description"
           content={seo_description || `Explore ${name}, one of Morocco's premier destinations.`}
         />
-        <link rel="canonical" href={`https://amh.ma/destinations/${slug}`} />
+        <link rel="canonical" href={`${import.meta.env.VITE_APP_BASE_URL || 'https://amh.ma'}/destinations/${slug}`} />
         <meta property="og:title" content={seo_title || `${name} · MGH`} />
         <meta
           property="og:description"

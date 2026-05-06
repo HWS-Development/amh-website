@@ -70,7 +70,7 @@ const CollectionPage = () => {
           name: getTranslated(riad.name_tr, currentLanguage),
           location: getTranslated(riad.area_tr, currentLanguage) || riad.address,
           city: riad.city,
-          imageUrl: riad.image_urls && riad.image_urls.length > 0 ? riad.image_urls[0] : "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png",
+          imageUrl: riad.image_urls && riad.image_urls.length > 0 ? riad.image_urls[0] : (import.meta.env.VITE_FALLBACK_IMAGE || "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png"),
           imageDescription: `Image of ${getTranslated(riad.name_tr, currentLanguage)}`,
           amenities: riad.amenities || [],
           reviews: riad.google_reviews_count,

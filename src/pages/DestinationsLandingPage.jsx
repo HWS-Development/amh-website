@@ -51,7 +51,7 @@ const DestinationsLandingPage = () => {
             <Helmet>
                 <title>{`${pageTitle} · MGH`}</title>
                 <meta name="description" content={pageDescription} />
-                <link rel="canonical" href="https://amh.ma/destinations" />
+                <link rel="canonical" href={`${import.meta.env.VITE_APP_BASE_URL || 'https://amh.ma'}/destinations`} />
                 <meta property="og:title" content={`${pageTitle} · MGH`} />
                 <meta property="og:description" content={pageDescription} />
             </Helmet>

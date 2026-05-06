@@ -65,7 +65,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
 
-const FALLBACK_IMAGE =
+const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_IMAGE ||
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
 
 

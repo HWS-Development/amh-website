@@ -4,24 +4,23 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import BookingStrip from "@/components/BookingStrip";
 
+const storageBase = import.meta.env.VITE_SUPABASE_STORAGE_BASE || 'https://dzuwwfttnigeisicqyto.supabase.co';
+
 const heroSlidesData = {
   en: [
     {
       destination: "Marrakech",
-      imgSrc:
-        "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/public/amhimages/heroimageriad/jamaaelfna.webp?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvaGVyb2ltYWdlcmlhZC9oZXJvcmFrLmpwZyIsImlhdCI6MTc1NTg0NzgyMCwiZXhwIjoxOTEzNTI3ODIwfQ.E-2G7FPfVUKs6jcXz7mn4Qb-hiVWI7AoMXI0q1DVYTc",
+      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/jamaaelfna.webp`,
       imgAlt: "Historic medina and Koutoubia Mosque in Marrakech",
     },
     {
       destination: "Essaouira",
-      imgSrc:
-        "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/public/amhimages/heroimageriad/essaouira.webp?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvaGVyb2ltYWdlcmlhZC9oZXJvZXNzLmpwZyIsImlhdCI6MTc1NTg0Nzg4NywiZXhwIjoxOTEzNTI3ODg3fQ.N5OmYqBbkJgXMHOacXz2n4tisAW7uUQzFdBjKbY6ysI",
+      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/essaouira.webp`,
       imgAlt: "Coastal city of Essaouira",
     },
     {
       destination: "Ouarzazate",
-      imgSrc:
-        "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/public/amhimages/heroimageriad/ouarzazate.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvcm90YXRpdmUvT3VhcnphemF0ZV9yb3RhMS5qcGVnIiwiaWF0IjoxNzU0NTAwNzk3LCJleHAiOjIwNjk4NjA3OTd9.ZVqwsDonRGgbRdfn0ilj8zO9srTzSbsCe65WwlfYb6E",
+      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/ouarzazate.jpg`,
       imgAlt: "Ancient Kasbah and desert landscape in Ouarzazate",
     },
   ],
@@ -29,20 +28,17 @@ const heroSlidesData = {
   fr: [
     {
       destination: "Marrakech",
-      imgSrc:
-        "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/sign/amhimages/heroimageriad/herorak.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvaGVyb2ltYWdlcmlhZC9oZXJvcmFrLmpwZyIsImlhdCI6MTc1NTg0NzgyMCwiZXhwIjoxOTEzNTI3ODIwfQ.E-2G7FPfVUKs6jcXz7mn4Qb-hiVWI7AoMXI0q1DVYTc",
+      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/herorak.jpg`,
       imgAlt: "Médina historique et mosquée Koutoubia à Marrakech",
     },
     {
       destination: "Essaouira",
-      imgSrc:
-        "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/sign/amhimages/heroimageriad/heroess.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvaGVyb2ltYWdlcmlhZC9oZXJvZXNzLmpwZyIsImlhdCI6MTc1NTg0Nzg4NywiZXhwIjoxOTEzNTI3ODg3fQ.N5OmYqBbkJgXMHOacXz2n4tisAW7uUQzFdBjKbY6ysI",
+      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/heroess.jpg`,
       imgAlt: "Ville côtière d'Essaouira",
     },
     {
       destination: "Ouarzazate",
-      imgSrc:
-        "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/sign/amhimages/rotative/Ouarzazate_rota1.jpeg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvcm90YXRpdmUvT3VhcnphemF0ZV9yb3RhMS5qcGVnIiwiaWF0IjoxNzU0NTAwNzk3LCJleHAiOjIwNjk4NjA3OTd9.ZVqwsDonRGgbRdfn0ilj8zO9srTzSbsCe65WwlfYb6E",
+      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/rotative/Ouarzazate_rota1.jpeg`,
       imgAlt: "Ancienne Kasbah et paysage désertique à Ouarzazate",
     },
   ],
@@ -50,20 +46,17 @@ const heroSlidesData = {
   es: [
     {
       destination: "Marrakech",
-      imgSrc:
-        "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/sign/amhimages/heroimageriad/herorak.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvaGVyb2ltYWdlcmlhZC9oZXJvcmFrLmpwZyIsImlhdCI6MTc1NTg0NzgyMCwiZXhwIjoxOTEzNTI3ODIwfQ.E-2G7FPfVUKs6jcXz7mn4Qb-hiVWI7AoMXI0q1DVYTc",
+      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/herorak.jpg`,
       imgAlt: "Medina histórica y mezquita Kutubía en Marrakech",
     },
     {
       destination: "Essaouira",
-      imgSrc:
-        "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/sign/amhimages/heroimageriad/heroess.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvaGVyb2ltYWdlcmlhZC9oZXJvZXNzLmpwZyIsImlhdCI6MTc1NTg0Nzg4NywiZXhwIjoxOTEzNTI3ODg3fQ.N5OmYqBbkJgXMHOacXz2n4tisAW7uUQzFdBjKbY6ysI",
+      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/heroess.jpg`,
       imgAlt: "Ciudad costera de Essaouira",
     },
     {
       destination: "Ouarzazate",
-      imgSrc:
-        "https://dzuwwfttnigeisicqyto.supabase.co/storage/v1/object/sign/amhimages/rotative/Ouarzazate_rota1.jpeg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jZmUzOTdmNy0zMGUxLTQyMjktOGZhNC01ZTZhZGQ3MGE4NWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhbWhpbWFnZXMvcm90YXRpdmUvT3VhcnphemF0ZV9yb3RhMS5qcGVnIiwiaWF0IjoxNzU0NTAwNzk3LCJleHAiOjIwNjk4NjA3OTd9.ZVqwsDonRGgbRdfn0ilj8zO9srTzSbsCe65WwlfYb6E",
+      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/rotative/Ouarzazate_rota1.jpeg`,
       imgAlt: "Antigua Kasbah y paisaje desértico en Ouarzazate",
     },
   ],

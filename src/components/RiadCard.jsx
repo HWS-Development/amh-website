@@ -6,7 +6,7 @@ import AmenityIcon from "@/components/AmenityIcon";
 import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-const FALLBACK_IMAGE =
+const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_IMAGE ||
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
 const MAX_AMENITIES = 3;
 const PRIORITY_AMENITY_IDS = [
