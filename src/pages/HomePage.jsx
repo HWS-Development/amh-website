@@ -56,6 +56,7 @@ const HomePage = () => {
         
         </AnimatePresence>
         <FeaturedDestinations />
+        <FeaturedDestinations />
         <FeaturedQuartiers />
         <Experiences />
         <TrustBar />
