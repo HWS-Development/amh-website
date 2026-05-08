@@ -5,6 +5,7 @@
  * Credentials and access tokens never leave the server.
  */
 import { fetchPartnerHotels } from '../_lib/partnerClient.js';
+import { fetchPartnerHotelById } from '../_lib/partnerClient.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -13,6 +14,19 @@ export default async function handler(req, res) {
   }
 
   try {
+    const id = Array.isArray(req.query?.id) ? req.query.id[0] : req.query?.id;
+
+    if (id) {
+      const hotel = await fetchPartnerHotelById(
+        process.env.API_BASE_URL,
+        process.env.PARTNER_APP_CLIENT_ID,
+        process.env.PARTNER_APP_CLIENT_SECRET,
+        id,
+      );
+
+      return res.status(200).json({ success: true, data: hotel });
+    }
+
     const hotels = await fetchPartnerHotels(
       process.env.API_BASE_URL,
       process.env.PARTNER_APP_CLIENT_ID,

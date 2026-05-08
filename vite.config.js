@@ -182,9 +182,10 @@ function partnerApiDevPlugin() {
         return body.data;
       };
 
-      // ── Route: GET /api/partner/hotels ──
+      // ── Route: GET /api/partner/hotels[?id=:id] ──
       server.middlewares.use(async (req, res, next) => {
-        if (req.url !== '/api/partner/hotels') return next();
+        const url = new URL(req.url || '', 'http://localhost');
+        if (url.pathname !== '/api/partner/hotels') return next();
         if (req.method !== 'GET') {
           sendJson(res, 405, { success: false, error: 'Method not allowed' });
           return;
@@ -192,7 +193,20 @@ function partnerApiDevPlugin() {
 
         try {
           const { apiBaseUrl, clientId, clientSecret } = getEnv();
-          const data = await partnerFetch(apiBaseUrl, clientId, clientSecret, '/partner/hotels/content?limit=all');
+          const hotelId = url.searchParams.get('id');
+          const data = await partnerFetch(
+            apiBaseUrl,
+            clientId,
+            clientSecret,
+            hotelId ? `/partner/hotels/content/${encodeURIComponent(hotelId)}` : '/partner/hotels/content?limit=all'
+          );
+
+          if (hotelId) {
+            console.log(`[partner-api] Success — returning hotel ${hotelId}`);
+            sendJson(res, 200, { success: true, data });
+            return;
+          }
+
           const count = Array.isArray(data) ? data.length : 'N/A';
           console.log(`[partner-api] Success — returning ${count} hotels`);
           sendJson(res, 200, { success: true, data });

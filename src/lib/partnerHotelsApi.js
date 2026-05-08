@@ -50,8 +50,8 @@ export async function fetchPartnerHotels() {
  */
 export async function fetchPartnerHotelById(id) {
   try {
-    console.log(`[partnerHotelsApi] Fetching hotel ${id} from /api/partner/hotels/${id} ...`);
-    const res = await fetch(`/api/partner/hotels/${encodeURIComponent(id)}`);
+    console.log(`[partnerHotelsApi] Fetching hotel ${id} from /api/partner/hotels?id=${id} ...`);
+    const res = await fetch(`/api/partner/hotels?id=${encodeURIComponent(id)}`);
 
     const contentType = res.headers.get('content-type') || '';
 
