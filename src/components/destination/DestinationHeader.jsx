@@ -1,11 +1,12 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const DestinationHeader = ({ name, subtitle, heroImage }) => {
   const { t } = useLanguage();
   return (
     <section className="relative h-[60vh] min-h-[400px] flex items-center justify-center text-white overflow-hidden">
       {heroImage && (
-        <img src={heroImage} alt={`Hero image for ${name}`} className="absolute inset-0 w-full h-full object-cover" />
+        <OptimizedImage src={heroImage} alt={`Hero image for ${name}`} className="absolute inset-0 w-full h-full object-cover" />
       )}
       <div className="absolute inset-0 bg-brand-ink/40"></div>
       <div className="relative z-10 text-center">

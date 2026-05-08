@@ -17,6 +17,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import {
@@ -60,10 +61,10 @@ import {
 } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
-import { supabase } from "@/lib/customSupabaseClient";
 import { useToast } from "@/components/ui/use-toast";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
+import { fetchPartnerHotelById } from "@/lib/partnerHotelsApi";
 
 const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_IMAGE ||
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
@@ -674,10 +675,9 @@ const GalleryTile = ({
       ...style,
     }}
   >
-    <img
+    <OptimizedImage
       src={src}
       alt={alt}
-      loading="lazy"
       style={{
         width: "100%",
         height: "100%",
@@ -852,7 +852,7 @@ const GalleryTile = ({
                   padding: "28px 90px 60px",
                 }}
               >
-                <img
+                <OptimizedImage
                   src={url}
                   alt={`${name} ${index + 1}`}
                   style={{
@@ -919,13 +919,7 @@ const RiadDetailPage = () => {
           fetchCatalog("mgh_property_types", currentLanguage),
           fetchCatalog("mgh_amenities_catalog", currentLanguage),
           fetchServicesCatalog(currentLanguage),
-          supabase
-            .from("mgh_properties_final")
-            .select(
-              `id, name, description, address, city_id, neighborhood_id, property_type_id, amenity_ids, service_ids, image_urls, rating_avg, reviews_count, simple_booking_link, phone, email, website, latitude, longitude`,
-            )
-            .eq("id", id)
-            .single(),
+          fetchPartnerHotelById(id),
         ]);
 
         if (error) throw error;

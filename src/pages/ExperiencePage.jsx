@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import RiadCard from '@/components/RiadCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated, getTranslatedArray } from '@/lib/utils';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const iconMapping = {
   "Best Time to Visit": <Sun className="w-5 h-5 text-brand-action" />,
@@ -150,7 +151,7 @@ const ExperiencePage = () => {
       >
         <section ref={heroRef} className="relative h-[70vh] min-h-[500px] flex items-end justify-center text-white overflow-hidden">
           <motion.div className="absolute inset-0 z-0" style={{ y: heroParallax }}>
-            <img src={experience.hero_image_url} alt={title} className="w-full h-full object-cover" />
+            <OptimizedImage src={experience.hero_image_url} alt={title} className="w-full h-full object-cover" />
           </motion.div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent z-10"></div>
           <div className="relative z-20 text-center content-wrapper pb-16">
@@ -223,7 +224,7 @@ const ExperiencePage = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {experience.gallery_urls?.map((url, index) => (
                     <div key={index} className="aspect-square bg-gray-200 rounded-none overflow-hidden">
-                      <img src={url} alt={`Gallery image ${index + 1}`} className="w-full h-full object-cover" />
+                      <OptimizedImage src={url} alt={`Gallery image ${index + 1}`} className="w-full h-full object-cover" />
                     </div>
                   )) || <p>{t('galleryComingSoon')}!</p>}
                 </div>

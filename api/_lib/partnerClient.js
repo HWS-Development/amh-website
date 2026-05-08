@@ -177,3 +177,93 @@ export async function fetchPartnerHotels(apiBaseUrl, clientId, clientSecret) {
 
   return body.data;
 }
+
+/**
+ * Fetch a single partner hotel by ID.
+ * Handles token acquisition and single retry on 401.
+ *
+ * @param {string} apiBaseUrl
+ * @param {string} clientId
+ * @param {string} clientSecret
+ * @param {string} hotelId
+ * @returns {Promise<object>} hotel object
+ */
+export async function fetchPartnerHotelById(apiBaseUrl, clientId, clientSecret, hotelId) {
+  if (!apiBaseUrl || !clientId || !clientSecret) {
+    const missing = [
+      !apiBaseUrl && 'API_BASE_URL',
+      !clientId && 'PARTNER_APP_CLIENT_ID',
+      !clientSecret && 'PARTNER_APP_CLIENT_SECRET',
+    ].filter(Boolean);
+    throw new Error(`Missing partner API configuration: ${missing.join(', ')}. Check your environment variables.`);
+  }
+
+  if (!hotelId) {
+    throw new Error('Hotel ID is required.');
+  }
+
+  let token = await getValidToken(apiBaseUrl, clientId, clientSecret);
+
+  const hotelUrl = `${apiBaseUrl}/partner/hotels/content/${encodeURIComponent(hotelId)}`;
+  console.log(`[partnerClient] GET ${hotelUrl}`);
+
+  let res = await fetch(hotelUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  console.log(`[partnerClient] Hotel detail response: status=${res.status}`);
+
+  // If 401, refresh token and retry once
+  if (res.status === 401) {
+    console.log('[partnerClient] Got 401 — refreshing token and retrying...');
+    invalidateToken();
+    token = await appLogin(apiBaseUrl, clientId, clientSecret);
+    res = await fetch(hotelUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log(`[partnerClient] Hotel detail retry response: status=${res.status}`);
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  const rawBody = await res.text();
+
+  if (!res.ok) {
+    throw new Error(
+      `Hotel detail fetch failed — GET ${hotelUrl} returned ${res.status}.\n` +
+      `  Content-Type: ${contentType}\n` +
+      `  Body: ${rawBody.substring(0, 500)}`
+    );
+  }
+
+  if (!contentType.includes('application/json')) {
+    throw new Error(
+      `Hotel detail fetch — GET ${hotelUrl} returned non-JSON response.\n` +
+      `  Content-Type: ${contentType}\n` +
+      `  Body (first 300 chars): ${rawBody.substring(0, 300)}`
+    );
+  }
+
+  let body;
+  try {
+    body = JSON.parse(rawBody);
+  } catch (parseErr) {
+    throw new Error(
+      `Hotel detail fetch — could not parse JSON from GET ${hotelUrl}.\n` +
+      `  Parse error: ${parseErr.message}\n` +
+      `  Body (first 300 chars): ${rawBody.substring(0, 300)}`
+    );
+  }
+
+  if (!body.success) {
+    throw new Error(
+      `Hotel detail fetch — API returned success=false.\n` +
+      `  Message: ${body.message || 'none'}\n` +
+      `  Code: ${body.code || 'none'}\n` +
+      `  Full response: ${rawBody.substring(0, 500)}`
+    );
+  }
+
+  console.log(`[partnerClient] Success — returning hotel ${hotelId}`);
+
+  return body.data;
+}

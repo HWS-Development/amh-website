@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import Breadcrumb from '@/components/Breadcrumb';
 import NotFoundPage from '@/pages/NotFoundPage';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const poiIcons = {
     museum: Museum, monument: Landmark, souk: ShoppingBag, restaurant: Utensils,
@@ -165,11 +166,11 @@ const QuartierDetailPage = () => {
                                     <h2 className="h2-style mb-6">{t('gallery')}</h2>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="col-span-2">
-                                            <img src={translatedQuartier.images[0]} alt={translatedQuartier.name} className="w-full h-auto object-cover rounded-lg aspect-video"/>
+                                            <OptimizedImage src={translatedQuartier.images[0]} alt={translatedQuartier.name} className="w-full h-auto object-cover rounded-lg aspect-video"/>
                                         </div>
                                         {translatedQuartier.images.slice(1, 5).map((img, idx) => (
                                             <div key={idx} className="col-span-1">
-                                                 <img src={img} alt={`${translatedQuartier.name} ${idx + 2}`} className="w-full h-auto object-cover rounded-lg aspect-square"/>
+                                                 <OptimizedImage src={img} alt={`${translatedQuartier.name} ${idx + 2}`} className="w-full h-auto object-cover rounded-lg aspect-square"/>
                                             </div>
                                         ))}
                                     </div>
@@ -192,7 +193,7 @@ const QuartierDetailPage = () => {
                                                 <div key={poi.id} className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 border rounded-lg">
                                                     <div className="md:col-span-1">
                                                         {poi.images && poi.images.length > 0 && (
-                                                          <img src={poi.images[0]} alt={poi.name} className="w-full h-40 object-cover rounded-md" />
+                                                          <OptimizedImage src={poi.images[0]} alt={poi.name} className="w-full h-40 object-cover rounded-md" />
                                                         )}
                                                     </div>
                                                     <div className="md:col-span-2">

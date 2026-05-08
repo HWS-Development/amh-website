@@ -18,6 +18,7 @@ import React, { useState } from 'react';
         import DestinationsLandingPage from '@/pages/DestinationsLandingPage';
         import MedinaQuartiersPage from '@/pages/MedinaQuartiersPage';
         import QuartierDetailPage from '@/pages/QuartierDetailPage';
+        import OptimizedImage from '@/components/ui/OptimizedImage';
 
         const AppContent = () => {
           const { loading } = useAuth();
@@ -52,7 +53,7 @@ import React, { useState } from 'react';
               <Footer />
               <Toaster />
               <BackToTopButton />
-               <img 
+               <OptimizedImage 
                 src="/images/Badge-reservez-en-direct.png" 
                 alt="Réservez en Direct"
                 className="hidden md:block fixed bottom-5 left-5 w-36 z-50 cursor-pointer"

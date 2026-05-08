@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Fuse from "fuse.js";
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 export default function PropertySearchModal({ open, onClose, riads, locale = "fr" }) {
   const norm = (s) => (s || "")
@@ -66,7 +67,7 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
               onClick={() => (window.location.href = `/riad/${r.id}`)}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${i===idx ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
             >
-              <img src={r.image_urls?.[0]} alt="" className="h-14 w-20 rounded-lg object-cover" />
+              <OptimizedImage src={r.image_urls?.[0]} alt="" className="h-14 w-20 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
                 {/* <div className="truncate font-semibold">{r.name}</div> */}
                 <div className="truncate font-semibold">{r?.name_tr?.[locale] || r?.name_tr?.en || r?.name_tr?.fr || r?.name || ""}</div>

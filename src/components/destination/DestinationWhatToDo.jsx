@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { Link as RouterLink } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
@@ -14,7 +15,7 @@ const DestinationWhatToDo = ({ whatToDo, sectionRef }) => {
           {whatToDo.map((activity, index) => (
             <div key={index} className="bg-white rounded-none border border-[#E5E8EB] overflow-hidden group h-full flex flex-col">
               <div className="h-48 overflow-hidden relative">
-                {activity.image_url && <img src={activity.image_url} alt={activity.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />}
+                {activity.image_url && <OptimizedImage src={activity.image_url} alt={activity.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />}
               </div>
               <div className="p-4 flex flex-col flex-grow">
                 <h3 className="font-bold text-lg mb-2">{activity.title}</h3>

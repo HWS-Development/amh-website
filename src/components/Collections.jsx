@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { getTranslated } from '@/lib/utils';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const Collections = () => {
   const { t, currentLanguage } = useLanguage();
@@ -100,11 +101,10 @@ const Collections = () => {
                   >
                     <Card className="h-full overflow-hidden rounded-none border border-[#E5E8EB] group">
                       <div className="bg-gray-200 h-40 relative">
-                        <img
+                        <OptimizedImage
                           src={collection.imageUrl}
                           className="w-full h-full object-cover"
                           alt={collection.name}
-                          loading="lazy"
                         />
                       </div>
                       <CardContent className="p-6 flex flex-col">

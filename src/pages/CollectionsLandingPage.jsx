@@ -8,6 +8,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import { getTranslated } from '@/lib/utils';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const CollectionsLandingPage = () => {
   const { t, currentLanguage } = useLanguage();
@@ -93,11 +94,10 @@ const CollectionsLandingPage = () => {
                         className="block group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
                       >
                         <div className="relative overflow-hidden h-48">
-                          <img
+                          <OptimizedImage
                             src={collection.imageUrl}
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             alt={collection.name}
-                            loading="lazy"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                         </div>

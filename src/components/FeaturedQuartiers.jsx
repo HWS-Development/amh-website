@@ -6,6 +6,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { getTranslated } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Loader2 } from 'lucide-react';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -123,11 +124,9 @@ export default function FeaturedQuartiers() {
                 >
                   <div className="relative h-64">
                     {quartier.images?.[0] ? (
-                      <img
+                      <OptimizedImage
                         src={quartier.images[0]}
                         alt={t('quartierAlt', { name })}
-                        loading="lazy"
-                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (

@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Loader2, Search } from 'lucide-react';
 import { getTranslated } from '@/lib/utils';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -104,11 +105,9 @@ export default function FeaturedDestinations() {
                     <Link to={`/destinations/${dest.slug}`} className="block group">
                       <div className="relative overflow-hidden h-96 rounded-lg">
                         {dest.img ? (
-                          <img
+                          <OptimizedImage
                             src={dest.img}
                             alt={imgAlt}
-                            loading="lazy"
-                            decoding="async"
                             fetchPriority="low"
                             className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                           />

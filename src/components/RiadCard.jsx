@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import AmenityIcon from "@/components/AmenityIcon";
 import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_IMAGE ||
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
@@ -39,11 +40,10 @@ const RiadCard = ({ riad }) => {
       {/* IMAGE */}
       <div className="relative">
         <Link to={`/riad/${riad.id}`}>
-          <img
+          <OptimizedImage
             src={riad.imageUrl || FALLBACK_IMAGE}
             alt={riad.name}
             className="h-56 w-full object-cover"
-            loading="lazy"
           />
         </Link>
 

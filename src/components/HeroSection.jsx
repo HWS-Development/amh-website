@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import BookingStrip from "@/components/BookingStrip";
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const storageBase = import.meta.env.VITE_SUPABASE_STORAGE_BASE || 'https://dzuwwfttnigeisicqyto.supabase.co';
 
@@ -115,8 +116,7 @@ const HeroSection = () => {
           transition={{ duration: 1.25, ease: "easeInOut" }}
           className="absolute inset-0"
         >
-          <img
-            loading="lazy"
+          <OptimizedImage
             src={slide.imgSrc}
             alt={slide.imgAlt}
             className="w-full h-full object-cover brightness-110 contrast-110 saturate-110"

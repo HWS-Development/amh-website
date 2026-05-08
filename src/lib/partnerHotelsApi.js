@@ -42,3 +42,42 @@ export async function fetchPartnerHotels() {
     return { data: null, error: err };
   }
 }
+
+/**
+ * Fetch a single partner hotel by ID from our backend API route.
+ *
+ * Returns { data, error } to match the Supabase .single() interface.
+ */
+export async function fetchPartnerHotelById(id) {
+  try {
+    console.log(`[partnerHotelsApi] Fetching hotel ${id} from /api/partner/hotels/${id} ...`);
+    const res = await fetch(`/api/partner/hotels/${encodeURIComponent(id)}`);
+
+    const contentType = res.headers.get('content-type') || '';
+
+    if (!contentType.includes('application/json')) {
+      const preview = await res.text().catch(() => '');
+      const msg =
+        `Partner API route returned non-JSON (status ${res.status}, content-type: ${contentType}).\n` +
+        `  Body preview: ${preview.substring(0, 200)}`;
+      console.error('[partnerHotelsApi]', msg);
+      return { data: null, error: new Error(msg) };
+    }
+
+    const body = await res.json();
+
+    if (!res.ok || !body.success) {
+      const msg =
+        `Partner API route error (status ${res.status}):\n` +
+        `  ${body.error || body.message || JSON.stringify(body)}`;
+      console.error('[partnerHotelsApi]', msg);
+      return { data: null, error: new Error(msg) };
+    }
+
+    console.log(`[partnerHotelsApi] OK — received hotel ${id}`);
+    return { data: body.data, error: null };
+  } catch (err) {
+    console.error('[partnerHotelsApi] Network/fetch error:', err);
+    return { data: null, error: err };
+  }
+}

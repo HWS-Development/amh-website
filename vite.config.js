@@ -23,175 +23,204 @@ function partnerApiDevPlugin() {
   return {
     name: 'partner-api-dev',
     configureServer(server) {
+      // ── shared helpers ──
+      const sendJson = (res, statusCode, body) => {
+        const json = JSON.stringify(body);
+        res.writeHead(statusCode, {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(json),
+        });
+        res.end(json);
+      };
+
+      const getEnv = () => {
+        const env = loadEnv('development', process.cwd(), '');
+        const apiBaseUrl = env.API_BASE_URL;
+        const clientId = env.PARTNER_APP_CLIENT_ID;
+        const clientSecret = env.PARTNER_APP_CLIENT_SECRET;
+
+        if (!apiBaseUrl || !clientId || !clientSecret) {
+          const missing = [
+            !apiBaseUrl && 'API_BASE_URL',
+            !clientId && 'PARTNER_APP_CLIENT_ID',
+            !clientSecret && 'PARTNER_APP_CLIENT_SECRET',
+          ].filter(Boolean);
+          throw new Error(`Missing env vars: ${missing.join(', ')}. Check your .env file.`);
+        }
+
+        return { apiBaseUrl, clientId, clientSecret };
+      };
+
+      const appLogin = async (apiBaseUrl, clientId, clientSecret) => {
+        const loginUrl = `${apiBaseUrl}/apps/login`;
+        console.log(`[partner-api] POST ${loginUrl}  (clientId: ${clientId.substring(0, 16)}...)`);
+
+        const loginRes = await fetch(loginUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId, clientSecret }),
+        });
+
+        const contentType = loginRes.headers.get('content-type') || '';
+        const rawBody = await loginRes.text();
+
+        console.log(`[partner-api] Login response: status=${loginRes.status}, content-type=${contentType}, body=${rawBody.substring(0, 300)}`);
+
+        if (!loginRes.ok) {
+          throw new Error(
+            `Login failed — POST ${loginUrl} returned ${loginRes.status}.\n` +
+            `  Content-Type: ${contentType}\n` +
+            `  Body: ${rawBody.substring(0, 500)}`
+          );
+        }
+
+        if (!contentType.includes('application/json')) {
+          throw new Error(
+            `Login failed — POST ${loginUrl} returned non-JSON response.\n` +
+            `  Content-Type: ${contentType}\n` +
+            `  Body (first 300 chars): ${rawBody.substring(0, 300)}`
+          );
+        }
+
+        let loginBody;
+        try {
+          loginBody = JSON.parse(rawBody);
+        } catch (parseErr) {
+          throw new Error(
+            `Login failed — could not parse JSON from POST ${loginUrl}.\n` +
+            `  Parse error: ${parseErr.message}\n` +
+            `  Body (first 300 chars): ${rawBody.substring(0, 300)}`
+          );
+        }
+
+        const payload = loginBody.data ?? loginBody;
+        if (!payload.accessToken) {
+          throw new Error(
+            `Login succeeded (${loginRes.status}) but no accessToken in response.\n` +
+            `  Response keys: ${JSON.stringify(Object.keys(loginBody))}\n` +
+            `  Payload keys: ${JSON.stringify(Object.keys(payload))}\n` +
+            `  Full response: ${rawBody.substring(0, 500)}`
+          );
+        }
+
+        cachedToken = payload.accessToken;
+        tokenExpiresAt = Date.now() + ((payload.expiresIn || 3600) - 60) * 1000;
+        console.log(`[partner-api] Login OK — token cached, expires in ${payload.expiresIn || 3600}s`);
+        return cachedToken;
+      };
+
+      const getValidToken = async (apiBaseUrl, clientId, clientSecret) => {
+        if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken;
+        return appLogin(apiBaseUrl, clientId, clientSecret);
+      };
+
+      /**
+       * Fetch from the partner API with token management and 401 retry.
+       */
+      const partnerFetch = async (apiBaseUrl, clientId, clientSecret, endpointPath) => {
+        let token = await getValidToken(apiBaseUrl, clientId, clientSecret);
+
+        const url = `${apiBaseUrl}${endpointPath}`;
+        console.log(`[partner-api] GET ${url}`);
+
+        let apiRes = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log(`[partner-api] Response: status=${apiRes.status}`);
+
+        // retry once on 401
+        if (apiRes.status === 401) {
+          console.log('[partner-api] Got 401 — refreshing token and retrying...');
+          cachedToken = null;
+          token = await appLogin(apiBaseUrl, clientId, clientSecret);
+          apiRes = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          console.log(`[partner-api] Retry response: status=${apiRes.status}`);
+        }
+
+        const resContentType = apiRes.headers.get('content-type') || '';
+        const rawBody = await apiRes.text();
+
+        if (!apiRes.ok) {
+          throw new Error(
+            `Partner API fetch failed — GET ${url} returned ${apiRes.status}.\n` +
+            `  Content-Type: ${resContentType}\n` +
+            `  Body: ${rawBody.substring(0, 500)}`
+          );
+        }
+
+        if (!resContentType.includes('application/json')) {
+          throw new Error(
+            `Partner API fetch — GET ${url} returned non-JSON response.\n` +
+            `  Content-Type: ${resContentType}\n` +
+            `  Body (first 300 chars): ${rawBody.substring(0, 300)}`
+          );
+        }
+
+        let body;
+        try {
+          body = JSON.parse(rawBody);
+        } catch (parseErr) {
+          throw new Error(
+            `Partner API fetch — could not parse JSON from GET ${url}.\n` +
+            `  Parse error: ${parseErr.message}\n` +
+            `  Body (first 300 chars): ${rawBody.substring(0, 300)}`
+          );
+        }
+
+        if (!body.success) {
+          throw new Error(
+            `Partner API fetch — API returned success=false.\n` +
+            `  Message: ${body.message || 'none'}\n` +
+            `  Code: ${body.code || 'none'}\n` +
+            `  Full response: ${rawBody.substring(0, 500)}`
+          );
+        }
+
+        return body.data;
+      };
+
+      // ── Route: GET /api/partner/hotels ──
       server.middlewares.use(async (req, res, next) => {
-        // Only handle our specific route
         if (req.url !== '/api/partner/hotels') return next();
         if (req.method !== 'GET') {
-          res.writeHead(405, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
+          sendJson(res, 405, { success: false, error: 'Method not allowed' });
           return;
         }
 
-        const sendJson = (statusCode, body) => {
-          const json = JSON.stringify(body);
-          res.writeHead(statusCode, {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(json),
-          });
-          res.end(json);
-        };
-
         try {
-          const env = loadEnv('development', process.cwd(), '');
-          const apiBaseUrl = env.API_BASE_URL;
-          const clientId = env.PARTNER_APP_CLIENT_ID;
-          const clientSecret = env.PARTNER_APP_CLIENT_SECRET;
-
-          if (!apiBaseUrl || !clientId || !clientSecret) {
-            const missing = [
-              !apiBaseUrl && 'API_BASE_URL',
-              !clientId && 'PARTNER_APP_CLIENT_ID',
-              !clientSecret && 'PARTNER_APP_CLIENT_SECRET',
-            ].filter(Boolean);
-            console.error(`[partner-api] Missing env vars: ${missing.join(', ')}`);
-            sendJson(500, {
-              success: false,
-              error: `Missing env vars: ${missing.join(', ')}. Check your .env file.`,
-            });
-            return;
-          }
-
-          // ── helper: app login ──
-          const appLogin = async () => {
-            const loginUrl = `${apiBaseUrl}/apps/login`;
-            console.log(`[partner-api] POST ${loginUrl}  (clientId: ${clientId.substring(0, 16)}...)`);
-
-            const loginRes = await fetch(loginUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ clientId, clientSecret }),
-            });
-
-            const contentType = loginRes.headers.get('content-type') || '';
-            const rawBody = await loginRes.text();
-
-            console.log(`[partner-api] Login response: status=${loginRes.status}, content-type=${contentType}, body=${rawBody.substring(0, 300)}`);
-
-            if (!loginRes.ok) {
-              throw new Error(
-                `Login failed — POST ${loginUrl} returned ${loginRes.status}.\n` +
-                `  Content-Type: ${contentType}\n` +
-                `  Body: ${rawBody.substring(0, 500)}`
-              );
-            }
-
-            if (!contentType.includes('application/json')) {
-              throw new Error(
-                `Login failed — POST ${loginUrl} returned non-JSON response.\n` +
-                `  Content-Type: ${contentType}\n` +
-                `  Body (first 300 chars): ${rawBody.substring(0, 300)}`
-              );
-            }
-
-            let loginBody;
-            try {
-              loginBody = JSON.parse(rawBody);
-            } catch (parseErr) {
-              throw new Error(
-                `Login failed — could not parse JSON from POST ${loginUrl}.\n` +
-                `  Parse error: ${parseErr.message}\n` +
-                `  Body (first 300 chars): ${rawBody.substring(0, 300)}`
-              );
-            }
-
-            const payload = loginBody.data ?? loginBody;
-            if (!payload.accessToken) {
-              throw new Error(
-                `Login succeeded (${loginRes.status}) but no accessToken in response.\n` +
-                `  Response keys: ${JSON.stringify(Object.keys(loginBody))}\n` +
-                `  Payload keys: ${JSON.stringify(Object.keys(payload))}\n` +
-                `  Full response: ${rawBody.substring(0, 500)}`
-              );
-            }
-
-            cachedToken = payload.accessToken;
-            tokenExpiresAt = Date.now() + ((payload.expiresIn || 3600) - 60) * 1000;
-            console.log(`[partner-api] Login OK — token cached, expires in ${payload.expiresIn || 3600}s`);
-            return cachedToken;
-          };
-
-          // ── get a valid token ──
-          let token = (cachedToken && Date.now() < tokenExpiresAt)
-            ? cachedToken
-            : await appLogin();
-
-          // ── fetch hotels ──
-          const hotelsUrl = `${apiBaseUrl}/partner/hotels/content?limit=all`;
-          console.log(`[partner-api] GET ${hotelsUrl}`);
-
-          let hotelsRes = await fetch(hotelsUrl, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          console.log(`[partner-api] Hotels response: status=${hotelsRes.status}`);
-
-          // retry once on 401
-          if (hotelsRes.status === 401) {
-            console.log('[partner-api] Got 401 — refreshing token and retrying...');
-            cachedToken = null;
-            token = await appLogin();
-            hotelsRes = await fetch(hotelsUrl, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            console.log(`[partner-api] Hotels retry response: status=${hotelsRes.status}`);
-          }
-
-          const hotelsContentType = hotelsRes.headers.get('content-type') || '';
-          const hotelsRaw = await hotelsRes.text();
-
-          if (!hotelsRes.ok) {
-            throw new Error(
-              `Hotel fetch failed — GET ${hotelsUrl} returned ${hotelsRes.status}.\n` +
-              `  Content-Type: ${hotelsContentType}\n` +
-              `  Body: ${hotelsRaw.substring(0, 500)}`
-            );
-          }
-
-          if (!hotelsContentType.includes('application/json')) {
-            throw new Error(
-              `Hotel fetch failed — GET ${hotelsUrl} returned non-JSON response.\n` +
-              `  Content-Type: ${hotelsContentType}\n` +
-              `  Body (first 300 chars): ${hotelsRaw.substring(0, 300)}`
-            );
-          }
-
-          let hotelsBody;
-          try {
-            hotelsBody = JSON.parse(hotelsRaw);
-          } catch (parseErr) {
-            throw new Error(
-              `Hotel fetch — could not parse JSON from GET ${hotelsUrl}.\n` +
-              `  Parse error: ${parseErr.message}\n` +
-              `  Body (first 300 chars): ${hotelsRaw.substring(0, 300)}`
-            );
-          }
-
-          if (!hotelsBody.success) {
-            throw new Error(
-              `Hotel fetch — API returned success=false.\n` +
-              `  Message: ${hotelsBody.message || 'none'}\n` +
-              `  Code: ${hotelsBody.code || 'none'}\n` +
-              `  Full response: ${hotelsRaw.substring(0, 500)}`
-            );
-          }
-
-          const count = Array.isArray(hotelsBody.data) ? hotelsBody.data.length : 'N/A';
+          const { apiBaseUrl, clientId, clientSecret } = getEnv();
+          const data = await partnerFetch(apiBaseUrl, clientId, clientSecret, '/partner/hotels/content?limit=all');
+          const count = Array.isArray(data) ? data.length : 'N/A';
           console.log(`[partner-api] Success — returning ${count} hotels`);
-
-          sendJson(200, { success: true, data: hotelsBody.data });
+          sendJson(res, 200, { success: true, data });
         } catch (err) {
           console.error(`[partner-api] ERROR:\n${err.message}`);
-          sendJson(500, { success: false, error: err.message });
+          sendJson(res, 500, { success: false, error: err.message });
+        }
+      });
+
+      // ── Route: GET /api/partner/hotels/:id ──
+      server.middlewares.use(async (req, res, next) => {
+        const match = req.url?.match(/^\/api\/partner\/hotels\/([^/?]+)/);
+        if (!match) return next();
+        if (req.method !== 'GET') {
+          sendJson(res, 405, { success: false, error: 'Method not allowed' });
+          return;
+        }
+
+        const hotelId = decodeURIComponent(match[1]);
+
+        try {
+          const { apiBaseUrl, clientId, clientSecret } = getEnv();
+          const data = await partnerFetch(apiBaseUrl, clientId, clientSecret, `/partner/hotels/content/${encodeURIComponent(hotelId)}`);
+          console.log(`[partner-api] Success — returning hotel ${hotelId}`);
+          sendJson(res, 200, { success: true, data });
+        } catch (err) {
+          console.error(`[partner-api] ERROR (hotel ${hotelId}):\n${err.message}`);
+          sendJson(res, 500, { success: false, error: err.message });
         }
       });
     },

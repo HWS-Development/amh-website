@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/customSupabaseClient";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslated } from "@/lib/utils";
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 export default function Experiences() {
   const { t, currentLanguage } = useLanguage();
@@ -72,11 +73,10 @@ export default function Experiences() {
                     <div className="absolute inset-0 bg-gray-200 animate-pulse" />
                   ) : (
                     <>
-                      <img
+                      <OptimizedImage
                         src={it.img}
                         alt={it.title || "Experience"}
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-black/10 to-transparent" />
                     </>

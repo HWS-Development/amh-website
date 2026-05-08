@@ -5,6 +5,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated } from '@/lib/utils';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const RelatedExperiencesSlider = ({ experienceSlugs }) => {
   const [experiences, setExperiences] = useState([]);
@@ -59,11 +60,10 @@ const RelatedExperiencesSlider = ({ experienceSlugs }) => {
                   <RouterLink to={`/experiences/${exp.slug}`}>
                     <div className="h-96 overflow-hidden rounded-none group relative text-white">
                       <div className="absolute inset-0 z-0">
-                        <img
+                        <OptimizedImage
                           src={exp.hero_image_url}
                           alt={exp.title}
                           className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
-                          loading="lazy"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
                       </div>

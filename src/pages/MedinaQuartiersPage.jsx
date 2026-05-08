@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom';
 import Breadcrumb from '@/components/Breadcrumb';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Loader2, Search, SlidersHorizontal, Clock, Info, Map as MapIcon } from 'lucide-react';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const leafletCdn = import.meta.env.VITE_LEAFLET_CDN_BASE || 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1';
 
@@ -337,7 +338,7 @@ const MedinaQuartiersPage = () => {
                   >
                     <Card className="flex flex-col md:flex-row w-full">
                       <div className="md:w-1/3 xl:w-1/4">
-                        <img
+                        <OptimizedImage
                           src={quartier.images[0]}
                           alt={quartier.name}
                           className="w-full h-48 md:h-full object-cover"

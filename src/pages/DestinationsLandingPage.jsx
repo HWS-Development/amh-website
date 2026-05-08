@@ -6,6 +6,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated } from '@/lib/utils';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const DestinationsLandingPage = () => {
     const [destinations, setDestinations] = useState([]);
@@ -78,7 +79,7 @@ const DestinationsLandingPage = () => {
                                     <Link to={`/destinations/${dest.slug}`} className="block group">
                                         <div className="relative overflow-hidden h-96">
                                             {dest.hero_image_urls && dest.hero_image_urls[0] && (
-                                                <img 
+                                                <OptimizedImage 
                                                     src={dest.hero_image_urls[0]}
                                                     alt={`View of ${dest.name}`}
                                                     className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"

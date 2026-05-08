@@ -12,6 +12,7 @@ import { fetchCatalog } from '@/lib/catalogs';
 import { fetchPartnerHotels } from '@/lib/partnerHotelsApi';
 import SearchButton from './ui/SearchButton';
 import i18n from '@/i18n';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const useScroll = () => {
   const [scrollData, setScrollData] = useState({
@@ -229,7 +230,7 @@ const Header = ({
       }} className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-brand-ink/10">
             <div className="content-wrapper flex items-center justify-between h-20">
                 <Link to="/" className="flex items-center space-x-2">
-                  <img alt="MGH Riad logo" className="h-10 md:h-12 w-auto" src="/images/slazzer-preview-v541a.png" />
+                  <OptimizedImage alt="MGH Riad logo" className="h-10 md:h-12 w-auto" src="/images/slazzer-preview-v541a.png" />
                 </Link>
                 <nav className="hidden lg:flex items-center space-x-8">
                   {navLinks.map(link => link.dropdown && link.dropdown.length > 0 ? <DropdownNav key={link.labelKey} link={link} /> : link.href === '#' ? <button key={link.labelKey} onClick={e => handleFeatureClick(e, link.href)} className="uppercase font-medium text-sm text-brand-ink hover:text-brand-action transition-colors duration-200">{t(link.labelKey)}</button> : <NavItem key={link.labelKey} to={link.href}>{t(link.labelKey)}</NavItem>)}
