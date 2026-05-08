@@ -9,6 +9,7 @@ import BookingStrip from '@/components/BookingStrip';
 import { supabase } from '@/lib/customSupabaseClient';
 import { getTranslated } from '@/lib/utils';
 import { fetchCatalog } from '@/lib/catalogs';
+import { fetchPartnerHotels } from '@/lib/partnerHotelsApi';
 import SearchButton from './ui/SearchButton';
 import i18n from '@/i18n';
 
@@ -119,47 +120,13 @@ const Header = ({
 
   const fetchRiads = async () => {
     try {
-      const fetchAllProperties = async () => {
-        const pageSize = 1000;
-        let from = 0;
-        const allRows = [];
-
-        while (true) {
-          const {
-            data,
-            error
-          } = await supabase.from('mgh_properties_final').select(`
-              id,
-              name,
-              city_id,
-              neighborhood_id,
-              image_urls
-            `).order('id', {
-            ascending: true
-          }).range(from, from + pageSize - 1);
-
-          if (error) {
-            throw error;
-          }
-
-          const batch = data || [];
-          allRows.push(...batch);
-
-          if (batch.length < pageSize) {
-            break;
-          }
-
-          from += pageSize;
-        }
-
-        return allRows;
-      };
-
-      const [citiesArr, neighborhoodsArr, properties] = await Promise.all([
+      const [citiesArr, neighborhoodsArr, { data: properties, error }] = await Promise.all([
         fetchCatalog('mgh_cities', currentLanguage),
         fetchCatalog('mgh_neighborhoods', currentLanguage),
-        fetchAllProperties()
+        fetchPartnerHotels()
       ]);
+
+      if (error) throw error;
 
       const citiesMap = Object.fromEntries(citiesArr.map(city => [city.id, city.label]));
       const neighborhoodsMap = Object.fromEntries(neighborhoodsArr.map(neighborhood => [neighborhood.id, neighborhood.label]));
@@ -175,7 +142,7 @@ const Header = ({
 
       setRiads(formattedRiads);
     } catch (error) {
-      console.error('Error fetching riads:', error);
+      console.error('Error fetching riads:', error.message || error);
       setRiads([]);
     }
   };

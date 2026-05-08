@@ -22,6 +22,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useQueryParams, StringParam, NumberParam } from "use-query-params";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
+import { fetchPartnerHotels } from "@/lib/partnerHotelsApi";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -161,22 +162,7 @@ const AllRiadsPage = () => {
           fetchCatalog("mgh_amenities_catalog", currentLanguage),
           fetchServicesCatalog(currentLanguage).catch(() => []),
           supabase.from("amh_quartiers").select("slug, name_tr"),
-          supabase.from("mgh_properties_final").select(`
-          id,
-          name,
-          description,
-          address,
-          city_id,
-          neighborhood_id,
-          property_type_id,
-          amenity_ids,
-          service_ids,
-          image_urls,
-          rating_avg,
-          reviews_count,
-            simple_booking_link
-
-        `),
+          fetchPartnerHotels(),
         ]);
 
         if (error) throw error;
@@ -246,10 +232,11 @@ const AllRiadsPage = () => {
 
 setRiads(shuffleArray(mappedRiads));
       } catch (err) {
+        console.error('[AllRiadsPage] fetchData error:', err);
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Failed to load riads",
+          title: "Error loading riads",
+          description: err.message || "Failed to load riads",
         });
         setRiads([]);
       }
