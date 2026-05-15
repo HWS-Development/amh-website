@@ -1,17 +1,21 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef, useEffect } from 'react';
+import gsap from 'gsap';
 
 const WelcomeMessage = () => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    gsap.from(ref.current, { opacity: 0, duration: 0.5, delay: 0.5 });
+  }, []);
+
   return (
-    <motion.p
+    <p
+      ref={ref}
       className='text-xl md:text-2xl text-white max-w-2xl mx-auto'
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, delay: 0.5 }}
     >
       Hello there! I'm <span className='font-semibold text-purple-300'>Horizons</span>, your AI coding companion.
       I'm here to help you build amazing web application!
-    </motion.p>
+    </p>
   );
 };
 

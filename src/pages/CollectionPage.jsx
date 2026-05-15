@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { motion } from 'framer-motion';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { collectionsData } from '@/data/collectionsData';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { getTranslated } from '@/lib/utils';
+import gsap from 'gsap';
 
 const CollectionPage = () => {
   const { type } = useParams();
@@ -19,6 +19,8 @@ const CollectionPage = () => {
   const [riads, setRiads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [collectionInfo, setCollectionInfo] = useState(null);
+  const headerRef = useRef(null);
+  const gridRef = useRef(null);
 
   const staticCollectionData = collectionsData[type] || {};
   const CollectionIcon = staticCollectionData.icon;
@@ -88,6 +90,16 @@ const CollectionPage = () => {
     }
   }, [type, toast, t, currentLanguage, staticCollectionData.titleKey, staticCollectionData.descriptionKey]);
 
+  useEffect(() => {
+    if (loading) return;
+    if (headerRef.current) {
+      gsap.from(headerRef.current, { opacity: 0, y: 20, duration: 0.6 });
+    }
+    if (gridRef.current && gridRef.current.children.length) {
+      gsap.from(gridRef.current.children, { opacity: 0, y: 20, duration: 0.5, stagger: 0.1 });
+    }
+  }, [loading]);
+
   const pageTitle = collectionInfo ? collectionInfo.name : t(staticCollectionData.titleKey);
   const pageDescription = collectionInfo ? collectionInfo.long_description || collectionInfo.short_description : t(staticCollectionData.descriptionKey);
 
@@ -104,25 +116,16 @@ const CollectionPage = () => {
         
         <section className="pt-32 pb-16 bg-gray-50">
           <div className="content-wrapper">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
+            <div>
               <Button asChild variant="ghost" className="mb-8 flex items-center space-x-2 text-brand-ink/80 hover:text-brand-ink">
                 <Link to="/collections">
                   <ArrowLeft className="w-4 h-4" />
                   <span>{t('allCollections')}</span>
                 </Link>
               </Button>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center max-w-3xl mx-auto"
-            >
+            <div ref={headerRef} className="text-center max-w-3xl mx-auto">
               <div className="w-20 h-20 mx-auto mb-6 bg-white rounded-none flex items-center justify-center border border-[#E5E8EB]">
                 {CollectionIcon && <CollectionIcon className="w-10 h-10 text-brand-ink" />}
               </div>
@@ -133,7 +136,7 @@ const CollectionPage = () => {
               <p className="body-text max-w-2xl mx-auto">
                 {pageDescription}
               </p>
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -151,16 +154,11 @@ const CollectionPage = () => {
                   </p>
                 </div>
                 {riads.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {riads.map((riad, index) => (
-                      <motion.div
-                        key={riad.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
-                      >
+                  <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {riads.map((riad) => (
+                      <div key={riad.id}>
                         <RiadCard riad={riad} />
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 ) : (

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { motion, useScroll, useTransform } from 'framer-motion';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,10 @@ import RiadCard from '@/components/RiadCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated, getTranslatedArray } from '@/lib/utils';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const iconMapping = {
   "Best Time to Visit": <Sun className="w-5 h-5 text-brand-action" />,
@@ -43,6 +46,9 @@ const ExperiencePage = () => {
   const { toast } = useToast();
   const { t, currentLanguage } = useLanguage();
   const heroRef = useRef(null);
+  const heroImgRef = useRef(null);
+  const pageRef = useRef(null);
+  const heroContentRef = useRef(null);
 
   const [experience, setExperience] = useState(null);
   const [recommendedRiads, setRecommendedRiads] = useState([]);
@@ -106,16 +112,41 @@ const ExperiencePage = () => {
     }
   }, [slug, navigate, toast, currentLanguage]);
 
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroParallax = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  // GSAP parallax + page fade-in
+  useEffect(() => {
+    if (loading || !experience) return;
+
+    const ctx = gsap.context(() => {
+      // Page fade in
+      gsap.from(pageRef.current, { opacity: 0, duration: 0.8 });
+
+      // Hero parallax
+      if (heroImgRef.current && heroRef.current) {
+        gsap.to(heroImgRef.current, {
+          yPercent: 30,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: heroRef.current,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: true,
+          }
+        });
+      }
+
+      // Hero content reveal
+      if (heroContentRef.current) {
+        gsap.from(heroContentRef.current, { opacity: 0, y: 20, duration: 0.8, delay: 0.2 });
+      }
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, [loading, experience]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-brand-action border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-16 h-16 border-4 border-brand-action border-t-transparent animate-spin"></div>
       </div>
     );
   }
@@ -143,27 +174,16 @@ const ExperiencePage = () => {
         {experience.hero_image_url && <meta property="og:image" content={experience.hero_image_url} />}
       </Helmet>
 
-      <motion.div
-        className="bg-white"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
+      <div ref={pageRef} className="bg-white">
         <section ref={heroRef} className="relative h-[70vh] min-h-[500px] flex items-end justify-center text-white overflow-hidden">
-          <motion.div className="absolute inset-0 z-0" style={{ y: heroParallax }}>
+          <div ref={heroImgRef} className="absolute inset-0 z-0">
             <OptimizedImage src={experience.hero_image_url} alt={title} className="w-full h-full object-cover" />
-          </motion.div>
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent z-10"></div>
-          <div className="relative z-20 text-center content-wrapper pb-16">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              <Badge variant="secondary" className="mb-4 bg-white/20 text-white border-white/30">{destination}</Badge>
-              <h1 className="h1-style font-bold tracking-tight">{title}</h1>
-              <p className="text-lg md:text-xl mt-2 text-white/90 max-w-3xl mx-auto">{subtitle}</p>
-            </motion.div>
+          <div ref={heroContentRef} className="relative z-20 text-center content-wrapper pb-16">
+            <Badge variant="secondary" className="mb-4 bg-white/20 text-white border-white/30">{destination}</Badge>
+            <h1 className="h1-style font-bold tracking-tight">{title}</h1>
+            <p className="text-lg md:text-xl mt-2 text-white/90 max-w-3xl mx-auto">{subtitle}</p>
           </div>
         </section>
         
@@ -177,7 +197,7 @@ const ExperiencePage = () => {
                         </Link>
                     </Button>
                     <div className="hidden md:flex items-center space-x-4">
-                        <Button variant="outline" onClick={() => toast({ title: "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀" })}>{t('planThisExperience')}</Button>
+                        <Button variant="outline" onClick={() => toast({ title: "This feature isn't implemented yet—but don't worry! You can request it in your next prompt!" })}>{t('planThisExperience')}</Button>
                         <Button asChild className="btn-action">
                             <Link to="/all-riads">{t('seeMemberRiads')}</Link>
                         </Button>
@@ -189,19 +209,13 @@ const ExperiencePage = () => {
         <div className="section-padding">
           <div className="content-wrapper grid grid-cols-1 lg:grid-cols-3 gap-12">
             <main className="lg:col-span-2">
-              <motion.section
-                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} viewport={{ once: true }}
-                id="overview" className="mb-12"
-              >
+              <section id="overview" className="mb-12">
                 <div className="prose max-w-none text-brand-ink/90 text-lg leading-relaxed">
                   <div dangerouslySetInnerHTML={{ __html: description_rich?.replace(/##/g, '<h2 class="h6-style text-lg text-brand-ink mb-4 mt-8">').replace(/\n/g, '<br/>') }} />
                 </div>
-              </motion.section>
+              </section>
 
-              <motion.section
-                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} viewport={{ once: true }}
-                id="what-to-do" className="mb-12"
-              >
+              <section id="what-to-do" className="mb-12">
                 <h2 className="h2-style text-brand-ink mb-6">{t('whatToDo')}</h2>
                 <ul className="space-y-4">
                   {what_to_do?.map((item, index) => (
@@ -214,12 +228,9 @@ const ExperiencePage = () => {
                     </li>
                   ))}
                 </ul>
-              </motion.section>
+              </section>
               
-              <motion.section
-                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} viewport={{ once: true }}
-                id="gallery"
-              >
+              <section id="gallery">
                 <h2 className="h2-style text-brand-ink mb-6">{t('photoGallery')}</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {experience.gallery_urls?.map((url, index) => (
@@ -228,15 +239,12 @@ const ExperiencePage = () => {
                     </div>
                   )) || <p>{t('galleryComingSoon')}!</p>}
                 </div>
-              </motion.section>
+              </section>
             </main>
 
             <aside className="lg:col-span-1">
               <div className="sticky top-32">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }} viewport={{ once: true }}
-                  className="border border-brand-ink/10 p-6 rounded-none"
-                >
+                <div className="border border-brand-ink/10 p-6 rounded-none">
                   <h3 className="h3-style text-brand-ink mb-4">{t('goodToKnow')}</h3>
                   <ul className="space-y-4">
                     {good_to_know?.map((item, index) => (
@@ -249,7 +257,7 @@ const ExperiencePage = () => {
                       </li>
                     ))}
                   </ul>
-                </motion.div>
+                </div>
               </div>
             </aside>
           </div>
@@ -267,7 +275,7 @@ const ExperiencePage = () => {
             </div>
           </section>
         )}
-      </motion.div>
+      </div>
     </>
   );
 };

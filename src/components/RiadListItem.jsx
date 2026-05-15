@@ -22,19 +22,19 @@ const RiadListItem = ({ riad }) => {
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
 
   return (
-    <div className="group flex flex-col md:flex-row gap-4 p-4 bg-white border border-gray-200 rounded-2xl hover:shadow-lg transition-shadow">
+    <div className="group flex flex-col md:flex-row gap-4 p-4 bg-white border border-gray-200 hover:shadow-lg transition-shadow">
       {/* IMAGE */}
       <div className="relative shrink-0">
         <Link to={`/riad/${riad.id}`}>
           <OptimizedImage
             src={riad.imageUrl || FALLBACK_IMAGE}
             alt={riad.name}
-            className="h-44 w-full md:h-32 md:w-52 object-cover rounded-xl"
+            className="h-44 w-full md:h-32 md:w-52 object-cover"
           />
         </Link>
 
         {hasRating && (
-          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
+           <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2.5 py-1 flex items-center gap-1 shadow">
             <Star className="w-4 h-4 text-yellow-500" fill="currentColor" />
             <span className="text-sm font-semibold">
               {riad.rating_avg.toFixed(1)}
@@ -81,7 +81,7 @@ const RiadListItem = ({ riad }) => {
             {featureLabels.slice(0, MAX_AMENITIES).map((label, index) => (
               <span
                 key={`${label}-${index}`}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f5f5f5] border border-gray-200 rounded-md text-xs font-medium text-gray-800 uppercase"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f5f5f5] border border-gray-200 text-xs font-medium text-gray-800 uppercase"
               >
                 <AmenityIcon label={label} className="w-4 h-4 text-gray-600" />
                 {label}
@@ -93,7 +93,7 @@ const RiadListItem = ({ riad }) => {
                 <button
                   onClick={() => setAmenitiesOpen(true)}
                   aria-label={`Show all ${featureLabels.length} amenities and services`}
-                  className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#02162a] via-[#063a65] to-[#0b66b0] text-white rounded-md text-xs font-medium shadow-lg hover:scale-105 transition-transform"
+                  className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#02162a] via-[#063a65] to-[#0b66b0] text-white text-xs font-medium shadow-lg hover:scale-105 transition-transform"
                 >
                   +{featureLabels.length - MAX_AMENITIES}
                 </button>
@@ -116,7 +116,7 @@ const RiadListItem = ({ riad }) => {
             <Button
               asChild
               variant="outline"
-              className="flex-1 h-11 rounded-xl"
+              className="flex-1 h-11"
             >
               <Link to={`/riad/${riad.id}`}>More details</Link>
             </Button>
@@ -125,7 +125,7 @@ const RiadListItem = ({ riad }) => {
             {riad.simple_booking_link && (
               <Button
                 asChild
-                className="flex-1 h-11 rounded-xl bg-brand-action text-white hover:bg-brand-action/90"
+                className="flex-1 h-11 bg-brand-action text-white hover:bg-brand-action/90"
               >
                 <a
                   href={riad.simple_booking_link}

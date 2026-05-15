@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Search, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -8,12 +7,19 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Link } from 'react-router-dom';
 import { getTranslated } from '@/lib/utils';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const RiadListings = () => {
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const carouselRef = useRef(null);
+  const sectionRef = useRef(null);
+  const gridRef = useRef(null);
+  const ctaRef = useRef(null);
 
   const [riads, setRiads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +71,27 @@ const RiadListings = () => {
     fetchRiads();
   }, [toast, currentLanguage]);
 
+  useEffect(() => {
+    if (loading || riads.length === 0) return;
+
+    const ctx = gsap.context(() => {
+      if (gridRef.current) {
+        gsap.from(gridRef.current.children, {
+          opacity: 0, y: 20, duration: 0.5, stagger: 0.1,
+          scrollTrigger: { trigger: gridRef.current, start: 'top 85%', once: true }
+        });
+      }
+      if (ctaRef.current) {
+        gsap.from(ctaRef.current, {
+          opacity: 0, y: 20, duration: 0.6,
+          scrollTrigger: { trigger: ctaRef.current, start: 'top 90%', once: true }
+        });
+      }
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, [loading, riads]);
+
   const handleScroll = () => {
     if (carouselRef.current) {
       const scrollLeft = carouselRef.current.scrollLeft;
@@ -75,7 +102,7 @@ const RiadListings = () => {
   };
 
   return (
-    <section className="section-padding bg-white">
+    <section ref={sectionRef} className="section-padding bg-white">
       <div className="content-wrapper">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
           <div className="text-center md:text-left">
@@ -94,17 +121,11 @@ const RiadListings = () => {
           </div>
         ) : (
           <>
-            <div className="hidden md:grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-12">
-              {riads.map((riad, index) => (
-                <motion.div
-                  key={riad.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                >
+            <div ref={gridRef} className="hidden md:grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-12">
+              {riads.map((riad) => (
+                <div key={riad.id}>
                   <RiadCard riad={riad} />
-                </motion.div>
+                </div>
               ))}
             </div>
 
@@ -112,14 +133,7 @@ const RiadListings = () => {
               <div ref={carouselRef} onScroll={handleScroll} className="carousel-container">
                 {riads.map((riad) => (
                   <div key={riad.id} className="carousel-item w-full px-4">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5 }}
-                      viewport={{ once: true, amount: 0.5 }}
-                    >
-                      <RiadCard riad={riad} />
-                    </motion.div>
+                    <RiadCard riad={riad} />
                   </div>
                 ))}
               </div>
@@ -136,7 +150,7 @@ const RiadListings = () => {
                         });
                       }
                     }}
-                    className={`w-2 h-2 rounded-full transition-colors ${
+                    className={`w-2 h-2 transition-colors ${
                       currentIndex === index ? 'bg-brand-action' : 'bg-brand-ink/20'
                     }`}
                   />
@@ -146,13 +160,7 @@ const RiadListings = () => {
           </>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-center"
-        >
+        <div ref={ctaRef} className="text-center">
           <Button
             asChild
             size="lg"
@@ -163,7 +171,7 @@ const RiadListings = () => {
               {t('searchAllProperties')}
             </Link>
           </Button>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated } from '@/lib/utils';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import gsap from 'gsap';
 
 const DestinationsLandingPage = () => {
     const [destinations, setDestinations] = useState([]);
     const [loading, setLoading] = useState(true);
     const { t, currentLanguage } = useLanguage();
+    const gridRef = useRef(null);
 
     useEffect(() => {
         const fetchDestinations = async () => {
@@ -35,6 +36,11 @@ const DestinationsLandingPage = () => {
         };
         fetchDestinations();
     }, [currentLanguage]);
+
+    useEffect(() => {
+        if (loading || !gridRef.current || !gridRef.current.children.length) return;
+        gsap.from(gridRef.current.children, { opacity: 0, y: 20, duration: 0.5, stagger: 0.1 });
+    }, [loading]);
 
     if (loading) {
         return (
@@ -68,14 +74,9 @@ const DestinationsLandingPage = () => {
 
                 <section className="section-padding">
                     <div className="content-wrapper">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {destinations.map((dest, index) => (
-                                <motion.div
-                                    key={dest.slug}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                                >
+                        <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {destinations.map((dest) => (
+                                <div key={dest.slug}>
                                     <Link to={`/destinations/${dest.slug}`} className="block group">
                                         <div className="relative overflow-hidden h-96">
                                             {dest.hero_image_urls && dest.hero_image_urls[0] && (
@@ -92,7 +93,7 @@ const DestinationsLandingPage = () => {
                                             </div>
                                         </div>
                                     </Link>
-                                </motion.div>
+                                </div>
                             ))}
                         </div>
                     </div>

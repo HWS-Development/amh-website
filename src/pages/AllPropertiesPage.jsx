@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -7,12 +6,14 @@ import RiadCard from '@/components/RiadCard';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { getTranslated } from '@/lib/utils';
+import gsap from 'gsap';
 
 const AllPropertiesPage = () => {
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
   const [riads, setRiads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const gridRef = useRef(null);
 
   useEffect(() => {
     const fetchRiads = async () => {
@@ -64,6 +65,11 @@ const AllPropertiesPage = () => {
     fetchRiads();
   }, [toast, currentLanguage]);
 
+  useEffect(() => {
+    if (loading || !gridRef.current || !gridRef.current.children.length) return;
+    gsap.from(gridRef.current.children, { opacity: 0, y: 20, duration: 0.5, stagger: 0.05 });
+  }, [loading]);
+
   return (
     <>
       <Helmet>
@@ -84,16 +90,11 @@ const AllPropertiesPage = () => {
               <Loader2 className="w-12 h-12 text-brand-action animate-spin" />
             </div>
           ) : (
-            <div className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-              {riads.map((riad, index) => (
-                <motion.div
-                  key={riad.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                >
+            <div ref={gridRef} className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+              {riads.map((riad) => (
+                <div key={riad.id}>
                   <RiadCard riad={riad} />
-                </motion.div>
+                </div>
               ))}
             </div>
           )}

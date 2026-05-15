@@ -1,16 +1,20 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef, useEffect } from 'react';
+import gsap from 'gsap';
 
 const CallToAction = () => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    gsap.from(ref.current, { opacity: 0, duration: 0.5, delay: 0.8 });
+  }, []);
+
   return (
-    <motion.p
+    <p
+      ref={ref}
       className='text-md text-white max-w-lg mx-auto'
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, delay: 0.8 }}
     >
       Let's turn your ideas into reality.
-    </motion.p>
+    </p>
   );
 };
 

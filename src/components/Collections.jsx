@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -9,6 +8,10 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { getTranslated } from '@/lib/utils';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const Collections = () => {
   const { t, currentLanguage } = useLanguage();
@@ -17,6 +20,9 @@ const Collections = () => {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const carouselRef = useRef(null);
+  const sectionRef = useRef(null);
+  const headerRef = useRef(null);
+  const gridRef = useRef(null);
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -55,6 +61,28 @@ const Collections = () => {
     }
   }, [toast, currentLanguage]);
 
+  useEffect(() => {
+    if (loading || collections.length === 0) return;
+
+    const ctx = gsap.context(() => {
+      if (headerRef.current) {
+        gsap.from(headerRef.current, {
+          opacity: 0, y: 20, duration: 0.6,
+          scrollTrigger: { trigger: headerRef.current, start: 'top 85%', once: true }
+        });
+      }
+
+      if (gridRef.current) {
+        gsap.from(gridRef.current.children, {
+          opacity: 0, y: 20, duration: 0.6, stagger: 0.05,
+          scrollTrigger: { trigger: gridRef.current, start: 'top 85%', once: true }
+        });
+      }
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, [loading, collections]);
+
   const handleScroll = () => {
     if (carouselRef.current) {
       const scrollLeft = carouselRef.current.scrollLeft;
@@ -65,22 +93,16 @@ const Collections = () => {
   };
 
   return (
-    <section className="section-padding bg-white">
+    <section ref={sectionRef} className="section-padding bg-white">
       <div className="content-wrapper">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
+        <div ref={headerRef} className="text-center mb-12">
           <h2 className="h2-style text-brand-ink mb-4">
             {t('discoverOurCollections')}
           </h2>
           <p className="body-text max-w-2xl mx-auto">
             {t('discoverOurCollectionsSubtitle')}
           </p>
-        </motion.div>
+        </div>
 
         {loading ? (
           <div className="flex justify-center items-center py-20">
@@ -88,17 +110,11 @@ const Collections = () => {
           </div>
         ) : (
           <>
-            <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div ref={gridRef} className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {collections.map((collection, index) => {
                 const Icon = collection.icon;
                 return (
-                  <motion.div
-                    key={collection.slug}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.05 }}
-                    viewport={{ once: true }}
-                  >
+                  <div key={collection.slug}>
                     <Card className="h-full overflow-hidden rounded-none border border-[#E5E8EB] group">
                       <div className="bg-gray-200 h-40 relative">
                         <OptimizedImage
@@ -119,7 +135,7 @@ const Collections = () => {
                         </Link>
                       </CardContent>
                     </Card>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
@@ -130,34 +146,27 @@ const Collections = () => {
                   const Icon = collection.icon;
                   return (
                     <div key={collection.slug} className="carousel-item w-full px-4">
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        viewport={{ once: true, amount: 0.5 }}
-                      >
-                        <Card className="h-full overflow-hidden rounded-none border border-[#E5E8EB] group">
-                          <div className="bg-gray-200 h-40 relative">
-                            <img
-                              src={collection.imageUrl}
-                              className="w-full h-full object-cover"
-                              alt={collection.name}
-                              loading="lazy"
-                            />
+                      <Card className="h-full overflow-hidden rounded-none border border-[#E5E8EB] group">
+                        <div className="bg-gray-200 h-40 relative">
+                          <img
+                            src={collection.imageUrl}
+                            className="w-full h-full object-cover"
+                            alt={collection.name}
+                            loading="lazy"
+                          />
+                        </div>
+                        <CardContent className="p-6 flex flex-col">
+                          <div className="-mt-12 mb-4 w-16 h-16 rounded-none flex items-center justify-center bg-white text-brand-ink border border-[#E5E8EB] z-10 relative">
+                            {Icon && <Icon className="w-8 h-8" />}
                           </div>
-                          <CardContent className="p-6 flex flex-col">
-                            <div className="-mt-12 mb-4 w-16 h-16 rounded-none flex items-center justify-center bg-white text-brand-ink border border-[#E5E8EB] z-10 relative">
-                              {Icon && <Icon className="w-8 h-8" />}
-                            </div>
-                            <h3 className="text-xl font-bold text-brand-ink mb-2">{collection.name}</h3>
-                            <p className="text-brand-ink/80 text-sm mb-4 flex-grow">{collection.description}</p>
-                            <Link to={`/collection/${collection.slug}`} className="font-semibold text-brand-action flex items-center gap-2 group-hover:gap-3 transition-all duration-300">
-                              {t('goToCollection')}
-                              <ArrowRight className="w-4 h-4" />
-                            </Link>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
+                          <h3 className="text-xl font-bold text-brand-ink mb-2">{collection.name}</h3>
+                          <p className="text-brand-ink/80 text-sm mb-4 flex-grow">{collection.description}</p>
+                          <Link to={`/collection/${collection.slug}`} className="font-semibold text-brand-action flex items-center gap-2 group-hover:gap-3 transition-all duration-300">
+                            {t('goToCollection')}
+                            <ArrowRight className="w-4 h-4" />
+                          </Link>
+                        </CardContent>
+                      </Card>
                     </div>
                   );
                 })}
@@ -175,7 +184,7 @@ const Collections = () => {
                         });
                       }
                     }}
-                    className={`w-2 h-2 rounded-full transition-colors ${
+                    className={`w-2 h-2 transition-colors ${
                       currentIndex === index ? 'bg-brand-action' : 'bg-brand-ink/20'
                     }`}
                   />

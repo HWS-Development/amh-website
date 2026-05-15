@@ -2,45 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800&display=swap');
 
 @layer base {
 	:root {
 		--background: 0 0% 100%;
-		--foreground: 215 14% 22%; /* #384252 */
+		--foreground: 60 2% 11%; /* #1d1d1b */
 		--card: 0 0% 100%;
-		--card-foreground: 215 14% 22%;
+		--card-foreground: 60 2% 11%;
 		--popover: 0 0% 100%;
-		--popover-foreground: 215 14% 22%;
-		--primary: 215 14% 22%;
+		--popover-foreground: 60 2% 11%;
+		--primary: 60 2% 11%;
 		--primary-foreground: 0 0% 100%;
-		--secondary: 220 9% 96%; /* 10% tint of #384252 on white */
-		--secondary-foreground: 215 14% 22%;
-		--muted: 220 9% 96%;
-		--muted-foreground: 215 14% 22% / 0.8; /* 80% opacity */
-		--accent: 220 9% 96%;
-		--accent-foreground: 215 14% 22%;
-		--destructive: 356 89% 35%; /* #9F121A */
+		--secondary: 37 33% 94%; /* #f5f1e8 */
+		--secondary-foreground: 60 2% 11%;
+		--muted: 37 33% 94%;
+		--muted-foreground: 60 2% 11% / 0.8;
+		--accent: 37 33% 94%;
+		--accent-foreground: 60 2% 11%;
+		--destructive: 22 52% 50%; /* #bf673e */
 		--destructive-foreground: 0 0% 100%;
-		--border: 218 11% 90%; /* #E5E8EB */
-		--input: 218 11% 90%;
-		--ring: 215 14% 22%;
+		--border: 37 20% 88%;
+		--input: 37 20% 88%;
+		--ring: 22 52% 50%;
 		--radius: 8px;
 	}
 
 	.dark {
-		/* Add dark mode variables if needed */
+		/* Dark mode variables if needed */
 	}
 }
 
 @layer base {
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-white text-brand-ink;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Montserrat', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply text-brand-ink;
+    font-family: 'Montserrat', sans-serif;
   }
 
   p {
@@ -49,35 +55,52 @@
 
   /* Fluid Typography */
   h1, .h1-style {
-    font-size: clamp(2rem, 1.4286rem + 2.8571vw, 3rem); /* 32px to 48px */
+    font-size: clamp(1.75rem, 1.3rem + 2.25vw, 2.75rem);
   }
   h2, .h2-style {
-    font-size: clamp(1.5rem, 1.1429rem + 1.7857vw, 2.25rem); /* 24px to 36px */
+    font-size: clamp(1.375rem, 1.05rem + 1.625vw, 2rem);
   }
   h3, .h3-style {
-    font-size: clamp(1.25rem, 1.0714rem + 0.8929vw, 1.5rem); /* 20px to 24px */
+    font-size: clamp(1.125rem, 0.975rem + 0.75vw, 1.375rem);
   }
   .body-text {
-    font-size: clamp(0.9375rem, 0.875rem + 0.3125vw, 1rem); /* 15px to 16px */
-    line-height: 1.6;
+    font-size: clamp(0.875rem, 0.825rem + 0.25vw, 0.9375rem);
+    line-height: 1.7;
+  }
+
+  /* Selection color */
+  ::selection {
+    background-color: rgba(191, 103, 62, 0.15);
+    color: #1d1d1b;
   }
 }
 
 @layer utilities {
   .font-display {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
   }
+
+  .font-montserrat {
+    font-family: 'Montserrat', sans-serif;
+  }
+
   .text-shadow-sm {
     text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
   }
   .text-shadow-lg {
     text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.4);
   }
+
+  /* Smooth scroll */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer components {
   .btn-action {
-    @apply bg-brand-action text-white rounded-sm transition-opacity duration-200 ease-in-out hover:opacity-80;
+    @apply bg-brand-action text-white transition-all duration-300 ease-in-out hover:bg-brand-action/90 hover:shadow-md font-montserrat font-semibold tracking-wide;
   }
 
   .text-action {
@@ -85,7 +108,7 @@
   }
 
   .content-wrapper {
-    @apply w-full max-w-[1200px] mx-auto px-[8%] md:px-[5%];
+    @apply w-full max-w-[1200px] mx-auto px-[6%] md:px-[5%];
   }
 
   .section-padding {
@@ -97,10 +120,10 @@
   }
 
   .h1-style {
-    @apply font-bold font-display;
+    @apply font-bold font-display tracking-wide;
   }
   .h2-style {
-    @apply font-bold font-display;
+    @apply font-bold font-display tracking-wide;
   }
   .h3-style {
     @apply font-bold font-display;
@@ -122,5 +145,33 @@
 
   .carousel-item {
     @apply flex-shrink-0 w-full snap-center;
+  }
+
+  /* Premium card hover effect */
+  .card-premium {
+    @apply bg-white overflow-hidden shadow-sm;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+  .card-premium:hover {
+    box-shadow: 0 8px 30px rgba(29, 29, 27, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+/* Custom scrollbar for supporting browsers */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(29, 29, 27, 0.15);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(29, 29, 27, 0.25);
   }
 }

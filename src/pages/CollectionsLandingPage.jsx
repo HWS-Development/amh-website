@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { collectionsData } from '@/data/collectionsData';
@@ -9,12 +8,15 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import { getTranslated } from '@/lib/utils';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import gsap from 'gsap';
 
 const CollectionsLandingPage = () => {
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const headerRef = useRef(null);
+  const gridRef = useRef(null);
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -51,6 +53,16 @@ const CollectionsLandingPage = () => {
     fetchCollections();
   }, [toast, currentLanguage]);
 
+  useEffect(() => {
+    if (loading) return;
+    if (headerRef.current) {
+      gsap.from(headerRef.current, { opacity: 0, y: 20, duration: 0.6 });
+    }
+    if (gridRef.current && gridRef.current.children.length) {
+      gsap.from(gridRef.current.children, { opacity: 0, y: 20, duration: 0.5, stagger: 0.05 });
+    }
+  }, [loading]);
+
   return (
     <>
       <Helmet>
@@ -62,36 +74,26 @@ const CollectionsLandingPage = () => {
       <div className="bg-white min-h-screen">
         <section className="section-padding pt-32 bg-gray-50">
           <div className="content-wrapper">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-12"
-            >
+            <div ref={headerRef} className="text-center mb-12">
               <h1 className="h1-style text-gray-800 mb-4">{t('riadCollections')}</h1>
               <p className="body-text text-gray-600 max-w-3xl mx-auto">
                 {t('collectionsLandingDescription')}
               </p>
-            </motion.div>
+            </div>
 
             {loading ? (
               <div className="flex justify-center items-center py-20">
                 <Loader2 className="w-12 h-12 text-brand-action animate-spin" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {collections.map((collection, index) => {
+              <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {collections.map((collection) => {
                   const Icon = collection.icon;
                   return (
-                    <motion.div
-                      key={collection.slug}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.05 }}
-                    >
+                    <div key={collection.slug}>
                       <Link
                         to={`/collection/${collection.slug}`}
-                        className="block group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
+                        className="block group bg-white shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
                       >
                         <div className="relative overflow-hidden h-48">
                           <OptimizedImage
@@ -102,7 +104,7 @@ const CollectionsLandingPage = () => {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                         </div>
                         <div className="p-6 flex-grow flex flex-col">
-                          <div className={`-mt-12 mb-4 w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br ${collection.gradient} text-white shadow-lg z-10 relative`}>
+                          <div className={`-mt-12 mb-4 w-16 h-16 flex items-center justify-center bg-gradient-to-br ${collection.gradient} text-white shadow-lg z-10 relative`}>
                             {Icon && <Icon className="w-8 h-8" />}
                           </div>
                           <h3 className="text-xl font-bold font-display text-gray-800 mb-2">
@@ -116,7 +118,7 @@ const CollectionsLandingPage = () => {
                           </div>
                         </div>
                       </Link>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>

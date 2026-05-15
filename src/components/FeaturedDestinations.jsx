@@ -1,28 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Loader2, Search } from 'lucide-react';
 import { getTranslated } from '@/lib/utils';
 import OptimizedImage from '@/components/ui/OptimizedImage';
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.08, duration: 0.45 },
-  }),
-};
+import gsap from 'gsap';
 
 export default function FeaturedDestinations() {
   const { t, currentLanguage } = useLanguage();
   const [destinations, setDestinations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const prefersReducedMotion = useReducedMotion();
+  const gridRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -64,23 +55,34 @@ export default function FeaturedDestinations() {
     };
   }, [currentLanguage, t]);
 
+  useEffect(() => {
+    if (loading || destinations.length === 0 || !gridRef.current) return;
+
+    const children = gridRef.current.children;
+    if (children.length === 0) return;
+
+    gsap.from(children, {
+      opacity: 0, y: 20, duration: 0.45, stagger: 0.08
+    });
+  }, [loading, destinations]);
+
   return (
-    <section className="bg-brand-ink/5 section-padding">
+    <section className="bg-white section-padding">
       <div className="content-wrapper">
         <div className="text-center mb-12">
-          <h2 className="h2-style">{t('exploreOurDestinations')}</h2>
-          <p className="body-text mt-2">{t('discoverTheSoulOfMorocco')}</p>
+          <h2 className="h2-style text-brand-ink">{t('exploreOurDestinations')}</h2>
+          <p className="body-text mt-2 text-brand-ink/60">{t('discoverTheSoulOfMorocco')}</p>
         </div>
 
         {loading && (
           <div className="flex justify-center items-center h-64">
-            <Loader2 className="w-12 h-12 text-brand-action animate-spin" aria-label={t('loading')} />
+            <Loader2 className="w-10 h-10 text-brand-action animate-spin" aria-label={t('loading')} />
           </div>
         )}
 
         {!loading && error && (
-          <div className="mx-auto max-w-xl rounded-md border border-red-200 bg-red-50 p-4 text-red-800">
-            <p className="font-medium">{error}</p>
+          <div className="mx-auto max-w-xl border border-red-200 bg-red-50 p-4 text-red-800">
+            <p className="font-medium text-sm">{error}</p>
             <Button variant="outline" size="sm" className="mt-3" onClick={() => window.location.reload()}>
               {t('tryAgain')}
             </Button>
@@ -89,50 +91,42 @@ export default function FeaturedDestinations() {
 
         {!loading && !error && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {destinations.map((dest, index) => {
                 const imgAlt = t('destinationAlt', { name: dest.name || '' });
-                const MotionDiv = prefersReducedMotion ? 'div' : motion.div;
-
                 return (
-                  <MotionDiv
-                    key={dest.slug}
-                    custom={index}
-                    initial="hidden"
-                    animate="visible"
-                    variants={cardVariants}
-                  >
+                  <div key={dest.slug}>
                     <Link to={`/destinations/${dest.slug}`} className="block group">
-                      <div className="relative overflow-hidden h-96 rounded-lg">
+                      <div className="relative overflow-hidden h-80">
                         {dest.img ? (
                           <OptimizedImage
                             src={dest.img}
                             alt={imgAlt}
                             fetchPriority="low"
-                            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                           />
                         ) : (
                           <div className="w-full h-full bg-muted animate-pulse" aria-hidden />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-6 text-white">
-                          <h3 className="text-3xl text-white/80 font-bold font-display">{dest.name}</h3>
-                          <p className="mt-1 text-white/90">{dest.subtitle}</p>
-                          <span className="mt-3 inline-flex items-center text-sm font-medium opacity-0 transition-opacity group-hover:opacity-100">
-                            {t('explore')} <ArrowRight className="ml-1 h-4 w-4" />
+                          <h3 className="text-2xl text-white font-bold font-montserrat">{dest.name}</h3>
+                          <p className="mt-1 text-white/85 text-sm">{dest.subtitle}</p>
+                          <span className="mt-3 inline-flex items-center text-xs font-medium opacity-0 transition-opacity duration-300 group-hover:opacity-100 tracking-wider uppercase">
+                            {t('explore')} <ArrowRight className="ml-1 h-3.5 w-3.5" />
                           </span>
                         </div>
                       </div>
                     </Link>
-                  </MotionDiv>
+                  </div>
                 );
               })}
             </div>
 
             <div className="mt-12 text-center">
-              <Button asChild size="lg" className="btn-action font-semibold">
+              <Button asChild size="lg" className="bg-brand-action hover:bg-brand-action/90 text-white font-semibold tracking-wide">
                 <Link to="/all-riads">
-                  <Search className="mr-2 h-5 w-5" /> {t('searchAllProperties')}
+                  <Search className="mr-2 h-4 w-4" /> {t('searchAllProperties')}
                 </Link>
               </Button>
             </div>

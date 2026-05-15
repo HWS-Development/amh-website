@@ -1,188 +1,48 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useRef, useLayoutEffect } from "react";
+import gsap from "gsap";
 import { useLanguage } from "@/contexts/LanguageContext";
 import BookingStrip from "@/components/BookingStrip";
-import OptimizedImage from '@/components/ui/OptimizedImage';
-
-const storageBase = import.meta.env.VITE_SUPABASE_STORAGE_BASE || 'https://dzuwwfttnigeisicqyto.supabase.co';
-
-const heroSlidesData = {
-  en: [
-    {
-      destination: "Marrakech",
-      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/jamaaelfna.webp`,
-      imgAlt: "Historic medina and Koutoubia Mosque in Marrakech",
-    },
-    {
-      destination: "Essaouira",
-      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/essaouira.webp`,
-      imgAlt: "Coastal city of Essaouira",
-    },
-    {
-      destination: "Ouarzazate",
-      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/ouarzazate.jpg`,
-      imgAlt: "Ancient Kasbah and desert landscape in Ouarzazate",
-    },
-  ],
-
-  fr: [
-    {
-      destination: "Marrakech",
-      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/herorak.jpg`,
-      imgAlt: "Médina historique et mosquée Koutoubia à Marrakech",
-    },
-    {
-      destination: "Essaouira",
-      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/heroess.jpg`,
-      imgAlt: "Ville côtière d'Essaouira",
-    },
-    {
-      destination: "Ouarzazate",
-      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/rotative/Ouarzazate_rota1.jpeg`,
-      imgAlt: "Ancienne Kasbah et paysage désertique à Ouarzazate",
-    },
-  ],
-
-  es: [
-    {
-      destination: "Marrakech",
-      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/herorak.jpg`,
-      imgAlt: "Medina histórica y mezquita Kutubía en Marrakech",
-    },
-    {
-      destination: "Essaouira",
-      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/heroimageriad/heroess.jpg`,
-      imgAlt: "Ciudad costera de Essaouira",
-    },
-    {
-      destination: "Ouarzazate",
-      imgSrc: `${storageBase}/storage/v1/object/public/amhimages/rotative/Ouarzazate_rota1.jpeg`,
-      imgAlt: "Antigua Kasbah y paisaje desértico en Ouarzazate",
-    },
-  ],
-};
 
 const HeroSection = () => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
+  const { t, date, onDateChange } = useLanguage();
+  const sectionRef = useRef(null);
+  const titleRef = useRef(null);
+  const subtitleRef = useRef(null);
+  const stripRef = useRef(null);
 
-  const { currentLanguage, date, onDateChange } = useLanguage();
-  const heroSlides = heroSlidesData[currentLanguage] || heroSlidesData.en;
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-
-    return () => window.removeEventListener("resize", handleResize);
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      tl.from(titleRef.current, { y: 40, opacity: 0, duration: 0.8 })
+        .from(subtitleRef.current, { y: 30, opacity: 0, duration: 0.6 }, "-=0.4")
+        .from(stripRef.current, { y: 20, opacity: 0, duration: 0.5 }, "-=0.3");
+    }, sectionRef);
+    return () => ctx.revert();
   }, []);
 
-  const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % heroSlides.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
-  };
-
-  useEffect(() => {
-    if (isMobile) return;
-
-    const timer = setInterval(nextSlide, 6000);
-    return () => clearInterval(timer);
-  }, [isMobile, heroSlides.length]);
-
-  const slide = isMobile ? heroSlides[0] : heroSlides[currentIndex];
-
-  const slideVariants = {
-    hidden: { opacity: 0, scale: 1.04 },
-    visible: { opacity: 1, scale: 1 },
-    exit: { opacity: 0, scale: 1.04 },
-  };
-
   return (
-    <section className="relative h-[calc(100vh-10px)] md:h-[calc(100vh-10px)] w-full overflow-hidden text-white">
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={isMobile ? "marrakech-mobile" : currentIndex}
-          variants={slideVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          transition={{ duration: 1.25, ease: "easeInOut" }}
-          className="absolute inset-0"
-        >
-          <OptimizedImage
-            src={slide.imgSrc}
-            alt={slide.imgAlt}
-            className="w-full h-full object-cover brightness-110 contrast-110 saturate-110"
+    <section ref={sectionRef} className="relative w-full bg-brand-action overflow-hidden">
+      {/* Subtle pattern overlay */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+      }} />
+
+      <div className="relative z-10 flex flex-col justify-center items-center px-4 pt-36 md:pt-44 pb-10 md:pb-14">
+        <div className="text-center max-w-5xl mx-auto mb-8 md:mb-10">
+          <h1 ref={titleRef} className="text-white font-bold italic uppercase whitespace-nowrap text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl leading-none tracking-[0.06em] font-montserrat mb-3 md:mb-4">
+            {t('heroTitle')}
+          </h1>
+          <p ref={subtitleRef} className="text-white/80 text-[11px] sm:text-xs md:text-sm lg:text-base font-montserrat leading-relaxed max-w-3xl mx-auto">
+            {t('heroSubtitle')}
+          </p>
+        </div>
+
+        <div ref={stripRef} className="w-full max-w-[920px] px-2 md:px-4">
+          <BookingStrip
+            date={date}
+            onDateChange={onDateChange}
+            isMobile={false}
           />
-
-          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/10 to-black/25" />
-        </motion.div>
-      </AnimatePresence>
-
-      <div className="relative z-10 h-full flex flex-col justify-end items-center px-4 pb-8 md:pb-12">
-        {!isMobile && (
-          <div className="flex flex-col items-center w-full mb-7">
-            <div className="flex items-center space-x-3 md:space-x-4 justify-center flex-wrap">
-              <button
-                onClick={prevSlide}
-                className="p-3 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm"
-              >
-                <ChevronLeft size={30} />
-              </button>
-
-              {heroSlides.map((s, i) => (
-                <button
-                  key={s.destination}
-                  onClick={() => setCurrentIndex(i)}
-                  className={`py-3 px-8 text-base font-semibold transition-all duration-300 backdrop-blur-sm whitespace-nowrap ${
-                    currentIndex === i
-                      ? "bg-brand-action shadow-lg scale-105"
-                      : "bg-white/30 hover:bg-white/40"
-                  }`}
-                >
-                  {s.destination}
-                </button>
-              ))}
-
-              <button
-                onClick={nextSlide}
-                className="p-3 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm"
-              >
-                <ChevronRight size={30} />
-              </button>
-            </div>
-
-            <div className="flex space-x-2 mt-4">
-              {heroSlides.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentIndex(i)}
-                  className={`transition-all duration-300 backdrop-blur-sm ${
-                    currentIndex === i
-                      ? "bg-white w-4 h-4"
-                      : "bg-white/50 w-2 h-2"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="w-full max-w-[1500px] px-2 md:px-6 mb-2 md:mb-4">
-          <div className="w-full scale-[1.03] md:scale-[1.08] origin-center">
-            <BookingStrip
-              date={date}
-              onDateChange={onDateChange}
-              isMobile={isMobile}
-            />
-          </div>
         </div>
       </div>
     </section>

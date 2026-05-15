@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet';
-import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/customSupabaseClient';
 import { getTranslated } from '@/lib/utils';
@@ -18,6 +17,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Loader2, Search, SlidersHorizontal, Clock, Info, Map as MapIcon } from 'lucide-react';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import gsap from 'gsap';
 
 const leafletCdn = import.meta.env.VITE_LEAFLET_CDN_BASE || 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1';
 
@@ -55,6 +55,8 @@ const MedinaQuartiersPage = () => {
   const [showMapMobile, setShowMapMobile] = useState(false);
 
   const quartierRefs = useRef({});
+  const headerRef = useRef(null);
+  const cardsRef = useRef(null);
 
   const categories = ['souks', 'monuments', 'museums', 'restaurants', 'artisans'];
   const ambiances = ['elegant', 'historic', 'authentic'];
@@ -77,6 +79,12 @@ const MedinaQuartiersPage = () => {
     };
 
     fetchQuartiers();
+  }, []);
+
+  useEffect(() => {
+    if (headerRef.current) {
+      gsap.from(headerRef.current.children, { opacity: 0, y: 20, duration: 0.5, stagger: 0.1 });
+    }
   }, []);
 
   const handleMarkerClick = (quartier) => {
@@ -158,22 +166,14 @@ const MedinaQuartiersPage = () => {
             <div className="pb-4">
               <Breadcrumb items={breadcrumbItems} />
             </div>
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="h1-style mb-2 text-center"
-            >
-              {t('medinaQuartiersTitle')}
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="body-text max-w-3xl mx-auto text-center"
-            >
-              {t('medinaQuartiersSubtitle')}
-            </motion.p>
+            <div ref={headerRef}>
+              <h1 className="h1-style mb-2 text-center">
+                {t('medinaQuartiersTitle')}
+              </h1>
+              <p className="body-text max-w-3xl mx-auto text-center">
+                {t('medinaQuartiersSubtitle')}
+              </p>
+            </div>
           </div>
         </header>
 
@@ -277,7 +277,7 @@ const MedinaQuartiersPage = () => {
             <div className="lg:col-span-7">
               {/* Mobile inline map (collapsible) */}
               {showMapMobile && (
-                <div className="lg:hidden h-[45vh] rounded-lg overflow-hidden mb-6 shadow-lg border">
+                <div className="lg:hidden h-[45vh] overflow-hidden mb-6 shadow-lg border">
                   <MapContainer
                     center={activeQuartier ? [activeQuartier.lat, activeQuartier.lng] : DEFAULT_CENTER}
                     zoom={activeQuartier ? 16 : 14}
@@ -307,7 +307,7 @@ const MedinaQuartiersPage = () => {
               )}
 
               {/* Cards */}
-              <div className="space-y-6">
+              <div ref={cardsRef} className="space-y-6">
                 {loading && (
                   <div className="flex justify-center items-center h-64">
                     <Loader2 className="w-12 h-12 text-brand-action animate-spin" />
@@ -322,15 +322,12 @@ const MedinaQuartiersPage = () => {
                   </div>
                 )}
 
-                {filteredQuartiers.map((quartier, index) => (
-                  <motion.div
+                {filteredQuartiers.map((quartier) => (
+                  <div
                     key={quartier.id}
                     ref={(el) => (quartierRefs.current[quartier.slug] = el)}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.05 }}
                     onMouseEnter={() => handleCardHover(quartier)}
-                    className={`transition-all duration-300 rounded-lg overflow-hidden ${
+                    className={`transition-all duration-300 overflow-hidden ${
                       activeQuartier?.id === quartier.id
                         ? 'ring-2 ring-brand-action shadow-2xl'
                         : 'shadow-lg bg-white'
@@ -388,14 +385,14 @@ const MedinaQuartiersPage = () => {
                         </CardContent>
                       </div>
                     </Card>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* Sticky map (right) */}
             <aside className="hidden lg:block lg:col-span-5">
-              <div className="sticky top-28 h-[calc(100vh-8rem)] rounded-lg overflow-hidden shadow-lg border">
+              <div className="sticky top-28 h-[calc(100vh-8rem)] overflow-hidden shadow-lg border">
                 <MapContainer
                   center={activeQuartier ? [activeQuartier.lat, activeQuartier.lng] : DEFAULT_CENTER}
                   zoom={activeQuartier ? 16 : 14}

@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/customSupabaseClient';
 import { getTranslated } from '@/lib/utils';
@@ -16,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import Breadcrumb from '@/components/Breadcrumb';
 import NotFoundPage from '@/pages/NotFoundPage';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import gsap from 'gsap';
 
 const poiIcons = {
     museum: Museum, monument: Landmark, souk: ShoppingBag, restaurant: Utensils,
@@ -50,6 +50,7 @@ const QuartierDetailPage = () => {
     const [pois, setPois] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const headerRef = useRef(null);
 
     useEffect(() => {
         const fetchQuartierData = async () => {
@@ -85,6 +86,11 @@ const QuartierDetailPage = () => {
 
         fetchQuartierData();
     }, [slug]);
+
+    useEffect(() => {
+        if (loading || !headerRef.current) return;
+        gsap.from(headerRef.current.children, { opacity: 0, y: 20, duration: 0.5, stagger: 0.1 });
+    }, [loading]);
 
     const translatedQuartier = useMemo(() => {
         if (!quartier) return null;
@@ -141,23 +147,13 @@ const QuartierDetailPage = () => {
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                         <div className="lg:col-span-2 space-y-12">
-                            <header>
-                                <motion.h1 
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="h1-style mb-2"
-                                >
+                            <header ref={headerRef}>
+                                <h1 className="h1-style mb-2">
                                     {translatedQuartier.name}
-                                </motion.h1>
-                                <motion.p
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.5, delay: 0.1 }} 
-                                    className="body-text max-w-2xl"
-                                >
+                                </h1>
+                                <p className="body-text max-w-2xl">
                                     {translatedQuartier.short_desc}
-                                </motion.p>
+                                </p>
                             </header>
 
                             {/* Gallery */}
@@ -166,11 +162,11 @@ const QuartierDetailPage = () => {
                                     <h2 className="h2-style mb-6">{t('gallery')}</h2>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="col-span-2">
-                                            <OptimizedImage src={translatedQuartier.images[0]} alt={translatedQuartier.name} className="w-full h-auto object-cover rounded-lg aspect-video"/>
+                                            <OptimizedImage src={translatedQuartier.images[0]} alt={translatedQuartier.name} className="w-full h-auto object-cover aspect-video"/>
                                         </div>
                                         {translatedQuartier.images.slice(1, 5).map((img, idx) => (
                                             <div key={idx} className="col-span-1">
-                                                 <OptimizedImage src={img} alt={`${translatedQuartier.name} ${idx + 2}`} className="w-full h-auto object-cover rounded-lg aspect-square"/>
+                                                 <OptimizedImage src={img} alt={`${translatedQuartier.name} ${idx + 2}`} className="w-full h-auto object-cover aspect-square"/>
                                             </div>
                                         ))}
                                     </div>
@@ -190,10 +186,10 @@ const QuartierDetailPage = () => {
                                         {translatedPois.map(poi => {
                                             const PoiIcon = poiIcons[poi.type] || poiIcons.default;
                                             return (
-                                                <div key={poi.id} className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 border rounded-lg">
+                                                <div key={poi.id} className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 border">
                                                     <div className="md:col-span-1">
                                                         {poi.images && poi.images.length > 0 && (
-                                                          <OptimizedImage src={poi.images[0]} alt={poi.name} className="w-full h-40 object-cover rounded-md" />
+                                                          <OptimizedImage src={poi.images[0]} alt={poi.name} className="w-full h-40 object-cover" />
                                                         )}
                                                     </div>
                                                     <div className="md:col-span-2">
@@ -217,7 +213,7 @@ const QuartierDetailPage = () => {
                         {/* Sticky Sidebar */}
                         <aside className="lg:col-span-1">
                             <div className="sticky top-28 space-y-6">
-                                <div className="h-64 lg:h-80 w-full rounded-lg overflow-hidden shadow-md">
+                                <div className="h-64 lg:h-80 w-full overflow-hidden shadow-md">
                                     <MapContainer center={[translatedQuartier.lat, translatedQuartier.lng]} zoom={15} scrollWheelZoom={false} className="h-full w-full">
                                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                                         <Marker position={[translatedQuartier.lat, translatedQuartier.lng]} icon={poiIcon('red')}>

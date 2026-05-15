@@ -18,7 +18,7 @@ import React, { useState } from 'react';
         import DestinationsLandingPage from '@/pages/DestinationsLandingPage';
         import MedinaQuartiersPage from '@/pages/MedinaQuartiersPage';
         import QuartierDetailPage from '@/pages/QuartierDetailPage';
-        import OptimizedImage from '@/components/ui/OptimizedImage';
+        import AboutPage from '@/pages/AboutPage';
 
         const AppContent = () => {
           const { loading } = useAuth();
@@ -27,7 +27,10 @@ import React, { useState } from 'react';
           if (loading) {
             return (
               <div className="min-h-screen bg-white flex items-center justify-center">
-                <div className="text-2xl font-semibold text-gray-700">Loading...</div>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-2 border-brand-beige border-t-brand-action animate-spin" />
+                  <span className="text-sm text-brand-ink/50 font-montserrat tracking-wide">Chargement...</span>
+                </div>
               </div>
             );
           }
@@ -47,17 +50,13 @@ import React, { useState } from 'react';
                   <Route path="/quartiers/:slug" element={<QuartierDetailPage />} />
                   <Route path="/all-riads" element={<AllRiadsPage />} />
                   <Route path="/all-properties" element={<AllPropertiesPage />} />
+                  <Route path="/about" element={<AboutPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </main>
               <Footer />
               <Toaster />
               <BackToTopButton />
-               <OptimizedImage 
-                src="/images/Badge-reservez-en-direct.png" 
-                alt="Réservez en Direct"
-                className="hidden md:block fixed bottom-5 left-5 w-36 z-50 cursor-pointer"
-              />
             </div>
           );
         }

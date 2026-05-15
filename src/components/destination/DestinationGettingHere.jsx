@@ -22,7 +22,7 @@ const DestinationGettingHere = ({ gettingHere, sectionRef }) => {
             const Icon = iconMap[item.mode] || iconMap.default;
             return (
               <div key={index} className="text-center">
-                <div className="mx-auto w-16 h-16 rounded-full bg-brand-action/10 flex items-center justify-center mb-4">
+                <div className="mx-auto w-16 h-16 bg-brand-action/10 flex items-center justify-center mb-4">
                   <Icon className="w-8 h-8 text-brand-action" />
                 </div>
                 <h3 className="h3-style text-xl mb-2">{item.title}</h3>

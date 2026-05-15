@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { motion } from 'framer-motion';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Loader2 } from 'lucide-react';
 import Breadcrumb from '@/components/Breadcrumb';
@@ -18,6 +17,7 @@ import DestinationFAQ from '@/components/destination/DestinationFAQ';
 import DestinationGallery from '@/components/destination/DestinationGallery';
 import DestinationMap from '@/components/destination/DestinationMap';
 import RelatedExperiencesSlider from '@/components/destination/RelatedExperiencesSlider';
+import gsap from 'gsap';
 
 const DestinationPage = () => {
   const { slug } = useParams();
@@ -26,6 +26,7 @@ const DestinationPage = () => {
   const [destination, setDestination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const pageRef = useRef(null);
 
   const sectionsRef = useRef({});
   const stickyNavRef = useRef(null);
@@ -55,6 +56,11 @@ const DestinationPage = () => {
       fetchDestination();
     }
   }, [slug, currentLanguage]);
+
+  useEffect(() => {
+    if (loading || !destination || !pageRef.current) return;
+    gsap.from(pageRef.current, { opacity: 0, duration: 0.8 });
+  }, [loading, destination]);
 
   const scrollToSection = (id) => {
     const element = sectionsRef.current[id];
@@ -87,7 +93,6 @@ const DestinationPage = () => {
     return <NotFoundPage />;
   }
 
-  // 🔄 Use i18n JSON fields directly (no *_tr in mgh_destinations)
   const name = getTranslated(destination.name, currentLanguage);
   const subtitle = getTranslated(destination.subtitle, currentLanguage);
   const intro_rich = getTranslated(destination.intro_rich, currentLanguage);
@@ -126,18 +131,12 @@ const DestinationPage = () => {
         {hero_image_urls?.[0] && <meta property="og:image" content={hero_image_urls[0]} />}
       </Helmet>
 
-      <motion.div
-        className="destination-page bg-white"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
+      <div ref={pageRef} className="destination-page bg-white">
         <div className="pt-24 pb-6">
           <Breadcrumb items={breadcrumbItems} />
         </div>
 
         <DestinationHeader name={name} subtitle={subtitle} heroImage={hero_image_urls?.[0]} />
-        {/* <DestinationNav destination={destination} stickyNavRef={stickyNavRef} scrollToSection={scrollToSection} /> */}
 
         <div className="content-wrapper section-padding">
           <div className="text-column text-center">
@@ -158,7 +157,7 @@ const DestinationPage = () => {
         <DestinationGallery gallery={gallery_urls} destinationName={name} sectionRef={(el) => (sectionsRef.current['gallery'] = el)} />
         <DestinationMap mapUrl={map_embed_url} destinationName={name} sectionRef={(el) => (sectionsRef.current['map'] = el)} />
         <RelatedExperiencesSlider experienceSlugs={related_experiences} />
-      </motion.div>
+      </div>
     </>
   );
 };

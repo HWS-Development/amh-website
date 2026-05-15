@@ -3,11 +3,9 @@ import { Helmet } from 'react-helmet';
 import { useLanguage } from '@/contexts/LanguageContext';
 import HeroSection from '@/components/HeroSection';
 import TrustBar from '@/components/TrustBar';
-import FeaturedDestinations from '@/components/FeaturedDestinations';
+import CatalogueSection from '@/components/CatalogueSection';
 import FeaturedQuartiers from '@/components/FeaturedQuartiers';
 import Experiences from '@/components/Experiences';
-import BookingStrip from '@/components/BookingStrip';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const HomePage = () => {
   const { t } = useLanguage();
@@ -20,7 +18,7 @@ const HomePage = () => {
       ([entry]) => {
         setShowBookingStrip(entry.isIntersecting);
       },
-      { threshold: 0.1, rootMargin: "-10px 0px 0px 0px" } 
+      { threshold: 0.1, rootMargin: "-10px 0px 0px 0px" }
     );
 
     const currentHeroRef = heroRef.current;
@@ -35,8 +33,8 @@ const HomePage = () => {
     };
   }, []);
 
-  const pageTitle = "MGH — Official Site for Certified Riads in Marrakech & Essaouira";
-  const pageDescription = "Discover authentic Moroccan hospitality in our carefully selected riads and guesthouses throughout Marrakech. Licensed, inspected, and safe accommodations with direct booking benefits.";
+  const pageTitle = "LA CENTRALE DES RIADS — Riads & Maisons d'Hôtes Classés au Maroc";
+  const pageDescription = "Réservez en direct avec les hôteliers, parmi les riads et maisons d'hôtes classés de Marrakech, Essaouira et Ouarzazate, sans intermédiaire ni commission.";
 
   return (
     <>
@@ -46,16 +44,13 @@ const HomePage = () => {
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
       </Helmet>
-      
-      <div className="pt-20 md:pt-0">
+
+      <div>
         <div ref={heroRef}>
           <HeroSection />
         </div>
-    
-        <AnimatePresence>
-        
-        </AnimatePresence>
-        <FeaturedDestinations />
+
+        <CatalogueSection />
         <FeaturedQuartiers />
         <Experiences />
         <TrustBar />

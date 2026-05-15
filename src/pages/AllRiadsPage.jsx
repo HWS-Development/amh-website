@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutGrid,
   List,
@@ -22,7 +21,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { useQueryParams, StringParam, NumberParam } from "use-query-params";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
-import { fetchPartnerHotels } from "@/lib/partnerHotelsApi";
+import { usePartnerHotels } from "@/lib/partnerHotelsApi";
+import gsap from "gsap";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -124,6 +124,8 @@ const AllRiadsPage = () => {
   const [search, setSearch] = useState("");
   const listStartRef = useRef(null);
   const hasPaginatedRef = useRef(false);
+  const gridRef = useRef(null);
+  const headerRef = useRef(null);
 
   const [filters, setFilters] = useState({
     city: null,
@@ -141,12 +143,13 @@ const AllRiadsPage = () => {
   const page = query.page || 1;
   const view = query.view === "list" ? "list" : "cards";
 
+  const { data: hotelsData, isLoading: hotelsLoading, error: hotelsError } = usePartnerHotels();
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
 
       try {
-        // 1️⃣ charger catalogues
         const [
           citiesArr,
           neighborhoodsArr,
@@ -154,7 +157,6 @@ const AllRiadsPage = () => {
           amenitiesArr,
           servicesArr,
           quartiersArr,
-          { data, error },
         ] = await Promise.all([
           fetchCatalog("mgh_cities", currentLanguage),
           fetchCatalog("mgh_neighborhoods", currentLanguage),
@@ -162,12 +164,8 @@ const AllRiadsPage = () => {
           fetchCatalog("mgh_amenities_catalog", currentLanguage),
           fetchServicesCatalog(currentLanguage).catch(() => []),
           supabase.from("amh_quartiers").select("slug, name_tr"),
-          fetchPartnerHotels(),
         ]);
 
-        if (error) throw error;
-
-        // 2️⃣ transformer catalogues en map id -> label
         const citiesMap = Object.fromEntries(
           citiesArr.map((c) => [c.id, c.label]),
         );
@@ -195,22 +193,17 @@ const AllRiadsPage = () => {
         setPropertyTypes(propertyTypesMap);
         setQuartierSlugMap(quartiersMap);
 
-        // 3️⃣ mapper les riads (MAINTENANT cities existe)
-        const mappedRiads = (data || []).map((r) => ({
+        const mappedRiads = (hotelsData || []).map((r) => ({
             id: r.id,
-
             name: getTranslated(r.name, currentLanguage),
             description: getTranslated(r.description, currentLanguage),
             address: getTranslated(r.address, currentLanguage),
-
             city_id: r.city_id,
             neighborhood_id: r.neighborhood_id,
             property_type_id: r.property_type_id,
-
             city: citiesMap[r.city_id] || "",
             neighborhood: neighborhoodsMap[r.neighborhood_id] || "",
             propertyType: propertyTypesMap[r.property_type_id] || "",
-
             amenity_ids: r.amenity_ids || [],
             amenities: (r.amenity_ids || [])
               .map((id) => amenitiesMap[id])
@@ -219,10 +212,8 @@ const AllRiadsPage = () => {
             services: (r.service_ids || [])
               .map((id) => servicesMap[id])
               .filter(Boolean),
-
             rating_avg: r.rating_avg,
             reviews_count: r.reviews_count,
-
             imageUrl:
               Array.isArray(r.image_urls) && r.image_urls.length > 0
                 ? r.image_urls[0]
@@ -230,7 +221,7 @@ const AllRiadsPage = () => {
             simple_booking_link: r.simple_booking_link,
           }));
 
-setRiads(shuffleArray(mappedRiads));
+        setRiads(shuffleArray(mappedRiads));
       } catch (err) {
         console.error('[AllRiadsPage] fetchData error:', err);
         toast({
@@ -244,14 +235,41 @@ setRiads(shuffleArray(mappedRiads));
       setLoading(false);
     };
 
-    fetchData();
-  }, [currentLanguage, toast]);
+    if (hotelsData) {
+      fetchData();
+    } else if (hotelsError) {
+      console.error('[AllRiadsPage] Hotels fetch error:', hotelsError);
+      toast({
+        variant: "destructive",
+        title: "Error loading riads",
+        description: hotelsError.message || "Failed to load riads",
+      });
+      setRiads([]);
+      setLoading(false);
+    } else if (hotelsLoading) {
+      setLoading(true);
+    }
+  }, [hotelsData, hotelsError, hotelsLoading, currentLanguage, toast]);
+
+  // Animate grid items when paged content changes
+  useEffect(() => {
+    if (loading || !gridRef.current || !gridRef.current.children.length) return;
+    gsap.from(gridRef.current.children, {
+      opacity: 0, y: 20, duration: 0.4, stagger: 0.05,
+    });
+  }, [loading, page, view]);
+
+  // Animate header on mount
+  useEffect(() => {
+    if (headerRef.current) {
+      gsap.from(headerRef.current, { opacity: 0, y: 20, duration: 0.5 });
+    }
+  }, []);
 
   /* ===== FILTER + SEARCH ===== */
   const filtered = useMemo(() => {
     let list = [...riads];
 
-    // SEARCH
     if (search.trim()) {
       const q = normalize(search);
       list = list.filter(
@@ -262,7 +280,6 @@ setRiads(shuffleArray(mappedRiads));
       );
     }
 
-    // CITY
     if (filters.city) {
       list = list.filter((r) => r.city_id === filters.city);
     }
@@ -271,14 +288,12 @@ setRiads(shuffleArray(mappedRiads));
       list = list.filter((r) => r.neighborhood_id === filters.neighborhood);
     }
 
-    // AMENITIES
     if (filters.amenities.length) {
       list = list.filter((r) =>
         filters.amenities.every((id) => r.amenity_ids.includes(id)),
       );
     }
 
-    // RATING
     if (filters.rating) {
       list = list.filter((r) => (r.rating_avg || 0) >= filters.rating);
     }
@@ -426,14 +441,11 @@ setRiads(shuffleArray(mappedRiads));
 
       <div className="bg-gradient-to-b from-white via-white to-gray-50 pt-32 section-padding content-wrapper">
         {/* HEADER */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <div
+          ref={headerRef}
           className="flex flex-col md:flex-row justify-between mb-12 gap-6"
         >
           <div>
-        
             <h1 className="h1-style bg-gradient-to-r from-brand-ink to-brand-action bg-clip-text text-transparent">
               {t("allRiads")}
             </h1>
@@ -443,31 +455,22 @@ setRiads(shuffleArray(mappedRiads));
           </div>
 
           {/* CONTROLS */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="flex items-center gap-3"
-          >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+          <div className="flex items-center gap-3">
+            <button
               onClick={() => setIsFilterOpen(true)}
-              className="h-12 px-6 rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 border border-gray-200 hover:border-gray-300 flex items-center gap-2 font-semibold text-gray-700 transition-all shadow-sm hover:shadow-md"
+              className="h-12 px-6 bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 border border-gray-200 hover:border-gray-300 flex items-center gap-2 font-semibold text-gray-700 transition-all shadow-sm hover:shadow-md active:scale-95"
             >
               <Filter className="w-5 h-5" />
               {t("filters")}
-            </motion.button>
+            </button>
 
             {/* VIEW TOGGLE */}
-            <div className="flex border border-gray-300 rounded-xl overflow-hidden bg-white shadow-sm">
-              {["cards", "list"].map((viewOption, idx) => (
-                <motion.button
+            <div className="flex border border-gray-300 overflow-hidden bg-white shadow-sm">
+              {["cards", "list"].map((viewOption) => (
+                <button
                   key={viewOption}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   onClick={() => setQuery({ view: viewOption }, "push")}
-                  className={`px-4 h-12 font-semibold transition-all ${
+                  className={`px-4 h-12 font-semibold transition-all active:scale-95 ${
                     view === viewOption
                       ? "bg-gradient-to-r from-brand-action to-brand-action/80 text-white shadow-lg"
                       : "bg-white text-gray-700 hover:bg-gray-50"
@@ -478,22 +481,17 @@ setRiads(shuffleArray(mappedRiads));
                   ) : (
                     <List className="w-5 h-5" />
                   )}
-                </motion.button>
+                </button>
               ))}
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* SEARCH BAR */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          className="mb-10"
-        >
+        <div className="mb-10">
           <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-action/20 to-brand-ink/20 rounded-2xl blur-lg group-hover:blur-xl transition-all opacity-0 group-hover:opacity-100"></div>
-            <div className="relative flex items-center bg-white rounded-2xl border-2 border-gray-200 hover:border-brand-action/50 transition-all shadow-lg hover:shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-action/20 to-brand-ink/20 blur-lg group-hover:blur-xl transition-all opacity-0 group-hover:opacity-100"></div>
+            <div className="relative flex items-center bg-white border-2 border-gray-200 hover:border-brand-action/50 transition-all shadow-lg hover:shadow-xl">
               <Search className="w-5 h-5 text-gray-400 ml-4" />
               <input
                 value={search}
@@ -503,12 +501,7 @@ setRiads(shuffleArray(mappedRiads));
               />
             </div>
           </div>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-3 flex items-center justify-between px-2"
-          >
+          <div className="mt-3 flex items-center justify-between px-2">
             <span className="text-sm font-semibold text-gray-600">
               {filtered.length}{" "}
               <span className="text-brand-action">{t("results")}</span>
@@ -518,107 +511,55 @@ setRiads(shuffleArray(mappedRiads));
                 {t("page")} {page} {t("of")} {totalPages}
               </span>
             )}
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         <div ref={listStartRef} className="scroll-mt-32" />
 
         {/* CONTENT */}
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center py-32"
-            >
-              <div className="text-center">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-12 h-12 border-3 border-gray-200 border-t-brand-action rounded-full mx-auto mb-4"
-                />
-                <p className="text-gray-600 font-medium">{t("loading")}</p>
+        {loading ? (
+          <div className="flex items-center justify-center py-32">
+            <div className="text-center">
+              <div className="w-12 h-12 border-3 border-gray-200 border-t-brand-action mx-auto mb-4 animate-spin" />
+              <p className="text-gray-600 font-medium">{t("loading")}</p>
+            </div>
+          </div>
+        ) : paged.length === 0 ? (
+          <div className="text-center py-20">
+            <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 font-medium">{t("noResults")}</p>
+          </div>
+        ) : view === "cards" ? (
+          <div
+            ref={gridRef}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {paged.map((riad) => (
+              <div key={riad.id}>
+                <RiadCard riad={riad} />
               </div>
-            </motion.div>
-          ) : paged.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center py-20"
-            >
-              <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-600 font-medium">{t("noResults")}</p>
-            </motion.div>
-          ) : view === "cards" ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-            >
-              {paged.map((riad, idx) => (
-                <motion.div
-                  key={riad.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{
-                    duration: 0.4,
-                    delay: (idx % 12) * 0.05,
-                  }}
-                  layout
-                >
-                  <RiadCard riad={riad} />
-                </motion.div>
-              ))}
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-5"
-            >
-              {paged.map((riad, idx) => (
-                <motion.div
-                  key={riad.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{
-                    duration: 0.4,
-                    delay: (idx % 12) * 0.05,
-                  }}
-                  layout
-                >
-                  <RiadListItem riad={riad} />
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            ))}
+          </div>
+        ) : (
+          <div ref={gridRef} className="space-y-5">
+            {paged.map((riad) => (
+              <div key={riad.id}>
+                <RiadListItem riad={riad} />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* PAGINATION */}
         {totalPages > 1 && paged.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            className="flex justify-center items-center gap-6 mt-16"
-          >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+          <div className="flex justify-center items-center gap-6 mt-16">
+            <button
               disabled={page <= 1}
               onClick={() => setQuery({ page: page - 1 }, "push")}
-              className="h-12 w-12 rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+              className="h-12 w-12 bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md active:scale-95"
             >
               <ChevronLeft className="w-5 h-5 text-gray-700" />
-            </motion.button>
+            </button>
 
             <div className="flex items-center gap-3">
               <span className="text-sm font-bold text-gray-700">
@@ -630,16 +571,14 @@ setRiads(shuffleArray(mappedRiads));
               </span>
             </div>
 
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
               disabled={page >= totalPages}
               onClick={() => setQuery({ page: page + 1 }, "push")}
-              className="h-12 w-12 rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+              className="h-12 w-12 bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md active:scale-95"
             >
               <ChevronRight className="w-5 h-5 text-gray-700" />
-            </motion.button>
-          </motion.div>
+            </button>
+          </div>
         )}
       </div>
 
