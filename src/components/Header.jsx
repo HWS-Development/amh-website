@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, NavLink as RouterNavLink, useLocation } from 'react-router-dom';
-import { Menu, X, Globe, ChevronDown, Search } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
-import BookingStrip from '@/components/BookingStrip';
-import { supabase } from '@/lib/customSupabaseClient';
-import { getTranslated } from '@/lib/utils';
-import { fetchCatalog } from '@/lib/catalogs';
-import { usePartnerHotels } from '@/lib/partnerHotelsApi';
-import SearchButton from './ui/SearchButton';
-import i18n from '@/i18n';
-import OptimizedImage from '@/components/ui/OptimizedImage';
-import gsap from 'gsap';
+import React, { useState, useEffect, useRef } from "react";
+import { Link, NavLink as RouterNavLink, useLocation } from "react-router-dom";
+import { Menu, X, Globe, ChevronDown, Search, ArrowRight } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import BookingStrip from "@/components/BookingStrip";
+import { supabase } from "@/lib/customSupabaseClient";
+import { listExperiences, listDestinations } from "@/lib/mghApi";
+import { getTranslated } from "@/lib/utils";
+import { fetchCatalog } from "@/lib/catalogs";
+import { usePartnerHotels } from "@/lib/partnerHotelsApi";
+import PropertySearchModal from "./ui/PropertySearchModal";
+import i18n from "@/i18n";
+import OptimizedImage from "@/components/ui/OptimizedImage";
+import gsap from "gsap";
 
 const useScroll = () => {
   const [scrollData, setScrollData] = useState({ y: 0, lastY: 0 });
@@ -20,59 +21,226 @@ const useScroll = () => {
     const handleScroll = () => {
       setScrollData(prev => ({ y: window.scrollY, lastY: prev.y }));
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   return scrollData;
 };
 
 const languages = [
-  { code: 'fr', name: 'Français' },
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Español' },
+  { code: "fr", name: "Français" },
+  { code: "en", name: "English" },
+  { code: "es", name: "Español" },
 ];
 
-const destinations = [
-  { labelKey: 'marrakech', href: '/destinations/marrakech' },
-  { labelKey: 'essaouira', href: '/destinations/essaouira' },
-  { labelKey: 'ouarzazate', href: '/destinations/ouarzazate' },
-];
+const Sidebar = ({ open, onClose, navLinks, riads, t, currentLanguage, changeLanguage }) => {
+  const overlayRef = useRef(null);
+  const panelRef = useRef(null);
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const tl = gsap.timeline();
+    if (overlayRef.current) {
+      tl.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0);
+    }
+    if (panelRef.current) {
+      tl.fromTo(
+        panelRef.current,
+        { x: "100%" },
+        { x: "0%", duration: 0.5, ease: "power3.out" },
+        0
+      );
+      tl.fromTo(
+        panelRef.current.querySelectorAll("[data-sidebar-item]"),
+        { opacity: 0, x: 20 },
+        { opacity: 1, x: 0, duration: 0.4, stagger: 0.04, ease: "power2.out" },
+        0.2
+      );
+    }
+    return () => {
+      document.body.style.overflow = prev;
+      tl.kill();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) setOpenDropdown(null);
+  }, [open]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    if (open) document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200]">
+      <div ref={overlayRef} onClick={onClose} className="absolute inset-0 bg-brand-ink/70 backdrop-blur-sm" aria-hidden />
+      <div
+        ref={panelRef}
+        className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col"
+      >
+        <div className="flex items-center justify-between px-6 md:px-8 py-5 border-b border-brand-ink/5">
+          <Link to="/" onClick={onClose}>
+            <OptimizedImage
+              src="/images/logo_mgh.svg"
+              alt="Centrale des Riads"
+              className="h-10 md:h-12 w-auto"
+            />
+          </Link>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 grid place-items-center text-brand-ink/40 hover:text-brand-action transition-colors rounded-full hover:bg-brand-ink/5"
+            aria-label={t("close") || "Close"}
+          >
+            <X className="w-4.5 h-4.5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-6 md:px-8 py-6">
+          <ul className="space-y-1">
+            {navLinks.map((link, i) => (
+              <li key={link.labelKey} data-sidebar-item>
+                {link.dropdown && link.dropdown.length > 0 ? (
+                  <div>
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === link.labelKey ? null : link.labelKey)}
+                      className="w-full flex items-center justify-between py-3 font-montserrat text-sm font-semibold uppercase tracking-[0.2em] text-brand-ink hover:text-brand-action transition-colors duration-200"
+                    >
+                      <span>{t(link.labelKey)}</span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-300 ${
+                          openDropdown === link.labelKey ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                        openDropdown === link.labelKey ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+                      }`}
+                    >
+                      <div className="pl-4 pb-2 space-y-0.5 border-l-2 border-brand-beige ml-2">
+                        {link.dropdown.map((item) => (
+                          <Link
+                            key={item.href}
+                            to={item.href}
+                            onClick={onClose}
+                            className="block py-2.5 pl-3 font-montserrat text-xs text-brand-ink/60 hover:text-brand-action hover:bg-brand-beige/50 transition-all duration-200 rounded-sm"
+                          >
+                            {item.label || t(item.labelKey)}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <RouterNavLink
+                    to={link.href}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `block py-3 font-montserrat text-sm font-semibold uppercase tracking-[0.2em] transition-colors duration-200 ${
+                        isActive ? "text-brand-action" : "text-brand-ink hover:text-brand-action"
+                      }`
+                    }
+                  >
+                    {t(link.labelKey)}
+                  </RouterNavLink>
+                )}
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="shrink-0 border-t border-brand-ink/5 px-6 md:px-8 py-5 space-y-4">
+          <div className="flex items-center gap-3" data-sidebar-item>
+            <span className="font-montserrat text-[0.6rem] uppercase tracking-[0.25em] text-brand-ink/40 font-semibold">
+              {t("language") || "Language"}
+            </span>
+            <div className="flex gap-1">
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => changeLanguage(lang.code)}
+                  className={`px-3 py-1.5 font-montserrat text-[0.65rem] font-semibold uppercase tracking-wider transition-all duration-200 ${
+                    currentLanguage === lang.code
+                      ? "bg-brand-action text-white"
+                      : "bg-brand-beige/50 text-brand-ink/50 hover:bg-brand-beige hover:text-brand-action"
+                  }`}
+                >
+                  {lang.code}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div data-sidebar-item>
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-3 w-full px-4 py-3 bg-brand-beige/50 border border-brand-ink/8 text-brand-ink/50 hover:bg-brand-beige hover:text-brand-ink hover:border-brand-action/30 transition-all duration-300 group"
+            >
+              <Search className="w-4 h-4 text-brand-ink/30 group-hover:text-brand-action transition-colors" />
+              <span className="font-montserrat text-[0.78rem] text-brand-ink/40 group-hover:text-brand-ink/60 transition-colors">
+                {t("search") || "Search"}
+              </span>
+              <kbd className="ml-auto font-montserrat text-[0.55rem] uppercase tracking-wider text-brand-ink/20 bg-white/50 px-2 py-0.5 border border-brand-ink/5">
+                Ctrl+K
+              </kbd>
+            </button>
+            <PropertySearchModal
+              open={searchOpen}
+              onClose={() => setSearchOpen(false)}
+              riads={riads}
+              locale={currentLanguage}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Header = ({ date, onDateChange }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isStickyMenuOpen, setIsStickyMenuOpen] = useState(false);
   const [isBookingWidgetOpen, setIsBookingWidgetOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState(null);
   const [experiences, setExperiences] = useState([]);
+  const [destinations, setDestinations] = useState([]);
   const [riads, setRiads] = useState([]);
 
   const { currentLanguage, changeLanguage, t } = useLanguage();
   const { toast } = useToast();
-  const dropdownTimeoutRef = useRef(null);
-  const langRef = useRef(null);
   const scrollData = useScroll();
   const location = useLocation();
 
   const fullHeaderRef = useRef(null);
   const stickyHeaderRef = useRef(null);
 
-  const isHomePage = location.pathname === '/';
+  const isHomePage = location.pathname === "/";
   const showStickyHeader = isHomePage
     ? scrollData.y > window.innerHeight * 0.6
     : scrollData.y > 100;
   const showFullHeader = !showStickyHeader;
 
-  // Animate headers on visibility change
   useEffect(() => {
     if (fullHeaderRef.current) {
       if (showFullHeader) {
-        fullHeaderRef.current.style.display = 'block';
-        gsap.to(fullHeaderRef.current, { y: 0, duration: 0.25, ease: 'power2.out' });
+        fullHeaderRef.current.style.display = "block";
+        gsap.to(fullHeaderRef.current, { y: 0, duration: 0.25, ease: "power2.out" });
       } else {
-        gsap.to(fullHeaderRef.current, { y: '-100%', duration: 0.25, ease: 'power2.in', onComplete: () => {
-          if (fullHeaderRef.current) fullHeaderRef.current.style.display = 'none';
-        }});
+        gsap.to(fullHeaderRef.current, {
+          y: "-100%",
+          duration: 0.25,
+          ease: "power2.in",
+          onComplete: () => {
+            if (fullHeaderRef.current) fullHeaderRef.current.style.display = "none";
+          },
+        });
       }
     }
   }, [showFullHeader]);
@@ -80,31 +248,42 @@ const Header = ({ date, onDateChange }) => {
   useEffect(() => {
     if (stickyHeaderRef.current) {
       if (showStickyHeader) {
-        stickyHeaderRef.current.style.display = 'block';
-        gsap.to(stickyHeaderRef.current, { y: 0, duration: 0.25, ease: 'power2.out' });
+        stickyHeaderRef.current.style.display = "block";
+        gsap.to(stickyHeaderRef.current, { y: 0, duration: 0.25, ease: "power2.out" });
       } else {
-        gsap.to(stickyHeaderRef.current, { y: '-100%', duration: 0.25, ease: 'power2.in', onComplete: () => {
-          if (stickyHeaderRef.current) stickyHeaderRef.current.style.display = 'none';
-        }});
+        gsap.to(stickyHeaderRef.current, {
+          y: "-100%",
+          duration: 0.25,
+          ease: "power2.in",
+          onComplete: () => {
+            if (stickyHeaderRef.current) stickyHeaderRef.current.style.display = "none";
+          },
+        });
       }
     }
   }, [showStickyHeader]);
 
   useEffect(() => {
     const fetchNavData = async () => {
-      const res = await supabase
-        .from('mgh_experiences')
-        .select('title_tr, slug')
-        .order('sort_order');
-      if (res.error) {
-        console.error('Error fetching experiences:', res.error);
-      } else {
+      try {
+        const [exps, dests] = await Promise.all([
+          listExperiences(),
+          listDestinations(),
+        ]);
         setExperiences(
-          res.data.map(exp => ({
+          (exps || []).map(exp => ({
             label: getTranslated(exp.title_tr, currentLanguage),
             href: `/experiences/${exp.slug}`,
           }))
         );
+        setDestinations(
+          (dests || []).map(d => ({
+            label: getTranslated(d.name_tr ?? d.name, currentLanguage),
+            href: `/destinations/${d.slug}`,
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching nav data:", error);
       }
     };
     fetchNavData();
@@ -117,8 +296,8 @@ const Header = ({ date, onDateChange }) => {
       if (!hotelsData) return;
       try {
         const [citiesArr, neighborhoodsArr] = await Promise.all([
-          fetchCatalog('mgh_cities', currentLanguage),
-          fetchCatalog('mgh_neighborhoods', currentLanguage),
+          fetchCatalog("mgh_cities", currentLanguage),
+          fetchCatalog("mgh_neighborhoods", currentLanguage),
         ]);
         const citiesMap = Object.fromEntries(citiesArr.map(c => [c.id, c.label]));
         const neighborhoodsMap = Object.fromEntries(neighborhoodsArr.map(n => [n.id, n.label]));
@@ -128,13 +307,13 @@ const Header = ({ date, onDateChange }) => {
             id: riad.id,
             name: getTranslated(riad.name, currentLanguage),
             name_tr: riad.name,
-            city: citiesMap[riad.city_id] || '',
-            quartier: neighborhoodsMap[riad.neighborhood_id] || '',
+            city: citiesMap[riad.city_id] || "",
+            quartier: neighborhoodsMap[riad.neighborhood_id] || "",
             image_urls: Array.isArray(riad.image_urls) ? riad.image_urls : [],
           }))
         );
       } catch (error) {
-        console.error('Error processing riads:', error.message || error);
+        console.error("Error processing riads:", error.message || error);
         setRiads([]);
       }
     };
@@ -143,180 +322,40 @@ const Header = ({ date, onDateChange }) => {
 
   useEffect(() => {
     const handleEsc = e => {
-      if (e.key === 'Escape') {
-        setOpenDropdown(null);
-        setIsLanguageOpen(false);
-        setIsMenuOpen(false);
+      if (e.key === "Escape") {
+        setSidebarOpen(false);
         setIsStickyMenuOpen(false);
         setIsBookingWidgetOpen(false);
       }
     };
-    window.addEventListener('keydown', handleEsc);
-    return () => {
-      window.removeEventListener('keydown', handleEsc);
-      clearTimeout(dropdownTimeoutRef.current);
-    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = e => {
-      if (langRef.current && !langRef.current.contains(e.target)) {
-        setIsLanguageOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    setIsMenuOpen(false);
+    setSidebarOpen(false);
     setIsStickyMenuOpen(false);
     setIsBookingWidgetOpen(false);
-    setOpenDropdown(null);
   }, [location.pathname]);
 
   const navLinks = [
-    { labelKey: 'home', href: '/' },
-    { labelKey: 'allProperties', href: '/all-riads' },
-    { labelKey: 'experiences', dropdown: experiences },
-    { labelKey: 'destinations', dropdown: destinations },
-    { labelKey: 'about', href: '/about' },
+    { labelKey: "home", href: "/" },
+    { labelKey: "allProperties", href: "/all-riads" },
+    { labelKey: "experiences", dropdown: experiences },
+    { labelKey: "destinations", dropdown: destinations },
+    { labelKey: "about", href: "/about" },
   ];
 
-  const handleMouseEnter = key => {
-    clearTimeout(dropdownTimeoutRef.current);
-    setOpenDropdown(key);
-  };
-
-  const handleMouseLeave = () => {
-    dropdownTimeoutRef.current = setTimeout(() => setOpenDropdown(null), 200);
-  };
-
-  const closeAllMenus = () => {
-    setIsMenuOpen(false);
-    setIsStickyMenuOpen(false);
-    setOpenDropdown(null);
-  };
-
-  const NavItem = ({ to, children, onClick, ...props }) => (
-    <RouterNavLink
-      to={to}
-      onClick={onClick}
-      className={({ isActive }) =>
-        `uppercase font-medium text-xs tracking-widest text-brand-ink hover:text-brand-action transition-colors duration-200 ${isActive ? 'text-brand-action' : ''}`
-      }
-      {...props}
-    >
-      {children}
-    </RouterNavLink>
-  );
-
-  const DropdownNav = ({ link, onNavigate, inline = false }) => (
-    <div
-      className={inline ? '' : 'relative'}
-      onMouseEnter={inline ? undefined : () => handleMouseEnter(link.labelKey)}
-      onMouseLeave={inline ? undefined : handleMouseLeave}
-    >
-      <button
-        className="flex items-center gap-1 uppercase font-medium text-xs tracking-widest text-brand-ink hover:text-brand-action transition-colors duration-200"
-        onClick={() =>
-          setOpenDropdown(openDropdown === link.labelKey ? null : link.labelKey)
-        }
-      >
-        <span>{t(link.labelKey)}</span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === link.labelKey ? 'rotate-180' : ''}`}
-        />
-      </button>
-      {inline ? (
-        <div
-          className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            openDropdown === link.labelKey ? 'max-h-[300px] opacity-100 mt-1' : 'max-h-0 opacity-0'
-          }`}
-        >
-          {link.dropdown.map(item => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className="block pl-4 py-2 text-xs font-medium text-brand-ink hover:bg-brand-beige hover:text-brand-action transition-colors tracking-wide"
-              onClick={() => {
-                setOpenDropdown(null);
-                onNavigate?.();
-              }}
-            >
-              {item.label || t(item.labelKey)}
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <div
-          className={`absolute left-0 top-full mt-2 bg-white shadow-xl border border-brand-ink/5 py-1.5 w-56 z-50 transition-all duration-150 origin-top ${
-            openDropdown === link.labelKey ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
-          }`}
-        >
-          {link.dropdown.map(item => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className="block px-4 py-2.5 text-xs font-medium text-brand-ink hover:bg-brand-beige hover:text-brand-action transition-colors tracking-wide"
-              onClick={() => {
-                setOpenDropdown(null);
-                onNavigate?.();
-              }}
-            >
-              {item.label || t(item.labelKey)}
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const LanguageDropdown = ({ className = '' }) => (
-    <div className={`relative ${className}`} ref={langRef}>
-      <button
-        onClick={() => setIsLanguageOpen(!isLanguageOpen)}
-        className="flex items-center gap-1.5 uppercase font-medium text-xs tracking-widest text-brand-ink hover:text-brand-action transition-colors duration-200"
-      >
-        <span>
-          {currentLanguage === 'fr' ? 'Langues' : currentLanguage === 'es' ? 'Idiomas' : 'Languages'}
-        </span>
-      </button>
-      <div
-        className={`absolute right-0 top-full mt-2 bg-white shadow-xl border border-brand-ink/5 py-1.5 min-w-[140px] z-50 transition-all duration-150 origin-top ${
-          isLanguageOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
-        }`}
-      >
-        {languages.map(lang => (
-          <button
-            key={lang.code}
-            onClick={() => {
-              changeLanguage(lang.code);
-              setIsLanguageOpen(false);
-            }}
-            className={`w-full px-4 py-2.5 text-left text-xs font-medium tracking-wide transition-colors ${
-              currentLanguage === lang.code
-                ? 'text-brand-action font-semibold bg-brand-beige/50'
-                : 'text-brand-ink hover:bg-brand-beige hover:text-brand-action'
-            }`}
-          >
-            {lang.name}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  const openSidebar = () => setSidebarOpen(true);
 
   return (
     <>
-      {/* FULL HEADER */}
       <header
         ref={fullHeaderRef}
         className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-brand-ink/5"
-        style={{ transform: 'translateY(0%)' }}
+        style={{ transform: "translateY(0%)" }}
       >
         <div className="content-wrapper flex items-center justify-between py-3 md:py-4">
-          {/* Logo */}
           <Link to="/" className="flex-shrink-0">
             <OptimizedImage
               src="/images/logo_mgh.svg"
@@ -325,158 +364,82 @@ const Header = ({ date, onDateChange }) => {
             />
           </Link>
 
-          {/* Right side actions */}
           <div className="flex items-center gap-4 md:gap-6">
             <Link
               to="/about"
               className="hidden md:inline-block uppercase font-medium text-xs tracking-widest text-brand-ink hover:text-brand-action transition-colors duration-200"
             >
-              {t('aboutPageTitle') || 'Qui sommes-nous ?'}
+              {t("aboutPageTitle") || "Qui sommes-nous ?"}
             </Link>
 
-            <SearchButton riads={riads} locale={i18n.language} />
-            <LanguageDropdown className="hidden md:block" />
-
-            {/* Hamburger */}
             <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="relative w-9 h-9 flex items-center justify-center text-brand-ink hover:text-brand-action transition-colors duration-200"
+              onClick={openSidebar}
+              className="relative w-10 h-10 flex items-center justify-center text-brand-ink hover:text-brand-action transition-all duration-200 group"
               aria-label="Menu"
             >
-              <span className={`transition-all duration-150 ${isMenuOpen ? 'opacity-0 rotate-90 absolute' : 'opacity-100 rotate-0'}`}>
-                <Menu className="w-5 h-5" />
-              </span>
-              <span className={`transition-all duration-150 ${isMenuOpen ? 'opacity-100 rotate-0' : 'opacity-0 -rotate-90 absolute'}`}>
-                <X className="w-5 h-5" />
-              </span>
+              <div className="flex flex-col gap-[5px] items-center justify-center">
+                <span className="block w-5 h-[2px] bg-current transition-all duration-300 group-hover:w-6" />
+                <span className="block w-5 h-[2px] bg-current" />
+                <span className="block w-5 h-[2px] bg-current transition-all duration-300 group-hover:w-3 ml-auto" />
+              </div>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div
+        ref={stickyHeaderRef}
+        className="fixed top-0 left-0 right-0 z-50 bg-brand-action shadow-sm"
+        style={{ display: "none", transform: "translateY(-100%)" }}
+      >
+        <div className="content-wrapper flex items-center justify-between py-2 gap-3">
+          <button
+            onClick={openSidebar}
+            className="flex items-center gap-2 h-11 px-4 border border-white/25 text-white hover:border-white/50 hover:text-white/90 transition-colors bg-transparent"
+          >
+            <div className="flex flex-col gap-[4px]">
+              <span className="block w-4 h-[2px] bg-current" />
+              <span className="block w-4 h-[2px] bg-current" />
+              <span className="block w-3 h-[2px] bg-current" />
+            </div>
+            <span className="uppercase text-xs font-semibold tracking-widest">{t("menu") || "Menu"}</span>
+          </button>
+
+          <div className="flex-grow hidden md:block">
+            <BookingStrip date={date} onDateChange={onDateChange} isSticky />
+          </div>
+
+          <div className="flex-grow md:hidden">
+            <button
+              onClick={() => setIsBookingWidgetOpen(true)}
+              className="w-full h-11 text-left px-4 border border-white/25 bg-transparent text-white flex items-center gap-2"
+            >
+              <Search className="w-4 h-4 text-white/70" />
+              <span className="text-white/70 text-xs">{t("searchDates") || "Rechercher"}</span>
             </button>
           </div>
         </div>
 
-        {/* Hamburger dropdown menu */}
         <div
-          className={`bg-white border-t border-brand-ink/5 overflow-hidden transition-all duration-300 ease-in-out ${
-            isMenuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <nav className="content-wrapper py-6 flex flex-col space-y-1">
-             {navLinks.map(link =>
-              link.dropdown && link.dropdown.length > 0 ? (
-                <div key={link.labelKey} className="py-2 px-3">
-                  <DropdownNav link={link} onNavigate={closeAllMenus} inline />
-                </div>
-              ) : (
-                <NavItem
-                  key={link.labelKey}
-                  to={link.href}
-                  onClick={closeAllMenus}
-                >
-                  <span className="block px-3 py-3 hover:bg-brand-beige/50 transition-colors">
-                    {t(link.labelKey)}
-                  </span>
-                </NavItem>
-              )
-            )}
-
-            <div className="px-3 pt-2 md:hidden">
-              <SearchButton riads={riads} locale={i18n.language} />
-            </div>
-
-            <div className="px-3 pt-2 md:hidden">
-              <LanguageDropdown />
-            </div>
-          </nav>
-        </div>
-      </header>
-
-      {/* STICKY HEADER */}
-      <div
-        ref={stickyHeaderRef}
-        className="fixed top-0 left-0 right-0 z-50 bg-[#BF673E] shadow-sm"
-        style={{ display: 'none', transform: 'translateY(-100%)' }}
-      >
-        <div className="content-wrapper flex items-center justify-between py-2 gap-3">
-          {/* Menu button */}
-          <div className="flex-none">
-            <Button
-              onClick={() => setIsStickyMenuOpen(!isStickyMenuOpen)}
-              variant="outline"
-              className="h-11 px-4 gap-2 border-white/25 text-white hover:border-white/50 hover:text-white/90 transition-colors bg-transparent"
-            >
-              <Menu className="w-4 h-4" />
-              <span className="uppercase text-xs font-medium tracking-widest">
-                {t('menu') || 'Menu'}
-              </span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${isStickyMenuOpen ? 'rotate-180' : ''}`}
-              />
-            </Button>
-          </div>
-
-          {/* Booking strip — desktop */}
-          <div className="flex-grow hidden md:block">
-            <BookingStrip date={date} onDateChange={onDateChange} isSticky={true} />
-          </div>
-
-          {/* Booking trigger — mobile */}
-          <div className="flex-grow md:hidden">
-            <Button
-              variant="outline"
-              onClick={() => setIsBookingWidgetOpen(true)}
-              className="w-full h-11 text-left justify-start border-white/25 bg-transparent text-white"
-            >
-              <Search className="w-4 h-4 mr-2 text-white/70" />
-              <span className="text-white/70 text-xs">{t('searchDates') || 'Rechercher des dates'}</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Sticky menu dropdown */}
-        <div
-          className={`overflow-hidden border-t border-brand-ink/5 bg-white transition-all duration-250 ease-in-out ${
-            isStickyMenuOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <nav className="content-wrapper py-5 flex flex-col md:flex-row md:items-center md:justify-center gap-6 md:gap-10">
-            {navLinks.map(link =>
-              link.dropdown && link.dropdown.length > 0 ? (
-                <DropdownNav
-                  key={link.labelKey}
-                  link={link}
-                  onNavigate={closeAllMenus}
-                  inline
-                />
-              ) : (
-                <NavItem
-                  key={link.labelKey}
-                  to={link.href}
-                  onClick={closeAllMenus}
-                >
-                  {t(link.labelKey)}
-                </NavItem>
-              )
-            )}
-            <SearchButton riads={riads} locale={i18n.language} />
-            <LanguageDropdown />
-          </nav>
-        </div>
-
-        {/* Mobile booking widget */}
-        <div
-          className={`md:hidden border-t border-brand-ink/5 overflow-hidden transition-all duration-250 ease-in-out ${
-            isBookingWidgetOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+          className={`md:hidden border-t border-white/15 overflow-hidden transition-all duration-250 ease-in-out ${
+            isBookingWidgetOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           <div className="p-4">
-            <BookingStrip
-              date={date}
-              onDateChange={onDateChange}
-              isMobile={true}
-              onSearch={() => setIsBookingWidgetOpen(false)}
-            />
+            <BookingStrip date={date} onDateChange={onDateChange} isMobile onSearch={() => setIsBookingWidgetOpen(false)} />
           </div>
         </div>
       </div>
+
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        navLinks={navLinks}
+        riads={riads}
+        t={t}
+        currentLanguage={currentLanguage}
+        changeLanguage={changeLanguage}
+      />
     </>
   );
 };

@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Star, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Star, MapPin, ArrowUpRight } from "lucide-react";
 import AmenityIcon from "@/components/AmenityIcon";
 import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
-import OptimizedImage from '@/components/ui/OptimizedImage';
+import OptimizedImage from "@/components/ui/OptimizedImage";
 
-const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_IMAGE ||
+const FALLBACK_IMAGE =
+  import.meta.env.VITE_FALLBACK_IMAGE ||
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
 const MAX_AMENITIES = 3;
 const PRIORITY_AMENITY_IDS = [
@@ -26,8 +26,12 @@ const RiadCard = ({ riad }) => {
     label: riad.amenities?.[index],
   }));
   const prioritizedAmenities = [
-    ...amenityEntries.filter((entry) => PRIORITY_AMENITY_IDS.includes(entry.id)),
-    ...amenityEntries.filter((entry) => !PRIORITY_AMENITY_IDS.includes(entry.id)),
+    ...amenityEntries.filter((entry) =>
+      PRIORITY_AMENITY_IDS.includes(entry.id)
+    ),
+    ...amenityEntries.filter(
+      (entry) => !PRIORITY_AMENITY_IDS.includes(entry.id)
+    ),
   ].filter((entry) => Boolean(entry.label));
   const visibleAmenities = prioritizedAmenities.slice(0, MAX_AMENITIES);
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
@@ -36,25 +40,40 @@ const RiadCard = ({ riad }) => {
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
 
   return (
-    <div className="h-full flex flex-col bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group">
-      {/* IMAGE */}
-      <div className="relative">
-        <Link to={`/riad/${riad.id}`}>
+    <article className="group h-full flex flex-col bg-white overflow-hidden transition-all duration-500 ease-editorial hover:shadow-editorial">
+      {/* IMAGE — taller editorial aspect (4/3) */}
+      <div className="relative overflow-hidden bg-brand-beige">
+        <Link
+          to={`/riad/${riad.id}`}
+          aria-label={riad.name}
+          className="block relative aspect-[3/4] md:aspect-[4/5]"
+        >
           <OptimizedImage
             src={riad.imageUrl || FALLBACK_IMAGE}
             alt={riad.name}
-            className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-editorial group-hover:scale-[1.06]"
           />
+
+          {/* subtle bottom gradient for badge legibility */}
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/25 to-transparent pointer-events-none" />
+
+          {/* corner arrow chip on hover */}
+          <span
+            aria-hidden
+            className="absolute bottom-3 right-3 grid place-items-center w-10 h-10 rounded-full bg-white/95 text-brand-ink translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 ease-editorial"
+          >
+            <ArrowUpRight className="w-4 h-4" />
+          </span>
         </Link>
 
         {hasRating && (
-          <div className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1 shadow-sm">
+          <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5 shadow-sm">
             <Star className="w-3.5 h-3.5 text-amber-500" fill="currentColor" />
             <span className="font-semibold text-xs text-brand-ink">
               {riad.rating_avg.toFixed(1)}
             </span>
             {riad.reviews_count > 0 && (
-              <span className="text-[10px] text-brand-ink/50">
+              <span className="text-[10px] text-brand-ink/55">
                 ({riad.reviews_count})
               </span>
             )}
@@ -63,27 +82,29 @@ const RiadCard = ({ riad }) => {
       </div>
 
       {/* CONTENT */}
-      <div className="px-4 pt-3.5 pb-4 flex flex-col flex-1">
-        {/* TITLE */}
+      <div className="px-5 pt-5 pb-5 flex flex-col flex-1">
+        {/* TITLE — serif editorial */}
         <Link to={`/riad/${riad.id}`}>
-          <h3 className="text-sm font-bold text-brand-ink leading-tight line-clamp-1 hover:text-brand-action transition-colors">
+          <h3 className="font-display text-[clamp(1.1rem,1.4vw,1.35rem)] leading-tight text-brand-ink line-clamp-1 group-hover:text-brand-action transition-colors duration-500 ease-editorial">
             {riad.name}
           </h3>
         </Link>
 
         {riad.description && (
-          <p className="mt-1 text-xs text-brand-ink/60 line-clamp-2 leading-relaxed">
+          <p className="mt-1.5 text-xs text-brand-ink/60 line-clamp-2 leading-relaxed">
             {riad.description}
           </p>
         )}
 
-        {/* PROPERTY TYPE */}
+        {/* PROPERTY TYPE — eyebrow */}
         {riad.propertyType && (
-          <p className="text-xs text-brand-ink/45 mt-1.5 font-medium">{riad.propertyType}</p>
+          <p className="mt-2 font-montserrat text-[0.6rem] uppercase tracking-[0.28em] text-brand-action font-semibold">
+            {riad.propertyType}
+          </p>
         )}
 
         {/* LOCATION */}
-        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-brand-ink/55">
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-brand-ink/55">
           <MapPin className="w-3 h-3 shrink-0" />
           <span className="line-clamp-1">
             {[riad.neighborhood, riad.city].filter(Boolean).join(", ")}
@@ -92,14 +113,16 @@ const RiadCard = ({ riad }) => {
 
         {/* AMENITIES */}
         {visibleAmenities.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-3.5 flex flex-wrap gap-1.5">
             {visibleAmenities.map(({ id, label }, index) => (
               <span
                 key={`${id}-${index}`}
-                className="inline-flex items-center gap-1 px-2 py-0.5
-                   bg-brand-beige/60 text-[10px] text-brand-ink/70 font-medium"
+                className="inline-flex items-center gap-1 px-2 py-1 bg-brand-beige/70 text-[10px] text-brand-ink/75 font-medium"
               >
-                <AmenityIcon label={label} className="w-3 h-3 text-brand-ink/40" />
+                <AmenityIcon
+                  label={label}
+                  className="w-3 h-3 text-brand-action/70"
+                />
                 <span className="line-clamp-1 max-w-[9rem]">{label}</span>
               </span>
             ))}
@@ -109,7 +132,7 @@ const RiadCard = ({ riad }) => {
                 <button
                   onClick={() => setAmenitiesOpen(true)}
                   aria-label={`Show all ${prioritizedAmenities.length} amenities`}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-brand-action text-white text-[10px] font-bold shadow-sm hover:bg-brand-action/90 transition-colors"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-action text-white text-[10px] font-bold tracking-wide hover:bg-brand-ink transition-colors duration-300"
                 >
                   +{prioritizedAmenities.length - MAX_AMENITIES}
                 </button>
@@ -125,18 +148,20 @@ const RiadCard = ({ riad }) => {
           </div>
         )}
 
-        {/* CTA */}
-        <div className="mt-auto pt-4">
-          <Button
-            asChild
-            variant="outline"
-            className="w-full h-9 text-xs font-semibold border-brand-ink/15 text-brand-ink hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-300"
+        {/* CTA — refined link button (editorial) */}
+        <div className="mt-auto pt-5">
+          <Link
+            to={`/riad/${riad.id}`}
+            className="group/btn relative flex items-center justify-between w-full px-4 py-3 border border-brand-ink/15 text-brand-ink hover:border-brand-action hover:text-brand-action transition-colors duration-500 ease-editorial"
           >
-            <Link to={`/riad/${riad.id}`}>{t("moreDetails")}</Link>
-          </Button>
+            <span className="font-montserrat text-[0.68rem] font-semibold uppercase tracking-[0.28em]">
+              {t("moreDetails")}
+            </span>
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-500 ease-editorial group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
+          </Link>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 

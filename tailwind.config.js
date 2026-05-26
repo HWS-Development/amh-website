@@ -18,6 +18,21 @@ module.exports = {
 		extend: {
 			fontFamily: {
 				montserrat: ['Montserrat', 'sans-serif'],
+				sans: ['Montserrat', 'system-ui', 'sans-serif'],
+				display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+				serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+			},
+			letterSpacing: {
+				'eyebrow': '0.32em',
+			},
+			transitionTimingFunction: {
+				'editorial': 'cubic-bezier(0.22, 1, 0.36, 1)',
+				'silk': 'cubic-bezier(0.4, 0, 0.2, 1)',
+				'in-out-quint': 'cubic-bezier(0.83, 0, 0.17, 1)',
+			},
+			boxShadow: {
+				'editorial': '0 30px 80px -40px rgba(29, 29, 27, 0.35)',
+				'soft': '0 10px 40px -20px rgba(29, 29, 27, 0.18)',
 			},
 			colors: {
         'brand-ink': '#1d1d1b',

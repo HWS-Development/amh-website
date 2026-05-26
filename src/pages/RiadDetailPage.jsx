@@ -25,6 +25,7 @@ import {
   Utensils, Tv, Coffee, Car, Key, Thermometer, Heart, Baby,
   Accessibility, Dumbbell, ParkingCircle, BedDouble, Shirt, PawPrint,
   CigaretteOff, Snowflake, ConciergeBell, Plane, Lock,
+  ChevronDown,
 } from "lucide-react";
 
 import gsap from "gsap";
@@ -35,6 +36,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
 import { usePartnerHotelById } from "@/lib/partnerHotelsApi";
+import { gsapEase, duration } from "@/lib/motion";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -84,10 +86,10 @@ const getAmenityIcon = (label = "") => {
 const GalleryModal = ({ open, images, name, startIndex, onClose }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[9999] bg-white/98 flex flex-col" style={{ animation: "modalIn 360ms cubic-bezier(.2,.9,.25,1)" }}>
-      <div className="h-[76px] flex items-center justify-between px-7 border-b border-brand-ink/8">
-        <span className="text-sm font-semibold text-brand-ink font-montserrat">{name}</span>
-        <button type="button" onClick={onClose} className="w-10 h-10 border border-brand-ink/12 bg-white flex items-center justify-center cursor-pointer">
+    <div className="fixed inset-0 z-[9999] bg-brand-ink/98 flex flex-col" style={{ animation: "modalIn 400ms cubic-bezier(.2,.9,.25,1)" }}>
+      <div className="h-[72px] flex items-center justify-between px-7">
+        <span className="text-sm font-montserrat text-white/60 tracking-wide">{name}</span>
+        <button type="button" onClick={onClose} className="w-10 h-10 grid place-items-center text-white/40 hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -107,7 +109,8 @@ const GalleryModal = ({ open, images, name, startIndex, onClose }) => {
                 <OptimizedImage
                   src={url}
                   alt={`${name} ${index + 1}`}
-                  style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", boxShadow: "0 20px 70px rgba(0,0,0,0.14)" }}
+                  className="max-w-full max-h-full object-contain"
+                  style={{ boxShadow: "0 20px 80px rgba(0,0,0,0.5)" }}
                 />
               </div>
             </SwiperSlide>
@@ -115,7 +118,7 @@ const GalleryModal = ({ open, images, name, startIndex, onClose }) => {
         </Swiper>
       </div>
       <style>{`
-        @keyframes modalIn { from { opacity:0; transform:translateY(8px) scale(.995) } to { opacity:1; transform:translateY(0) scale(1) } }
+        @keyframes modalIn { from { opacity:0; transform:translateY(12px) scale(.995) } to { opacity:1; transform:translateY(0) scale(1) } }
         .riad-gallery-swiper .swiper-button-next, .riad-gallery-swiper .swiper-button-prev { color:#bf673e; }
         .riad-gallery-swiper .swiper-button-next::after, .riad-gallery-swiper .swiper-button-prev::after { font-size:14px; font-weight:700; }
         .riad-gallery-swiper .swiper-pagination { color:#bf673e; font-family:'Montserrat',sans-serif; font-size:13px; }
@@ -133,6 +136,42 @@ const StarRow = ({ count = 5, filled = 5 }) => (
   </div>
 );
 
+/* ─── Section Eyebrow ─── */
+const SectionEyebrow = ({ label }) => (
+  <div className="flex items-center gap-3 mb-4">
+    <span className="h-px w-5 bg-brand-action" />
+    <span className="font-montserrat uppercase tracking-[0.3em] text-[0.55rem] text-brand-action font-semibold">
+      {label}
+    </span>
+  </div>
+);
+
+/* ─── Animated Counter ─── */
+const AnimatedCounter = ({ value, suffix = "", label }) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const obj = { val: 0 };
+    gsap.to(obj, {
+      val: value,
+      duration: 1.8,
+      ease: "power3.out",
+      scrollTrigger: { trigger: ref.current, start: "top 85%", once: true },
+      onUpdate: () => {
+        if (ref.current) ref.current.textContent = Math.round(obj.val) + suffix;
+      },
+    });
+  }, [value, suffix]);
+  return (
+    <div className="text-center">
+      <span ref={ref} className="font-display text-[2.5rem] md:text-[3.5rem] text-brand-action leading-none block">
+        0{suffix}
+      </span>
+      {label && <span className="font-montserrat text-[0.6rem] uppercase tracking-[0.2em] text-brand-ink/40 mt-2 block">{label}</span>}
+    </div>
+  );
+};
+
 /* ═══════════════════════════════════ MAIN PAGE ═══════════════════════════════════ */
 const RiadDetailPage = () => {
   const { id } = useParams();
@@ -145,7 +184,7 @@ const RiadDetailPage = () => {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [photoIdx, setPhotoIdx] = useState(0);
-  const [direction, setDirection] = useState(1);
+  const [infoExpanded, setInfoExpanded] = useState(false);
 
   const [cities, setCities] = useState({});
   const [neighborhoods, setNeighborhoods] = useState({});
@@ -158,12 +197,14 @@ const RiadDetailPage = () => {
   const imgLayerB = useRef(null);
   const activeLayer = useRef("A");
   const progressBarRef = useRef(null);
+  const carouselRef = useRef(null);
   const infoCardRef = useRef(null);
   const amenitiesRef = useRef(null);
   const servicesRef = useRef(null);
-
+  const bookingRef = useRef(null);
   const pageRef = useRef(null);
-  const mapRef = useRef(null);
+  const mapSectionRef = useRef(null);
+  const ctaRef = useRef(null);
 
   const { data: hotelData, error: hotelError, isLoading: hotelLoading } = usePartnerHotelById(id);
 
@@ -195,7 +236,6 @@ const RiadDetailPage = () => {
       }
       setLoading(false);
     };
-
     if (hotelData) {
       fetchAll();
     } else if (hotelError) {
@@ -222,45 +262,32 @@ const RiadDetailPage = () => {
   const ratingNum = riad ? (parseFloat(riad.rating_avg) || 0) : 0;
   const ratingFull = Math.round(ratingNum);
 
-  // GSAP cinematic slide transition
+  /* ─── GSAP cinematic slide transition ─── */
   const animateSlide = useCallback((newIdx, dir) => {
     const enterLayer = activeLayer.current === "A" ? imgLayerB : imgLayerA;
     const exitLayer = activeLayer.current === "A" ? imgLayerA : imgLayerB;
-
     if (!enterLayer.current || !exitLayer.current) return;
 
-    // Set new image on enter layer
     enterLayer.current.src = images[newIdx];
     enterLayer.current.alt = `${name} ${newIdx + 1}`;
-
-    // Place enter layer on top
     enterLayer.current.style.zIndex = 2;
     exitLayer.current.style.zIndex = 1;
 
     const tl = gsap.timeline();
-
-    // Enter: fade + scale + slide + blur in
     tl.fromTo(enterLayer.current,
       { opacity: 0, scale: 1.06, x: dir > 0 ? 60 : -60, filter: "blur(8px)" },
-      { opacity: 1, scale: 1, x: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out" },
-      0
+      { opacity: 1, scale: 1, x: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out" }, 0
     );
-
-    // Exit: fade + slide + blur out
     tl.to(exitLayer.current,
-      { opacity: 0, scale: 1.02, x: dir > 0 ? -60 : 60, filter: "blur(8px)", duration: 0.9, ease: "power3.out" },
-      0
+      { opacity: 0, scale: 1.02, x: dir > 0 ? -60 : 60, filter: "blur(8px)", duration: 0.9, ease: "power3.out" }, 0
     );
-
     activeLayer.current = activeLayer.current === "A" ? "B" : "A";
-
-    // Animate progress bar
     if (progressBarRef.current) {
       gsap.fromTo(progressBarRef.current, { scaleX: 0 }, { scaleX: 1, duration: 5.4, ease: "none" });
     }
   }, [images, name]);
 
-  // Initialize first image
+  /* ─── Initialize first image ─── */
   useEffect(() => {
     if (images.length === 0) return;
     if (imgLayerA.current) {
@@ -279,52 +306,142 @@ const RiadDetailPage = () => {
     }
   }, [images, name]);
 
-  // Info card entry animation
-  useEffect(() => {
-    if (loading || !riad || !infoCardRef.current) return;
-    gsap.from(infoCardRef.current, { opacity: 0, x: 50, duration: 0.9, ease: "power3.out" });
-  }, [loading, riad]);
-
-  // Amenities/services stagger
-  useEffect(() => {
-    if (loading || !riad) return;
-    if (amenitiesRef.current) {
-      const items = amenitiesRef.current.querySelectorAll("li");
-      if (items.length) gsap.from(items, { opacity: 0, y: 8, duration: 0.45, stagger: 0.03 });
-    }
-    if (servicesRef.current) {
-      const items = servicesRef.current.querySelectorAll("li");
-      if (items.length) gsap.from(items, { opacity: 0, y: 8, duration: 0.45, stagger: 0.03 });
-    }
-  }, [loading, riad]);
+  /* ─── Advanced GSAP ScrollTrigger Animations ─── */
   useLayoutEffect(() => {
     if (loading || !riad) return;
+
     const ctx = gsap.context(() => {
-      if (mapRef.current) {
-        gsap.from(mapRef.current, {
-          y: 30, opacity: 0, duration: 0.7, ease: "power3.out",
-          scrollTrigger: { trigger: mapRef.current, start: "top 85%" },
+      /* Carousel parallax */
+      if (carouselRef.current) {
+        gsap.to(carouselRef.current, {
+          y: 40,
+          scale: 1.02,
+          ease: "none",
+          scrollTrigger: {
+            trigger: carouselRef.current,
+            start: "top top",
+            end: "bottom top+=200",
+            scrub: 1.5,
+          },
+        });
+        gsap.from(carouselRef.current, {
+          opacity: 0,
+          y: -20,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: carouselRef.current,
+            start: "top 90%",
+            once: true,
+          },
+        });
+      }
+
+      /* Info card entrance */
+      if (infoCardRef.current) {
+        gsap.from(infoCardRef.current, {
+          opacity: 0,
+          x: 60,
+          duration: 1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: infoCardRef.current,
+            start: "top 85%",
+            once: true,
+          },
+        });
+      }
+
+      /* Amenities stagger reveal */
+      if (amenitiesRef.current) {
+        gsap.from(amenitiesRef.current.querySelectorAll("li"), {
+          opacity: 0,
+          y: 12,
+          duration: 0.5,
+          stagger: 0.04,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: amenitiesRef.current,
+            start: "top 82%",
+            once: true,
+          },
+        });
+      }
+
+      /* Services stagger reveal */
+      if (servicesRef.current) {
+        gsap.from(servicesRef.current.querySelectorAll("li"), {
+          opacity: 0,
+          y: 12,
+          duration: 0.5,
+          stagger: 0.04,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: servicesRef.current,
+            start: "top 82%",
+            once: true,
+          },
+        });
+      }
+
+      /* Booking conditions stagger */
+      if (bookingRef.current) {
+        gsap.from(bookingRef.current.querySelectorAll("li"), {
+          opacity: 0,
+          y: 10,
+          duration: 0.4,
+          stagger: 0.05,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: bookingRef.current,
+            start: "top 82%",
+            once: true,
+          },
+        });
+      }
+
+      /* Map section reveal */
+      if (mapSectionRef.current) {
+        gsap.from(mapSectionRef.current, {
+          y: 40,
+          opacity: 0,
+          duration: 0.9,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: mapSectionRef.current,
+            start: "top 80%",
+            once: true,
+          },
+        });
+      }
+
+      /* Thumbnail strip entrance */
+      const thumbStrip = carouselRef.current?.querySelector("[data-thumb-strip]");
+      if (thumbStrip) {
+        gsap.from(thumbStrip.children, {
+          opacity: 0,
+          y: 16,
+          duration: 0.5,
+          stagger: 0.04,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: thumbStrip,
+            start: "top 85%",
+            once: true,
+          },
         });
       }
     }, pageRef);
+
     return () => ctx.revert();
   }, [loading, riad]);
 
-  const customIcon = useMemo(
-    () => L.divIcon({
-      html: `<div style="width:36px;height:36px;background:#bf673e;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 14px rgba(0,0,0,0.25)"></div>`,
-      iconSize: [36, 36], iconAnchor: [18, 36], className: "",
-    }),
-    [],
-  );
-
   /* ─── Carousel autoplay ─── */
-  useEffect(() => { setPhotoIdx(0); setDirection(1); }, [images.length]);
+  useEffect(() => { setPhotoIdx(0); }, [images.length]);
 
   useEffect(() => {
     if (images.length <= 1) return;
     const intervalId = setInterval(() => {
-      setDirection(1);
       setPhotoIdx((i) => {
         const next = (i + 1) % images.length;
         animateSlide(next, 1);
@@ -335,7 +452,6 @@ const RiadDetailPage = () => {
   }, [images.length, animateSlide]);
 
   const goNext = () => {
-    setDirection(1);
     setPhotoIdx((i) => {
       const next = (i + 1) % images.length;
       animateSlide(next, 1);
@@ -343,7 +459,6 @@ const RiadDetailPage = () => {
     });
   };
   const goPrev = () => {
-    setDirection(-1);
     setPhotoIdx((i) => {
       const next = (i - 1 + images.length) % images.length;
       animateSlide(next, -1);
@@ -355,6 +470,14 @@ const RiadDetailPage = () => {
     setActiveImageIndex(index);
     setGalleryOpen(true);
   };
+
+  const customIcon = useMemo(
+    () => L.divIcon({
+      html: `<div style="width:36px;height:36px;background:#bf673e;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 14px rgba(0,0,0,0.25)"></div>`,
+      iconSize: [36, 36], iconAnchor: [18, 36], className: "",
+    }),
+    [],
+  );
 
   /* ─── Loading ─── */
   if (loading) {
@@ -383,7 +506,6 @@ const RiadDetailPage = () => {
       />
 
       <div ref={pageRef} className="relative bg-white font-montserrat min-h-screen overflow-hidden">
-        {/* Decorative blurs */}
         <div className="absolute -top-40 right-0 w-[500px] h-[500px] bg-brand-action/5 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 left-0 w-[500px] h-[500px] bg-brand-action/5 blur-3xl pointer-events-none" />
 
@@ -391,37 +513,32 @@ const RiadDetailPage = () => {
           {/* Back link */}
           <Link
             to="/all-riads"
-            className="inline-flex items-center gap-2 text-brand-ink/50 hover:text-brand-action transition-colors text-sm font-medium mb-10 group"
+            className="inline-flex items-center gap-2 text-brand-ink/40 hover:text-brand-action transition-colors text-sm font-medium mb-10 group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             {t("backToListings")}
           </Link>
 
           {/* ═══════ Main grid: Carousel (7) + Info Card (5) ═══════ */}
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-stretch">
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-start">
             {/* ============ Cinematic image gallery ============ */}
-            <div className="lg:col-span-7 relative">
-              <div className="relative overflow-hidden shadow-lg h-[460px] md:h-[600px] bg-[#1d1d1b]">
-                {/* GSAP dual-layer carousel */}
+            <div ref={carouselRef} className="lg:col-span-7 relative">
+              <div className="relative overflow-hidden shadow-xl h-[460px] md:h-[600px] bg-[#1d1d1b]">
                 <img
                   ref={imgLayerA}
-                  className="absolute inset-0 w-full h-full object-cover will-change-transform cursor-pointer"
-                  onClick={() => openGallery(photoIdx)}
+                  className="absolute inset-0 w-full h-full object-cover will-change-transform"
                   alt=""
                 />
                 <img
                   ref={imgLayerB}
-                  className="absolute inset-0 w-full h-full object-cover will-change-transform cursor-pointer"
-                  onClick={() => openGallery(photoIdx)}
+                  className="absolute inset-0 w-full h-full object-cover will-change-transform"
                   alt=""
                   style={{ opacity: 0 }}
                 />
 
-                {/* Cinematic overlays */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1d1d1b]/75 via-[#1d1d1b]/10 to-transparent pointer-events-none" />
-                <div className="pointer-events-none absolute inset-3 border border-white/25" />
+                <div className="pointer-events-none absolute inset-3 border border-white/20" />
 
-                {/* Top label */}
                 {propertyType && (
                   <div className="absolute top-6 left-6 flex items-center gap-3 text-white z-10">
                     <span className="h-px w-8 bg-brand-action" />
@@ -431,9 +548,8 @@ const RiadDetailPage = () => {
                   </div>
                 )}
 
-                {/* Bottom title + counter */}
                 <div className="absolute bottom-20 left-6 right-6 flex items-end justify-between text-white z-10">
-                  <h1 className="font-montserrat font-bold uppercase text-[clamp(1.2rem,2.4vw,2.2rem)] leading-tight max-w-md tracking-wide [text-shadow:0_3px_20px_rgba(0,0,0,0.6)]">
+                  <h1 className="font-montserrat font-bold uppercase text-white text-[clamp(1.2rem,2.4vw,2.2rem)] leading-tight max-w-md tracking-wide [text-shadow:0_3px_20px_rgba(0,0,0,0.6)]">
                     {name}
                   </h1>
                   <span className="hidden md:block font-montserrat text-white/70 text-[0.72rem] tracking-[0.4em] uppercase">
@@ -441,7 +557,6 @@ const RiadDetailPage = () => {
                   </span>
                 </div>
 
-                {/* Gallery navigation */}
                 {images.length > 1 && (
                   <>
                     <button
@@ -461,7 +576,6 @@ const RiadDetailPage = () => {
                   </>
                 )}
 
-                {/* Photo progress bar */}
                 {images.length > 1 && (
                   <div className="absolute bottom-6 left-6 right-6 flex items-center gap-4 text-white z-10">
                     <span className="font-montserrat text-[0.7rem] tracking-[0.4em] text-brand-action font-medium">
@@ -480,222 +594,246 @@ const RiadDetailPage = () => {
                   </div>
                 )}
               </div>
-
-              {/* Thumbnail strip */}
-              {images.length > 1 && (
-                <div
-                  className="mt-4 grid gap-3"
-                  style={{ gridTemplateColumns: `repeat(${Math.min(images.length, 7)}, minmax(0,1fr))` }}
-                >
-                  {images.slice(0, 7).map((src, i) => (
-                    <button
-                      key={`thumb-${i}`}
-                      onClick={() => {
-                        const dir = i > photoIdx ? 1 : -1;
-                        setDirection(dir);
-                        animateSlide(i, dir);
-                        setPhotoIdx(i);
-                      }}
-                      aria-label={`Photo ${i + 1}`}
-                      className={`relative aspect-[4/3] overflow-hidden shadow-sm transition-all duration-500 ${
-                        photoIdx === i
-                          ? "ring-2 ring-brand-action ring-offset-2 ring-offset-white"
-                          : "opacity-70 hover:opacity-100"
-                      }`}
-                    >
-                      <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      <div className={`absolute inset-0 transition-colors duration-500 ${
-                        photoIdx === i ? "bg-transparent" : "bg-[#1d1d1b]/30 hover:bg-transparent"
-                      }`} />
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* ============ Info card ============ */}
+            {/* ============ Info card — entire card matches main image height ============ */}
             <div className="lg:col-span-5 relative">
               <div
                 ref={infoCardRef}
-                className="h-full bg-brand-beige border border-brand-action/20 p-8 md:p-10 relative shadow-sm flex flex-col"
+                className="bg-brand-beige border border-brand-action/15 relative shadow-sm flex flex-col overflow-hidden h-[460px] md:h-[600px]"
               >
-                {/* Corner ornaments */}
-                <span className="absolute top-3 left-3 w-3 h-3 border-t border-l border-brand-action pointer-events-none" />
-                <span className="absolute top-3 right-3 w-3 h-3 border-t border-r border-brand-action pointer-events-none" />
-                <span className="absolute bottom-3 left-3 w-3 h-3 border-b border-l border-brand-action pointer-events-none" />
-                <span className="absolute bottom-3 right-3 w-3 h-3 border-b border-r border-brand-action pointer-events-none" />
+                <span className="absolute top-3 left-3 w-3 h-3 border-t border-l border-brand-action pointer-events-none z-10" />
+                <span className="absolute top-3 right-3 w-3 h-3 border-t border-r border-brand-action pointer-events-none z-10" />
+                <span className="absolute bottom-3 left-3 w-3 h-3 border-b border-l border-brand-action pointer-events-none z-10" />
+                <span className="absolute bottom-3 right-3 w-3 h-3 border-b border-r border-brand-action pointer-events-none z-10" />
 
-                {/* Eyebrow: property type */}
-                {propertyType && (
-                  <div className="flex items-center gap-3">
-                    <span className="h-px w-6 bg-brand-action" />
-                    <span className="font-montserrat uppercase tracking-[0.35em] text-[0.6rem] text-brand-action font-semibold">
-                      {propertyType}
-                    </span>
-                  </div>
-                )}
-
-                {/* Title */}
-                <h2 className="mt-4 font-montserrat font-bold uppercase text-brand-ink text-[clamp(1.3rem,2.2vw,2rem)] leading-tight tracking-wide">
-                  {name}
-                </h2>
-
-                {/* Hairline */}
-                <span className="block h-px bg-brand-action/20 mt-5 mb-5" />
-
-                {/* Rating */}
-                {riad.rating_avg && (
-                  <div className="flex items-center gap-3 mb-3">
-                    <StarRow count={5} filled={ratingFull} />
-                    <span className="text-brand-ink/55 text-sm">
-                      {riad.rating_avg} &middot; {riad.reviews_count} {t("reviews")}
-                    </span>
-                  </div>
-                )}
-
-                {/* Location */}
-                {(neighborhood || city) && (
-                  <div className="flex items-center gap-2 text-brand-ink/50 mb-5">
-                    <MapPin className="w-3.5 h-3.5 text-brand-action" />
-                    <span className="text-[0.8rem] uppercase tracking-[0.12em] font-medium">
-                      {[neighborhood, city].filter(Boolean).join(" \u00b7 ")}
-                    </span>
-                  </div>
-                )}
-
-                {/* Description */}
-                {description && (
-                  <p className="text-[0.9rem] text-brand-ink/65 leading-[1.85] mb-6">
-                    {description}
-                  </p>
-                )}
-
-                {/* Amenities */}
-                {amenities.length > 0 && (
-                  <div className="mb-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="h-px w-5 bg-brand-action" />
-                      <span className="font-montserrat uppercase tracking-[0.3em] text-[0.55rem] text-brand-action font-semibold">
-                        {t("amenities")}
+                {/* Header: name, rating, location */}
+                <div className="shrink-0 px-8 md:px-10 pt-8 md:pt-10">
+                  {propertyType && (
+                    <div className="flex items-center gap-3">
+                      <span className="h-px w-6 bg-brand-action" />
+                      <span className="font-montserrat uppercase tracking-[0.35em] text-[0.6rem] text-brand-action font-semibold">
+                        {propertyType}
                       </span>
                     </div>
-                    <ul ref={amenitiesRef} className="grid grid-cols-2 gap-x-5 gap-y-2.5 text-[0.82rem] text-brand-ink/75">
-                      {amenities.map((a, i) => (
-                        <li
-                          key={`${a}-${i}`}
-                          className="flex items-start gap-2.5"
-                        >
-                          <span className="mt-[7px] h-[5px] w-[5px] bg-brand-action ring-2 ring-brand-action/30 flex-shrink-0" />
-                          <span>{a}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Services */}
-                {services.length > 0 && (
-                  <div className="mb-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="h-px w-5 bg-brand-action" />
-                      <span className="font-montserrat uppercase tracking-[0.3em] text-[0.55rem] text-brand-action font-semibold">
-                        {t("services")}
-                      </span>
-                    </div>
-                    <ul ref={servicesRef} className="grid grid-cols-2 gap-x-5 gap-y-2.5 text-[0.82rem] text-brand-ink/75">
-                      {services.map((s, i) => (
-                        <li
-                          key={`${s}-${i}`}
-                          className="flex items-start gap-2.5"
-                        >
-                          <span className="mt-[7px] h-[5px] w-[5px] bg-brand-action ring-2 ring-brand-action/30 flex-shrink-0" />
-                          <span>{s}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Booking Conditions */}
-                {bookingConditions.length > 0 && (
-                  <div className="mb-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="h-px w-5 bg-brand-action" />
-                      <span className="font-montserrat uppercase tracking-[0.3em] text-[0.55rem] text-brand-action font-semibold">
-                        {t("bookingConditions")}
-                      </span>
-                    </div>
-                    <ul className="grid grid-cols-1 gap-y-2.5 text-[0.82rem] text-brand-ink/75">
-                      {bookingConditions.map((bc, i) => (
-                        <li
-                          key={`bc-${i}`}
-                          className="flex items-start gap-2.5"
-                        >
-                          <Shield className="w-3.5 h-3.5 text-brand-action mt-0.5 flex-shrink-0" />
-                          <span>{bc}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Bottom: Book Now + contact icons */}
-                <div className="mt-auto pt-8 flex items-center justify-between gap-4">
-                  {riad.simple_booking_link ? (
-                    <a
-                      href={riad.simple_booking_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2.5 bg-brand-action text-white px-6 py-3.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] hover:bg-brand-action/90 transition-all duration-300 font-montserrat"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      {t("bookNow")} <span aria-hidden>&#8594;</span>
-                    </a>
-                  ) : (
-                    <div />
                   )}
 
-                  <div className="flex items-center gap-2">
-                    {riad.phone && (
-                      <a
-                        href={`tel:${riad.phone}`}
-                        aria-label="Phone"
-                        className="w-10 h-10 border border-brand-action/30 text-brand-action flex items-center justify-center hover:bg-brand-action hover:text-white transition-colors duration-300"
-                      >
-                        <Phone className="w-4 h-4" />
-                      </a>
+                  <h2 className="mt-4 font-montserrat font-bold uppercase text-brand-ink text-[clamp(1.3rem,2.2vw,2rem)] leading-tight tracking-wide">
+                    {name}
+                  </h2>
+
+                  <span className="block h-px bg-brand-action/20 mt-5 mb-5 shrink-0" />
+
+                  {riad.rating_avg && (
+                    <div className="flex items-center gap-3 mb-3 shrink-0">
+                      <StarRow count={5} filled={ratingFull} />
+                      <span className="text-brand-ink/55 text-sm">
+                        {riad.rating_avg} &middot; {riad.reviews_count} {t("reviews")}
+                      </span>
+                    </div>
+                  )}
+
+                  {(neighborhood || city) && (
+                    <div className="flex items-center gap-2 text-brand-ink/50 mb-5 shrink-0">
+                      <MapPin className="w-3.5 h-3.5 text-brand-action" />
+                      <span className="text-[0.8rem] uppercase tracking-[0.12em] font-medium">
+                        {[neighborhood, city].filter(Boolean).join(" \u00b7 ")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Content: description, amenities, services — scrollable */}
+                <div className="relative flex-1 min-h-0 px-8 md:px-10">
+                  <div className={`h-full ${infoExpanded ? "overflow-y-auto" : "overflow-hidden"}`}>
+                    {description && (
+                      <p className="text-[0.9rem] text-brand-ink/65 leading-[1.85] mb-6">
+                        {description}
+                      </p>
                     )}
-                    {riad.email && (
-                      <a
-                        href={`mailto:${riad.email}`}
-                        aria-label="Email"
-                        className="w-10 h-10 border border-brand-action/30 text-brand-action flex items-center justify-center hover:bg-brand-action hover:text-white transition-colors duration-300"
-                      >
-                        <Mail className="w-4 h-4" />
-                      </a>
+
+                    {amenities.length > 0 && (
+                      <div className="mb-5">
+                        <SectionEyebrow label={t("amenities")} />
+                        <ul ref={amenitiesRef} className="grid grid-cols-2 gap-x-5 gap-y-2.5 text-[0.82rem] text-brand-ink/75">
+                          {amenities.map((a, i) => (
+                            <li key={`${a}-${i}`} className="flex items-start gap-2.5">
+                              <span className="mt-[7px] h-[5px] w-[5px] bg-brand-action ring-2 ring-brand-action/30 flex-shrink-0" />
+                              <span>{a}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
-                    {riad.website && (
-                      <a
-                        href={riad.website}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="Website"
-                        className="w-10 h-10 border border-brand-action/30 text-brand-action flex items-center justify-center hover:bg-brand-action hover:text-white transition-colors duration-300"
-                      >
-                        <Globe className="w-4 h-4" />
-                      </a>
+
+                    {services.length > 0 && (
+                      <div className="mb-5">
+                        <SectionEyebrow label={t("services")} />
+                        <ul ref={servicesRef} className="grid grid-cols-2 gap-x-5 gap-y-2.5 text-[0.82rem] text-brand-ink/75">
+                          {services.map((s, i) => (
+                            <li key={`${s}-${i}`} className="flex items-start gap-2.5">
+                              <span className="mt-[7px] h-[5px] w-[5px] bg-brand-action ring-2 ring-brand-action/30 flex-shrink-0" />
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {bookingConditions.length > 0 && (
+                      <div className="mb-5">
+                        <SectionEyebrow label={t("bookingConditions")} />
+                        <ul ref={bookingRef} className="grid grid-cols-1 gap-y-2.5 text-[0.82rem] text-brand-ink/75">
+                          {bookingConditions.map((bc, i) => (
+                            <li key={`bc-${i}`} className="flex items-start gap-2.5">
+                              <Shield className="w-3.5 h-3.5 text-brand-action mt-0.5 flex-shrink-0" />
+                              <span>{bc}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
+
+                  {/* Gradient fade when collapsed */}
+                  {!infoExpanded && (
+                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-brand-beige via-brand-beige/80 to-transparent pointer-events-none" />
+                  )}
                 </div>
+
+                {/* Bottom: Book Now + contact icons + Read more */}
+                <div className="shrink-0 px-8 md:px-10 pb-8 md:pb-10 pt-4">
+                  <div className="flex items-center justify-between gap-4">
+                    {riad.simple_booking_link ? (
+                      <a
+                        href={riad.simple_booking_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2.5 bg-brand-action text-white px-6 py-3.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {t("bookNow")} <span aria-hidden>&#8594;</span>
+                      </a>
+                    ) : (
+                      <div />
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      {riad.phone_number && (
+                        <a href={`tel:${riad.phone_number}`} aria-label="Phone" className="w-10 h-10 border border-brand-action/30 text-brand-action flex items-center justify-center hover:bg-brand-action hover:text-white transition-colors duration-300">
+                          <Phone className="w-4 h-4" />
+                        </a>
+                      )}
+                      {riad.email && (
+                        <a href={`mailto:${riad.email}`} aria-label="Email" className="w-10 h-10 border border-brand-action/30 text-brand-action flex items-center justify-center hover:bg-brand-action hover:text-white transition-colors duration-300">
+                          <Mail className="w-4 h-4" />
+                        </a>
+                      )}
+                      {riad.website && (
+                        <a href={riad.website} target="_blank" rel="noreferrer" aria-label="Website" className="w-10 h-10 border border-brand-action/30 text-brand-action flex items-center justify-center hover:bg-brand-action hover:text-white transition-colors duration-300">
+                          <Globe className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Read more / Read less */}
+                  <div className="mt-4 text-center">
+                    <button
+                      onClick={() => setInfoExpanded(!infoExpanded)}
+                      className="inline-flex items-center gap-2 font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-action hover:text-brand-ink transition-colors duration-300 group"
+                    >
+                      <span>{infoExpanded ? (t("showLess") || "Read less") : (t("showMore") || "Read more")}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${infoExpanded ? "rotate-180" : ""}`} />
+                    </button>
+                  </div>
                 </div>
+              </div>
             </div>
           </div>
 
+          {/* Gallery strip below the grid */}
+          {images.length > 1 && (
+            <div className="lg:grid lg:grid-cols-12 lg:gap-10 lg:gap-14">
+              <div className="lg:col-span-7">
+                <div data-thumb-strip className="mt-5">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <span className="h-px flex-1 bg-brand-ink/8" />
+                    <span className="font-montserrat text-[0.55rem] uppercase tracking-[0.3em] text-brand-ink/30 font-semibold">
+                      {t("gallery") || "Gallery"}
+                    </span>
+                    <span className="h-px flex-1 bg-brand-ink/8" />
+                  </div>
+                  <div className="grid grid-cols-4 gap-2.5">
+                    {images.slice(0, 7).map((src, i) => (
+                      <button
+                        key={`thumb-${i}`}
+                        onClick={() => {
+                          const dir = i > photoIdx ? 1 : -1;
+                          animateSlide(i, dir);
+                          setPhotoIdx(i);
+                        }}
+                        aria-label={`Photo ${i + 1}`}
+                        className={`relative group overflow-hidden transition-all duration-500 ${
+                          photoIdx === i
+                            ? "ring-2 ring-brand-action ring-offset-2 ring-offset-white scale-[1.02]"
+                            : "opacity-60 hover:opacity-100 hover:scale-[1.03]"
+                        }`}
+                      >
+                        <div className="aspect-[4/3] overflow-hidden bg-[#1d1d1b]">
+                          <img src={src} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                        </div>
+                        <div className={`absolute inset-0 transition-colors duration-500 ${
+                          photoIdx === i ? "bg-transparent" : "bg-gradient-to-t from-[#1d1d1b]/60 via-transparent to-transparent group-hover:from-[#1d1d1b]/30"
+                        }`} />
+                        <span className="absolute bottom-1.5 left-1.5 font-montserrat text-[0.5rem] font-bold text-white/80 drop-shadow-md">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        {photoIdx === i && (
+                          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand-action shadow-sm" />
+                        )}
+                      </button>
+                    ))}
+                    {images.length > 7 && (
+                      <button
+                        onClick={() => openGallery(0)}
+                        className="relative aspect-[4/3] overflow-hidden bg-brand-ink group cursor-pointer transition-all duration-500 hover:scale-[1.03]"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-brand-action/20 to-brand-ink flex items-center justify-center">
+                          <span className="font-montserrat text-[0.6rem] font-bold text-white/90 uppercase tracking-[0.15em]">
+                            +{images.length - 7}
+                          </span>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════ Stats Counter Section ═══════ */}
+          {(amenities.length > 0 || services.length > 0) && (
+            <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-8 py-10 border-t border-brand-ink/5">
+              {amenities.length > 0 && (
+                <AnimatedCounter value={amenities.length} label={t("amenities") || "Amenities"} />
+              )}
+              {services.length > 0 && (
+                <AnimatedCounter value={services.length} label={t("services") || "Services"} />
+              )}
+              {bookingConditions.length > 0 && (
+                <AnimatedCounter value={bookingConditions.length} label={t("bookingConditions") || "Conditions"} />
+              )}
+              {images.length > 0 && (
+                <AnimatedCounter value={images.length} suffix="+" label={t("photos") || "Photos"} />
+              )}
+            </div>
+          )}
+
           {/* ═══════ Address + Map ═══════ */}
           {(address || position) && (
-            <div ref={mapRef} className="mt-14 grid lg:grid-cols-12 gap-10 lg:gap-14">
+            <div ref={mapSectionRef} className="mt-14 grid lg:grid-cols-12 gap-10 lg:gap-14">
               <div className="lg:col-span-7">
-                {/* Address */}
                 {address && (
                   <div className="flex items-start gap-3 bg-brand-beige/40 border border-brand-ink/5 p-5 mb-6 relative">
                     <span className="absolute top-2 left-2 w-2 h-2 border-t border-l border-brand-action/30 pointer-events-none" />
@@ -707,7 +845,6 @@ const RiadDetailPage = () => {
                   </div>
                 )}
 
-                {/* Map */}
                 {position && (
                   <div className="bg-white border border-brand-ink/8 overflow-hidden shadow-sm relative">
                     <span className="absolute top-2 left-2 w-2.5 h-2.5 border-t border-l border-brand-action/25 z-20 pointer-events-none" />

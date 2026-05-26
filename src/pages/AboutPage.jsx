@@ -86,8 +86,8 @@ const AboutPage = () => {
       {/* Intro */}
       <section className="about-intro bg-brand-beige py-20 md:py-28">
         <div className="content-wrapper max-w-3xl mx-auto space-y-7">
-          <p className="about-reveal text-base md:text-lg leading-[1.85] text-brand-ink font-montserrat" dangerouslySetInnerHTML={{ __html: t('aboutIntro1') }} />
-          <p className="about-reveal text-base md:text-lg leading-[1.85] text-brand-ink font-montserrat" dangerouslySetInnerHTML={{ __html: t('aboutIntro2') }} />
+          <p className="about-reveal text-base md:text-lg leading-[1.85] text-brand-ink font-montserrat text-justify hyphens-auto" dangerouslySetInnerHTML={{ __html: t('aboutIntro1') }} />
+          <p className="about-reveal text-base md:text-lg leading-[1.85] text-brand-ink font-montserrat text-justify hyphens-auto" dangerouslySetInnerHTML={{ __html: t('aboutIntro2') }} />
         </div>
       </section>
 
@@ -100,7 +100,7 @@ const AboutPage = () => {
               {t('aboutSection1Title')}
             </h2>
           </div>
-          <p className="about-reveal text-sm md:text-base leading-[1.85] text-brand-ink/70 font-montserrat pl-14">
+          <p className="about-reveal text-sm md:text-base leading-[1.85] text-brand-ink/70 font-montserrat pl-14 text-justify hyphens-auto">
             {t('aboutSection1Text')}
           </p>
         </div>
@@ -115,10 +115,10 @@ const AboutPage = () => {
               {t('aboutSection2Title')}
             </h2>
           </div>
-          <p className="about-reveal text-sm md:text-base leading-[1.85] text-brand-ink/70 font-montserrat pl-14">
+          <p className="about-reveal text-sm md:text-base leading-[1.85] text-brand-ink/70 font-montserrat pl-14 text-justify hyphens-auto">
             {t('aboutSection2Text1')}
           </p>
-          <p className="about-reveal text-sm md:text-base leading-[1.85] text-brand-ink/80 font-montserrat font-semibold pl-14">
+          <p className="about-reveal text-sm md:text-base leading-[1.85] text-brand-ink/80 font-montserrat font-semibold pl-14 text-justify hyphens-auto">
             {t('aboutSection2Text2')}
           </p>
         </div>
@@ -133,7 +133,7 @@ const AboutPage = () => {
               {t('aboutSection3Title')}
             </h2>
           </div>
-          <p className="about-reveal text-sm md:text-base leading-[1.85] text-brand-ink/70 font-montserrat pl-14">
+          <p className="about-reveal text-sm md:text-base leading-[1.85] text-brand-ink/70 font-montserrat pl-14 text-justify hyphens-auto">
             {t('aboutSection3Text')}
           </p>
         </div>
@@ -189,7 +189,7 @@ const AboutPage = () => {
                       </p>
                     </>
                   ) : (
-                    <p className="text-xs leading-[1.85] text-brand-ink/60 font-montserrat">
+                    <p className="text-xs leading-[1.85] text-brand-ink/60 font-montserrat text-justify hyphens-auto">
                       {card.text}
                     </p>
                   )}

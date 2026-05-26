@@ -1,23 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import { supabase } from '@/lib/customSupabaseClient';
-import { Loader2 } from 'lucide-react';
-import Breadcrumb from '@/components/Breadcrumb';
-import NotFoundPage from '@/pages/NotFoundPage';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { getTranslated, getTranslatedArray } from '@/lib/utils';
-import DestinationHeader from '@/components/destination/DestinationHeader';
-import DestinationNav from '@/components/destination/DestinationNav';
-import DestinationGettingHere from '@/components/destination/DestinationGettingHere';
-import DestinationWhatToDo from '@/components/destination/DestinationWhatToDo';
-import DestinationGoodToKnow from '@/components/destination/DestinationGoodToKnow';
-import DestinationWhenToVisit from '@/components/destination/DestinationWhenToVisit';
-import DestinationFAQ from '@/components/destination/DestinationFAQ';
-import DestinationGallery from '@/components/destination/DestinationGallery';
-import DestinationMap from '@/components/destination/DestinationMap';
-import RelatedExperiencesSlider from '@/components/destination/RelatedExperiencesSlider';
-import gsap from 'gsap';
+import React, { useState, useEffect, useRef } from "react";
+import { useParams, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet";
+import { getDestinationBySlug } from "@/lib/mghApi";
+import { Loader2 } from "lucide-react";
+import Breadcrumb from "@/components/Breadcrumb";
+import NotFoundPage from "@/pages/NotFoundPage";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { getTranslated, getTranslatedArray } from "@/lib/utils";
+import DestinationHeader from "@/components/destination/DestinationHeader";
+import DestinationNav from "@/components/destination/DestinationNav";
+import DestinationGettingHere from "@/components/destination/DestinationGettingHere";
+import DestinationWhatToDo from "@/components/destination/DestinationWhatToDo";
+import DestinationGoodToKnow from "@/components/destination/DestinationGoodToKnow";
+import DestinationWhenToVisit from "@/components/destination/DestinationWhenToVisit";
+import DestinationFAQ from "@/components/destination/DestinationFAQ";
+import DestinationGallery from "@/components/destination/DestinationGallery";
+import DestinationMap from "@/components/destination/DestinationMap";
+import RelatedExperiencesSlider from "@/components/destination/RelatedExperiencesSlider";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const DestinationPage = () => {
   const { slug } = useParams();
@@ -27,7 +30,7 @@ const DestinationPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const pageRef = useRef(null);
-
+  const introRef = useRef(null);
   const sectionsRef = useRef({});
   const stickyNavRef = useRef(null);
 
@@ -35,23 +38,20 @@ const DestinationPage = () => {
     const fetchDestination = async () => {
       setLoading(true);
       setError(false);
-
-      const { data, error } = await supabase
-        .from('mgh_destinations')
-        .select('*')
-        .eq('slug', slug)
-        .eq('is_published', true)
-        .single();
-
-      if (error || !data) {
-        console.error('Error fetching destination:', error);
+      try {
+        const data = await getDestinationBySlug(slug);
+        if (!data) {
+          setError(true);
+        } else {
+          setDestination(data);
+        }
+      } catch (err) {
+        console.error("Error fetching destination:", err);
         setError(true);
-      } else {
-        setDestination(data);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-
     if (currentLanguage) {
       fetchDestination();
     }
@@ -62,29 +62,52 @@ const DestinationPage = () => {
     gsap.from(pageRef.current, { opacity: 0, duration: 0.8 });
   }, [loading, destination]);
 
+  useEffect(() => {
+    if (loading || !destination || !introRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from(introRef.current, {
+        y: 40,
+        opacity: 0,
+        duration: 0.9,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: introRef.current,
+          start: "top 80%",
+          once: true,
+        },
+      });
+    }, introRef);
+    return () => ctx.revert();
+  }, [loading, destination]);
+
   const scrollToSection = (id) => {
     const element = sectionsRef.current[id];
     if (element) {
       const stickyNavHeight = stickyNavRef.current?.offsetHeight || 0;
       const headerHeight = 80;
       const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerHeight - stickyNavHeight;
-
-      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+      const offsetPosition =
+        elementPosition + window.pageYOffset - headerHeight - stickyNavHeight;
+      window.scrollTo({ top: offsetPosition, behavior: "smooth" });
     }
   };
 
   useEffect(() => {
     if (location.hash && destination) {
       const id = location.hash.substring(1);
-      setTimeout(() => scrollToSection(id), 100);
+      setTimeout(() => scrollToSection(id), 300);
     }
   }, [location.hash, destination]);
 
   if (loading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-brand-action animate-spin" />
+      <div className="w-full h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-brand-beige border-t-brand-action animate-spin" />
+          <span className="font-montserrat text-xs text-brand-ink/40 uppercase tracking-[0.3em]">
+            {t("loading")}
+          </span>
+        </div>
       </div>
     );
   }
@@ -97,20 +120,42 @@ const DestinationPage = () => {
   const subtitle = getTranslated(destination.subtitle, currentLanguage);
   const intro_rich = getTranslated(destination.intro_rich, currentLanguage);
 
-  const getting_here = getTranslatedArray(destination.getting_here, currentLanguage);
-  const what_to_do = getTranslatedArray(destination.what_to_do, currentLanguage);
-  const good_to_know = getTranslatedArray(destination.good_to_know, currentLanguage);
-  const when_to_visit = getTranslated(destination.when_to_visit, currentLanguage);
+  const getting_here = getTranslatedArray(
+    destination.getting_here,
+    currentLanguage
+  );
+  const what_to_do = getTranslatedArray(
+    destination.what_to_do,
+    currentLanguage
+  );
+  const good_to_know = getTranslatedArray(
+    destination.good_to_know,
+    currentLanguage
+  );
+  const when_to_visit = getTranslated(
+    destination.when_to_visit,
+    currentLanguage
+  );
   const faq = getTranslatedArray(destination.faq, currentLanguage);
 
   const cta_label = getTranslated(destination.cta_label, currentLanguage);
   const seo_title = getTranslated(destination.seo_title, currentLanguage);
-  const seo_description = getTranslated(destination.seo_description, currentLanguage);
+  const seo_description = getTranslated(
+    destination.seo_description,
+    currentLanguage
+  );
 
-  const { hero_image_urls, gallery_urls, map_embed_url, related_experiences, cta_url } = destination;
+  const {
+    hero_image_urls,
+    gallery_urls,
+    map_embed_url,
+    related_experiences,
+    cta_url,
+  } = destination;
 
   const breadcrumbItems = [
-    { label: t('destinations'), href: '/destinations' },
+    { label: t("home") || "Home", href: "/" },
+    { label: t("destinations"), href: "/destinations" },
     { label: name },
   ];
 
@@ -120,42 +165,100 @@ const DestinationPage = () => {
         <title>{seo_title || `${name} · MGH`}</title>
         <meta
           name="description"
-          content={seo_description || `Explore ${name}, one of Morocco's premier destinations.`}
+          content={
+            seo_description ||
+            `Explore ${name}, one of Morocco's premier destinations.`
+          }
         />
-        <link rel="canonical" href={`${import.meta.env.VITE_APP_BASE_URL || 'https://amh.ma'}/destinations/${slug}`} />
-        <meta property="og:title" content={seo_title || `${name} · MGH`} />
+        <link
+          rel="canonical"
+          href={`${
+            import.meta.env.VITE_APP_BASE_URL || "https://amh.ma"
+          }/destinations/${slug}`}
+        />
+        <meta
+          property="og:title"
+          content={seo_title || `${name} · MGH`}
+        />
         <meta
           property="og:description"
-          content={seo_description || `Explore ${name}, one of Morocco's premier destinations.`}
+          content={
+            seo_description ||
+            `Explore ${name}, one of Morocco's premier destinations.`
+          }
         />
-        {hero_image_urls?.[0] && <meta property="og:image" content={hero_image_urls[0]} />}
+        {hero_image_urls?.[0] && (
+          <meta property="og:image" content={hero_image_urls[0]} />
+        )}
       </Helmet>
 
-      <div ref={pageRef} className="destination-page bg-white">
-        <div className="pt-24 pb-6">
+      <div ref={pageRef} className="bg-white">
+        <DestinationHeader
+          name={name}
+          subtitle={subtitle}
+          heroImage={hero_image_urls?.[0]}
+        />
+
+        <div className="py-6 px-[6%] md:px-[5%] max-w-[1280px] mx-auto">
           <Breadcrumb items={breadcrumbItems} />
         </div>
 
-        <DestinationHeader name={name} subtitle={subtitle} heroImage={hero_image_urls?.[0]} />
+        <DestinationNav
+          destination={destination}
+          stickyNavRef={stickyNavRef}
+          scrollToSection={scrollToSection}
+        />
 
-        <div className="content-wrapper section-padding">
-          <div className="text-column text-center">
-            <p className="body-text text-lg">{intro_rich}</p>
-          </div>
-        </div>
+        {intro_rich && (
+          <section className="py-20 md:py-28 bg-white" ref={introRef}>
+            <div className="content-wrapper">
+              <div className="max-w-3xl mx-auto text-center">
+                <span className="block font-montserrat uppercase tracking-[0.35em] text-[0.6rem] text-brand-action font-semibold mb-4">
+                  {t("introduction") || "Introduction"}
+                </span>
+                <p className="font-montserrat text-[clamp(1rem,1.4vw,1.15rem)] text-brand-ink/70 leading-[1.9] tracking-wide">
+                  {intro_rich}
+                </p>
+                <div className="mt-8 flex justify-center">
+                  <span className="block w-8 h-[2px] bg-brand-action/40" />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
-        <DestinationGettingHere gettingHere={getting_here} sectionRef={(el) => (sectionsRef.current['getting-here'] = el)} />
-        <DestinationWhatToDo whatToDo={what_to_do} sectionRef={(el) => (sectionsRef.current['what-to-do'] = el)} />
-        <DestinationGoodToKnow goodToKnow={good_to_know} sectionRef={(el) => (sectionsRef.current['good-to-know'] = el)} />
+        <DestinationGettingHere
+          gettingHere={getting_here}
+          sectionRef={(el) => (sectionsRef.current["getting-here"] = el)}
+        />
+        <DestinationWhatToDo
+          whatToDo={what_to_do}
+          sectionRef={(el) => (sectionsRef.current["what-to-do"] = el)}
+        />
+        <DestinationGoodToKnow
+          goodToKnow={good_to_know}
+          sectionRef={(el) => (sectionsRef.current["good-to-know"] = el)}
+        />
         <DestinationWhenToVisit
           whenToVisit={when_to_visit}
           ctaLabel={cta_label}
           ctaUrl={cta_url}
-          sectionRef={(el) => (sectionsRef.current['when-to-visit'] = el)}
+          sectionRef={(el) => (sectionsRef.current["when-to-visit"] = el)}
         />
-        <DestinationFAQ faq={faq} sectionRef={(el) => (sectionsRef.current['faq'] = el)} />
-        <DestinationGallery gallery={gallery_urls} destinationName={name} sectionRef={(el) => (sectionsRef.current['gallery'] = el)} />
-        <DestinationMap mapUrl={map_embed_url} destinationName={name} sectionRef={(el) => (sectionsRef.current['map'] = el)} />
+        <DestinationFAQ
+          faq={faq}
+          sectionRef={(el) => (sectionsRef.current["faq"] = el)}
+        />
+        <DestinationGallery
+          gallery={gallery_urls}
+          destinationName={name}
+          sectionRef={(el) => (sectionsRef.current["gallery"] = el)}
+        />
+        <DestinationMap
+          mapUrl={map_embed_url}
+          destinationName={name}
+          sectionRef={(el) => (sectionsRef.current["map"] = el)}
+        />
         <RelatedExperiencesSlider experienceSlugs={related_experiences} />
       </div>
     </>

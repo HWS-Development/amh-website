@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { supabase } from '@/lib/customSupabaseClient';
+import { listDestinations } from '@/lib/mghApi';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated } from '@/lib/utils';
@@ -17,22 +17,18 @@ const DestinationsLandingPage = () => {
     useEffect(() => {
         const fetchDestinations = async () => {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('mgh_destinations')
-                .select('name_tr, slug, subtitle_tr, hero_image_urls')
-                .eq('is_published', true)
-                .order('sort_order');
-
-            if (error) {
-                console.error("Error fetching destinations:", error);
-            } else {
-                setDestinations(data.map(dest => ({
+            try {
+                const data = await listDestinations();
+                setDestinations((data || []).map(dest => ({
                     ...dest,
-                    name: getTranslated(dest.name_tr, currentLanguage),
-                    subtitle: getTranslated(dest.subtitle_tr, currentLanguage),
+                    name: getTranslated(dest.name_tr ?? dest.name, currentLanguage),
+                    subtitle: getTranslated(dest.subtitle_tr ?? dest.subtitle, currentLanguage),
                 })));
+            } catch (error) {
+                console.error("Error fetching destinations:", error);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         fetchDestinations();
     }, [currentLanguage]);

@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800&display=swap');
+/* Fonts are preloaded in index.html for first-paint performance */
 
 @layer base {
 	:root {
@@ -42,30 +42,39 @@
   body {
     @apply bg-white text-brand-ink;
     font-family: 'Montserrat', sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply text-brand-ink;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.005em;
   }
 
   p {
     @apply text-brand-ink/80;
   }
 
-  /* Fluid Typography */
+  /* Fluid Typography — editorial scale */
   h1, .h1-style {
-    font-size: clamp(1.75rem, 1.3rem + 2.25vw, 2.75rem);
+    font-size: clamp(2.25rem, 1.5rem + 3.5vw, 4.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
   }
   h2, .h2-style {
-    font-size: clamp(1.375rem, 1.05rem + 1.625vw, 2rem);
+    font-size: clamp(1.75rem, 1.2rem + 2.4vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
   }
   h3, .h3-style {
-    font-size: clamp(1.125rem, 0.975rem + 0.75vw, 1.375rem);
+    font-size: clamp(1.25rem, 1rem + 1vw, 1.625rem);
+    line-height: 1.25;
   }
   .body-text {
-    font-size: clamp(0.875rem, 0.825rem + 0.25vw, 0.9375rem);
-    line-height: 1.7;
+    font-size: clamp(0.9375rem, 0.875rem + 0.25vw, 1rem);
+    line-height: 1.75;
+    font-weight: 400;
   }
 
   /* Selection color */
@@ -77,12 +86,52 @@
 
 @layer utilities {
   .font-display {
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 700;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
   }
 
   .font-montserrat {
     font-family: 'Montserrat', sans-serif;
+  }
+
+  .font-sans-ui {
+    font-family: 'Montserrat', system-ui, sans-serif;
+  }
+
+  /* Editorial label / eyebrow */
+  .eyebrow {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: theme('colors.brand-action');
+  }
+  .eyebrow-ink {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(29, 29, 27, 0.55);
+  }
+
+  /* Hairline divider */
+  .hairline {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(29, 29, 27, 0.18), transparent);
+  }
+  .hairline-ink {
+    height: 1px;
+    background: rgba(29, 29, 27, 0.12);
+  }
+
+  /* Italic emphasis used inside serif headings */
+  .display-em {
+    font-style: italic;
+    font-weight: 400;
+    color: theme('colors.brand-action');
   }
 
   .text-shadow-sm {
@@ -108,11 +157,19 @@
   }
 
   .content-wrapper {
-    @apply w-full max-w-[1200px] mx-auto px-[6%] md:px-[5%];
+    @apply w-full max-w-[1280px] mx-auto px-[6%] md:px-[5%];
+  }
+
+  .content-wrapper-wide {
+    @apply w-full max-w-[1440px] mx-auto px-[6%] md:px-[4%];
   }
 
   .section-padding {
-    @apply py-12 md:py-20;
+    @apply py-16 md:py-28;
+  }
+
+  .section-padding-tight {
+    @apply py-10 md:py-16;
   }
 
   .text-column {
@@ -120,13 +177,24 @@
   }
 
   .h1-style {
-    @apply font-bold font-display tracking-wide;
+    @apply font-display tracking-tight;
+    font-weight: 500;
   }
   .h2-style {
-    @apply font-bold font-display tracking-wide;
+    @apply font-display tracking-tight;
+    font-weight: 500;
   }
   .h3-style {
-    @apply font-bold font-display;
+    @apply font-display tracking-tight;
+    font-weight: 500;
+  }
+
+  /* Editorial section header */
+  .section-header {
+    @apply flex flex-col items-center text-center gap-4 max-w-2xl mx-auto mb-12 md:mb-16;
+  }
+  .section-header-left {
+    @apply flex flex-col items-start text-left gap-4 max-w-2xl mb-10 md:mb-14;
   }
 
   .no-scrollbar::-webkit-scrollbar {

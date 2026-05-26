@@ -5,6 +5,7 @@ import HeroSection from '@/components/HeroSection';
 import TrustBar from '@/components/TrustBar';
 import CatalogueSection from '@/components/CatalogueSection';
 import FeaturedQuartiers from '@/components/FeaturedQuartiers';
+import FeaturedDestinations from '@/components/FeaturedDestinations';
 import Experiences from '@/components/Experiences';
 
 const HomePage = () => {
@@ -52,6 +53,7 @@ const HomePage = () => {
 
         <CatalogueSection />
         <FeaturedQuartiers />
+        <FeaturedDestinations />
         <Experiences />
         <TrustBar />
       </div>

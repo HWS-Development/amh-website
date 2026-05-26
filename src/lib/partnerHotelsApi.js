@@ -9,14 +9,25 @@
  */
 import { useQuery } from '@tanstack/react-query';
 
+function buildFilterParams(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.city_id) params.set('city_id', filters.city_id);
+  if (filters.property_type_id) params.set('property_type_id', filters.property_type_id);
+  if (filters.amenity_ids && filters.amenity_ids.length > 0) {
+    params.set('amenity_ids', filters.amenity_ids.join(','));
+  }
+  if (filters.search && filters.search.trim()) {
+    params.set('search', filters.search.trim());
+  }
+  return params.toString();
+}
+
 // ── Raw fetch functions (throw on error) ────────────────────────────
 
 async function fetchAllHotels() {
   console.log('[partnerHotelsApi] Fetching hotels from /api/partner/hotels ...');
   const res = await fetch('/api/partner/hotels');
-
   const contentType = res.headers.get('content-type') || '';
-
   if (!contentType.includes('application/json')) {
     const preview = await res.text().catch(() => '');
     throw new Error(
@@ -24,27 +35,24 @@ async function fetchAllHotels() {
       `  Body preview: ${preview.substring(0, 200)}`
     );
   }
-
   const body = await res.json();
-
   if (!res.ok || !body.success) {
     throw new Error(
       `Partner API route error (status ${res.status}):\n` +
       `  ${body.error || body.message || JSON.stringify(body)}`
     );
   }
-
   const count = Array.isArray(body.data) ? body.data.length : 'N/A';
   console.log(`[partnerHotelsApi] OK — received ${count} hotels`);
   return body.data;
 }
 
-async function fetchHotelById(id) {
-  console.log(`[partnerHotelsApi] Fetching hotel ${id} from /api/partner/hotels/${id} ...`);
-  const res = await fetch(`/api/partner/hotels/${encodeURIComponent(id)}`);
-
+async function fetchFilteredHotels(filters = {}) {
+  const queryString = buildFilterParams(filters);
+  const url = `/api/partner/hotels${queryString ? `?${queryString}` : ''}`;
+  console.log(`[partnerHotelsApi] Fetching filtered hotels from ${url} ...`);
+  const res = await fetch(url);
   const contentType = res.headers.get('content-type') || '';
-
   if (!contentType.includes('application/json')) {
     const preview = await res.text().catch(() => '');
     throw new Error(
@@ -52,16 +60,36 @@ async function fetchHotelById(id) {
       `  Body preview: ${preview.substring(0, 200)}`
     );
   }
-
   const body = await res.json();
-
   if (!res.ok || !body.success) {
     throw new Error(
       `Partner API route error (status ${res.status}):\n` +
       `  ${body.error || body.message || JSON.stringify(body)}`
     );
   }
+  const count = Array.isArray(body.data) ? body.data.length : 'N/A';
+  console.log(`[partnerHotelsApi] Filtered OK — received ${count} hotels`);
+  return { data: body.data, meta: body.meta };
+}
 
+async function fetchHotelById(id) {
+  console.log(`[partnerHotelsApi] Fetching hotel ${id} from /api/partner/hotels/${id} ...`);
+  const res = await fetch(`/api/partner/hotels/${encodeURIComponent(id)}`);
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const preview = await res.text().catch(() => '');
+    throw new Error(
+      `Partner API route returned non-JSON (status ${res.status}, content-type: ${contentType}).\n` +
+      `  Body preview: ${preview.substring(0, 200)}`
+    );
+  }
+  const body = await res.json();
+  if (!res.ok || !body.success) {
+    throw new Error(
+      `Partner API route error (status ${res.status}):\n` +
+      `  ${body.error || body.message || JSON.stringify(body)}`
+    );
+  }
   console.log(`[partnerHotelsApi] OK — received hotel ${id}`);
   return body.data;
 }
@@ -92,10 +120,6 @@ export async function fetchPartnerHotelById(id) {
 
 /**
  * Hook to fetch all partner hotels with caching.
- *
- * - staleTime: 5 min — won't refetch within 5 min of a successful fetch
- * - gcTime: 10 min — keep data in cache for 10 min after last subscriber unmounts
- * - Multiple components using this hook share the same cache entry & single request
  */
 export function usePartnerHotels() {
   return useQuery({
@@ -116,5 +140,30 @@ export function usePartnerHotelById(id) {
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook to fetch partner hotels with server-side filtering.
+ * Ultra-performant: filtering happens on the server, not the client.
+ *
+ * @param {Object} filters
+ * @param {string} [filters.city_id] - Filter by city ID(s), comma-separated
+ * @param {string} [filters.property_type_id] - Filter by property type ID(s), comma-separated
+ * @param {string[]} [filters.amenity_ids] - Filter by amenity IDs (hotel must have ALL)
+ * @param {string} [filters.search] - Search text
+ * @param {boolean} enabled - Whether the query should run
+ */
+export function useFilteredHotels(filters = {}, enabled = true) {
+  const hasFilters = filters.city_id || filters.property_type_id ||
+    (filters.amenity_ids && filters.amenity_ids.length > 0) ||
+    (filters.search && filters.search.trim());
+
+  return useQuery({
+    queryKey: ['partner-hotels-filtered', filters],
+    queryFn: () => fetchFilteredHotels(filters),
+    enabled: enabled && hasFilters,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 }

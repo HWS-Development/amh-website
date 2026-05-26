@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { supabase } from '@/lib/customSupabaseClient';
+import { getExperienceBySlug } from '@/lib/mghApi';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { 
@@ -57,13 +58,23 @@ const ExperiencePage = () => {
   useEffect(() => {
     const fetchExperience = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('mgh_experiences')
-        .select('*')
-        .eq('slug', slug)
-        .single();
+      try {
+        const data = await getExperienceBySlug(slug);
+        if (!data) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not find the requested experience.",
+          });
+          navigate('/404', { replace: true });
+          return;
+        }
 
-      if (error || !data) {
+        setExperience(data);
+        if (data.related_riads && data.related_riads.length > 0) {
+          fetchRecommendedRiads(data.related_riads);
+        }
+      } catch (error) {
         console.error('Error fetching experience:', error);
         toast({
           variant: "destructive",
@@ -72,13 +83,9 @@ const ExperiencePage = () => {
         });
         navigate('/404', { replace: true });
         return;
+      } finally {
+        setLoading(false);
       }
-      
-      setExperience(data);
-      if (data.related_riads && data.related_riads.length > 0) {
-        fetchRecommendedRiads(data.related_riads);
-      }
-      setLoading(false);
     };
 
     const fetchRecommendedRiads = async (riadIds) => {

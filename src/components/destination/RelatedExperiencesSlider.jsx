@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { supabase } from '@/lib/customSupabaseClient';
+import { listExperiencesBySlugs } from '@/lib/mghApi';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -19,21 +19,18 @@ const RelatedExperiencesSlider = ({ experienceSlugs }) => {
         return;
       }
       setLoading(true);
-      const { data, error } = await supabase
-        .from('experiences')
-        .select('title_tr, slug, hero_image_url, short_intro_tr')
-        .in('slug', experienceSlugs);
-
-      if (error) {
-        console.error("Error fetching related experiences:", error);
-      } else {
-        setExperiences(data.map(exp => ({
+      try {
+        const data = await listExperiencesBySlugs(experienceSlugs);
+        setExperiences((data || []).map(exp => ({
           ...exp,
           title: getTranslated(exp.title_tr, currentLanguage),
           short_intro: getTranslated(exp.short_intro_tr, currentLanguage),
         })));
+      } catch (error) {
+        console.error("Error fetching related experiences:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     if (currentLanguage) {
       fetchExperiences();

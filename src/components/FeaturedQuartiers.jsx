@@ -5,9 +5,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/customSupabaseClient';
 import { getTranslated } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowUpRight, Loader2 } from 'lucide-react';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import SectionHeader from '@/components/ui/SectionHeader';
+import { gsapEase, duration, stagger } from '@/lib/motion';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,10 +21,9 @@ export default function FeaturedQuartiers() {
 
   useEffect(() => {
     let isMounted = true;
-    const fetchQuartiers = async () => {
+    (async () => {
       setLoading(true);
       setError(null);
-
       const { data, error } = await supabase
         .from('amh_quartiers')
         .select('slug, name_tr, short_desc_tr, images, display_order, is_featured')
@@ -32,38 +32,30 @@ export default function FeaturedQuartiers() {
         .limit(3);
 
       if (!isMounted) return;
-
       if (error) {
         console.error('Error fetching featured quartiers:', error);
         setError(t('somethingWentWrong'));
         setLoading(false);
         return;
       }
-
       setQuartiers(data || []);
       setLoading(false);
-    };
-
-    fetchQuartiers();
-    return () => {
-      isMounted = false;
-    };
+    })();
+    return () => { isMounted = false; };
   }, [currentLanguage, t]);
 
   useEffect(() => {
     if (loading || !quartiers.length || !sectionRef.current) return;
     const ctx = gsap.context(() => {
-      gsap.from('.fq-header', {
-        y: -20, opacity: 0, duration: 0.5, ease: 'power2.out',
-        scrollTrigger: { trigger: sectionRef.current, start: 'top 80%', once: true },
+      gsap.from('.fq-header > *', {
+        y: 24, opacity: 0, duration: duration.slow, stagger: stagger.tight,
+        ease: gsapEase.editorial,
+        scrollTrigger: { trigger: sectionRef.current, start: 'top 78%', once: true },
       });
       gsap.from('.fq-card', {
-        y: 20, opacity: 0, duration: 0.45, stagger: 0.1, ease: 'power2.out',
-        scrollTrigger: { trigger: '.fq-grid', start: 'top 85%', once: true },
-      });
-      gsap.from('.fq-cta', {
-        opacity: 0, duration: 0.5, delay: 0.3, ease: 'power2.out',
-        scrollTrigger: { trigger: '.fq-cta', start: 'top 90%', once: true },
+        y: 40, opacity: 0, duration: duration.slow, stagger: stagger.base,
+        ease: gsapEase.editorial,
+        scrollTrigger: { trigger: '.fq-grid', start: 'top 82%', once: true },
       });
     }, sectionRef);
     return () => ctx.revert();
@@ -71,9 +63,9 @@ export default function FeaturedQuartiers() {
 
   if (loading) {
     return (
-      <section className="py-16 bg-white">
+      <section className="section-padding-tight bg-brand-beige/40">
         <div className="content-wrapper flex justify-center items-center h-64">
-          <Loader2 className="w-10 h-10 text-brand-action animate-spin" aria-label={t('loading')} />
+          <Loader2 className="w-8 h-8 text-brand-action animate-spin" aria-label={t('loading')} />
         </div>
       </section>
     );
@@ -81,21 +73,21 @@ export default function FeaturedQuartiers() {
 
   if (error) {
     return (
-      <section className="py-16 bg-white">
+      <section className="section-padding-tight bg-brand-beige/40">
         <div className="content-wrapper text-center">
-          <p className="text-red-700 font-medium">{error}</p>
-          <Button variant="outline" size="sm" className="mt-3" onClick={() => window.location.reload()}>
+          <p className="text-red-700 font-medium text-sm">{error}</p>
+          <button className="mt-3 underline text-sm" onClick={() => window.location.reload()}>
             {t('tryAgain')}
-          </Button>
+          </button>
         </div>
       </section>
     );
   }
 
-  if (!loading && quartiers.length === 0) {
+  if (!quartiers.length) {
     return (
-      <section className="py-16 bg-white">
-        <div className="content-wrapper text-center text-muted">
+      <section className="section-padding-tight bg-brand-beige/40">
+        <div className="content-wrapper text-center text-brand-ink/60 text-sm">
           {t('noFeaturedQuartiers')}
         </div>
       </section>
@@ -103,52 +95,86 @@ export default function FeaturedQuartiers() {
   }
 
   return (
-    <section ref={sectionRef} className="py-16 md:py-24 bg-white">
-      <div className="content-wrapper">
-        <div className="fq-header text-center mb-12">
-          <h2 className="h2-style text-brand-ink">{t('medinaQuartiersTitle')}</h2>
-          <p className="body-text max-w-2xl mx-auto mt-2 text-brand-ink/60">{t('medinaQuartiersSubtitle')}</p>
+    <section ref={sectionRef} className="section-padding bg-brand-beige/40 relative overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-10 -left-10 select-none font-display italic text-[clamp(10rem,24vw,20rem)] leading-none text-brand-action/[0.05] tracking-tight"
+      >
+        Médina
+      </div>
+
+      <div className="content-wrapper-wide relative">
+        <div className="fq-header">
+          <SectionHeader
+            eyebrow={t('quartiersEyebrow') || 'Inside the medina'}
+            title={t('medinaQuartiersTitle')}
+            subtitle={t('medinaQuartiersSubtitle')}
+          />
         </div>
 
-        <div className="fq-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quartiers.map((quartier) => {
+        <div className="fq-grid grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 mt-2">
+          {quartiers.map((quartier, index) => {
             const name = getTranslated(quartier.name_tr, currentLanguage);
             const shortDesc = getTranslated(quartier.short_desc_tr, currentLanguage);
-
             return (
-              <div key={quartier.slug} className="fq-card">
-                <Link
-                  to={`/quartiers-medina#${quartier.slug}`}
-                  className="group block overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300"
-                >
-                  <div className="relative h-64">
-                    {quartier.images?.[0] ? (
-                      <OptimizedImage
-                        src={quartier.images[0]}
-                        alt={t('quartierAlt', { name })}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-muted animate-pulse" aria-hidden />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 p-6">
-                      <h3 className="text-2xl font-bold text-white font-montserrat">{name}</h3>
-                      <p className="text-white/85 mt-1 text-sm">{shortDesc}</p>
+              <Link
+                key={quartier.slug}
+                to={`/quartiers-medina#${quartier.slug}`}
+                className="fq-card group relative block"
+              >
+                <div className="relative overflow-hidden aspect-[4/5] bg-brand-beige">
+                  {quartier.images?.[0] ? (
+                    <OptimizedImage
+                      src={quartier.images[0]}
+                      alt={t('quartierAlt', { name })}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1400ms] ease-editorial group-hover:scale-[1.08]"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-brand-ink/5 animate-pulse" aria-hidden />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-ink/85 via-brand-ink/15 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-ink/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-editorial" />
+
+                  <span className="absolute top-5 left-5 font-display italic text-white/85 text-2xl tracking-tight">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+
+                  <div className="absolute inset-x-0 bottom-0 p-6 md:p-7">
+                    <div className="flex items-end justify-between gap-4">
+                      <div className="min-w-0">
+                        <h3 className="font-display text-white text-[clamp(1.4rem,2.2vw,2rem)] leading-[1.05] tracking-tight font-medium">
+                          {name}
+                        </h3>
+                        {shortDesc && (
+                          <p className="mt-2 text-white/80 text-[0.78rem] font-montserrat leading-relaxed line-clamp-2 max-w-[28ch]">
+                            {shortDesc}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        aria-hidden
+                        className="shrink-0 grid place-items-center w-11 h-11 rounded-full border border-white/30 bg-white/5 backdrop-blur-sm text-white transition-all duration-500 ease-editorial group-hover:bg-brand-action group-hover:border-brand-action group-hover:rotate-45"
+                      >
+                        <ArrowUpRight className="w-4 h-4" />
+                      </span>
                     </div>
+                    <div className="mt-4 h-px w-0 bg-white/70 transition-all duration-700 ease-editorial group-hover:w-full" />
                   </div>
-                </Link>
-              </div>
+                </div>
+              </Link>
             );
           })}
         </div>
 
-        <div className="fq-cta text-center mt-12">
-          <Button asChild size="lg" className="bg-brand-action hover:bg-brand-action/90 text-white font-semibold tracking-wide">
-            <Link to="/quartiers-medina">
-              {t('discoverAllQuartiers')} <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+        <div className="mt-14 text-center">
+          <Link
+            to="/quartiers-medina"
+            className="group inline-flex items-center gap-3 border border-brand-ink/15 px-9 py-4 font-montserrat text-[0.7rem] font-semibold uppercase tracking-[0.32em] text-brand-ink hover:border-brand-action hover:text-brand-action transition-all duration-500 ease-editorial"
+          >
+            <span className="h-px w-6 bg-brand-ink/30 group-hover:bg-brand-action transition-colors duration-500" />
+            {t('discoverAllQuartiers')}
+            <ArrowUpRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
     </section>
