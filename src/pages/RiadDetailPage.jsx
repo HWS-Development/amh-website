@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Keyboard } from "swiper/modules";
 import "swiper/css";
@@ -25,7 +25,7 @@ import {
   Utensils, Tv, Coffee, Car, Key, Thermometer, Heart, Baby,
   Accessibility, Dumbbell, ParkingCircle, BedDouble, Shirt, PawPrint,
   CigaretteOff, Snowflake, ConciergeBell, Plane, Lock,
-  ChevronDown,
+  ChevronDown, BookOpen, ExternalLink,
 } from "lucide-react";
 
 import gsap from "gsap";
@@ -36,7 +36,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
 import { usePartnerHotelById } from "@/lib/partnerHotelsApi";
-import { gsapEase, duration } from "@/lib/motion";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -82,15 +81,32 @@ const getAmenityIcon = (label = "") => {
   return Check;
 };
 
-/* ═══════════════════════════ Gallery Modal ═══════════════════════════ */
 const GalleryModal = ({ open, images, name, startIndex, onClose }) => {
+  const overlayRef = useRef(null);
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    if (contentRef.current) {
+      gsap.fromTo(contentRef.current,
+        { opacity: 0, scale: 0.96, y: 24 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: "power3.out" }
+      );
+    }
+  }, [open]);
+
   if (!open) return null;
+
   return (
-    <div className="fixed inset-0 z-[9999] bg-brand-ink/98 flex flex-col" style={{ animation: "modalIn 400ms cubic-bezier(.2,.9,.25,1)" }}>
-      <div className="h-[72px] flex items-center justify-between px-7">
-        <span className="text-sm font-montserrat text-white/60 tracking-wide">{name}</span>
-        <button type="button" onClick={onClose} className="w-10 h-10 grid place-items-center text-white/40 hover:text-white transition-colors">
-          <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-[9999] bg-brand-ink/98 flex flex-col" ref={overlayRef}>
+      <div className="h-[72px] flex items-center justify-between px-7" ref={contentRef}>
+        <span className="text-xs font-montserrat text-white/50 uppercase tracking-[0.3em]">{name}</span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-11 h-11 flex items-center justify-center text-white/30 hover:text-white transition-all duration-500 hover:bg-white/5 rounded-full group"
+        >
+          <X className="w-4 h-4 transition-transform duration-500 group-hover:rotate-90" />
         </button>
       </div>
       <div className="flex-1 min-h-0">
@@ -109,8 +125,9 @@ const GalleryModal = ({ open, images, name, startIndex, onClose }) => {
                 <OptimizedImage
                   src={url}
                   alt={`${name} ${index + 1}`}
-                  className="max-w-full max-h-full object-contain"
-                  style={{ boxShadow: "0 20px 80px rgba(0,0,0,0.5)" }}
+                  className="max-w-full max-h-full object-contain select-none"
+                  draggable={false}
+                  style={{ boxShadow: "0 24px 96px rgba(0,0,0,0.6)" }}
                 />
               </div>
             </SwiperSlide>
@@ -118,61 +135,123 @@ const GalleryModal = ({ open, images, name, startIndex, onClose }) => {
         </Swiper>
       </div>
       <style>{`
-        @keyframes modalIn { from { opacity:0; transform:translateY(12px) scale(.995) } to { opacity:1; transform:translateY(0) scale(1) } }
-        .riad-gallery-swiper .swiper-button-next, .riad-gallery-swiper .swiper-button-prev { color:#bf673e; }
-        .riad-gallery-swiper .swiper-button-next::after, .riad-gallery-swiper .swiper-button-prev::after { font-size:14px; font-weight:700; }
-        .riad-gallery-swiper .swiper-pagination { color:#bf673e; font-family:'Montserrat',sans-serif; font-size:13px; }
+        .riad-gallery-swiper .swiper-button-next,
+        .riad-gallery-swiper .swiper-button-prev {
+          color: #bf673e;
+          opacity: 0.7;
+          transition: opacity 0.4s;
+        }
+        .riad-gallery-swiper .swiper-button-next:hover,
+        .riad-gallery-swiper .swiper-button-prev:hover { opacity: 1; }
+        .riad-gallery-swiper .swiper-button-next::after,
+        .riad-gallery-swiper .swiper-button-prev::after { font-size: 14px; font-weight: 700; }
+        .riad-gallery-swiper .swiper-pagination {
+          color: #bf673e;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 13px;
+          letter-spacing: 0.15em;
+        }
       `}</style>
     </div>
   );
 };
 
-/* ─── Star Row ─── */
 const StarRow = ({ count = 5, filled = 5 }) => (
-  <div className="flex gap-1">
+  <div className="flex gap-0.5">
     {Array.from({ length: count }).map((_, i) => (
-      <Star key={i} className="w-3.5 h-3.5" style={{ color: i < filled ? "#bf673e" : "rgba(191,103,62,0.25)", fill: i < filled ? "#bf673e" : "none" }} />
+      <Star
+        key={i}
+        className="w-3 h-3"
+        style={{
+          color: i < filled ? "#bf673e" : "rgba(191,103,62,0.15)",
+          fill: i < filled ? "#bf673e" : "none",
+        }}
+      />
     ))}
   </div>
 );
 
-/* ─── Section Eyebrow ─── */
 const SectionEyebrow = ({ label }) => (
-  <div className="flex items-center gap-3 mb-4">
-    <span className="h-px w-5 bg-brand-action" />
-    <span className="font-montserrat uppercase tracking-[0.3em] text-[0.55rem] text-brand-action font-semibold">
+  <div className="flex items-center gap-3 mb-5">
+    <span className="h-px w-6 bg-brand-action/60" />
+    <span className="font-montserrat uppercase tracking-[0.35em] text-[0.55rem] text-brand-action font-semibold">
       {label}
     </span>
+    <span className="h-px flex-1 bg-brand-action/10" />
   </div>
 );
 
-/* ─── Animated Counter ─── */
-const AnimatedCounter = ({ value, suffix = "", label }) => {
-  const ref = useRef(null);
+const MetricItem = ({ value, suffix = "", label, icon: Icon, delay = 0, isDecimal = false }) => {
+  const numberRef = useRef(null);
+  const itemRef = useRef(null);
+
   useEffect(() => {
-    if (!ref.current) return;
+    if (!numberRef.current) return;
     const obj = { val: 0 };
     gsap.to(obj, {
       val: value,
-      duration: 1.8,
+      duration: 2.4,
       ease: "power3.out",
-      scrollTrigger: { trigger: ref.current, start: "top 85%", once: true },
+      delay,
+      scrollTrigger: {
+        trigger: itemRef.current,
+        start: "top 85%",
+        once: true,
+      },
       onUpdate: () => {
-        if (ref.current) ref.current.textContent = Math.round(obj.val) + suffix;
+        if (!numberRef.current) return;
+        numberRef.current.textContent = isDecimal
+          ? obj.val.toFixed(1) + suffix
+          : Math.round(obj.val) + suffix;
       },
     });
-  }, [value, suffix]);
+  }, [value, suffix, delay, isDecimal]);
+
   return (
-    <div className="text-center">
-      <span ref={ref} className="font-display text-[2.5rem] md:text-[3.5rem] text-brand-action leading-none block">
+    <div ref={itemRef} className="flex flex-col items-center justify-center">
+      {Icon && (
+        <div className="mb-5 md:mb-6">
+          <Icon className="w-[18px] h-[18px] md:w-5 md:h-5 text-brand-action/50" strokeWidth={1.2} />
+        </div>
+      )}
+      <span
+        ref={numberRef}
+        className="font-display text-[3rem] md:text-[4.5rem] text-brand-ink leading-none tracking-tight"
+      >
         0{suffix}
       </span>
-      {label && <span className="font-montserrat text-[0.6rem] uppercase tracking-[0.2em] text-brand-ink/40 mt-2 block">{label}</span>}
+      {label && (
+        <span className="font-montserrat text-[0.5rem] md:text-[0.55rem] uppercase tracking-[0.35em] text-brand-ink/40 mt-4 md:mt-5 block font-medium">
+          {label}
+        </span>
+      )}
     </div>
   );
 };
 
-/* ═══════════════════════════════════ MAIN PAGE ═══════════════════════════════════ */
+const normalizePartnerHotel = (hotel) => {
+  if (!hotel) return null;
+
+  return {
+    ...hotel,
+    hotel_id: hotel.hotel_id || hotel.hotelId || null,
+    org_id: hotel.org_id || hotel.orgId || null,
+    city_id: hotel.city_id || hotel.cityId || null,
+    neighborhood_id: hotel.neighborhood_id || hotel.neighborhoodId || null,
+    property_type_id: hotel.property_type_id || hotel.propertyTypeId || null,
+    amenity_ids: hotel.amenity_ids || hotel.amenityIds || [],
+    service_ids: hotel.service_ids || hotel.serviceIds || [],
+    booking_condition_ids: hotel.booking_condition_ids || hotel.bookingConditionIds || [],
+    image_urls: hotel.image_urls || hotel.imageUrls || [],
+    simple_booking_link: hotel.simple_booking_link || hotel.simpleBookingLink || null,
+    rating_avg: hotel.rating_avg || hotel.ratingAvg || null,
+    reviews_count: hotel.reviews_count ?? hotel.reviewsCount ?? null,
+    extra_info: hotel.extra_info || hotel.extraInfo || null,
+    phone_number: hotel.phone_number || hotel.phoneNumber || null,
+    source_created_at: hotel.source_created_at || hotel.sourceCreatedAt || null,
+  };
+};
+
 const RiadDetailPage = () => {
   const { id } = useParams();
   const { t, currentLanguage } = useLanguage();
@@ -204,7 +283,11 @@ const RiadDetailPage = () => {
   const bookingRef = useRef(null);
   const pageRef = useRef(null);
   const mapSectionRef = useRef(null);
+  const mapParallaxRef = useRef(null);
   const ctaRef = useRef(null);
+  const heroContentRef = useRef(null);
+  const heroMetaRef = useRef(null);
+  const websiteIconRef = useRef(null);
 
   const { data: hotelData, error: hotelError, isLoading: hotelLoading } = usePartnerHotelById(id);
 
@@ -226,8 +309,9 @@ const RiadDetailPage = () => {
         setAmenitiesCatalog(Object.fromEntries(amenitiesArr.map((a) => [a.id, a.label])));
         setServicesCatalog(Object.fromEntries(servicesArr.map((s) => [s.id, s.label])));
         setBookingConditionsCatalog(Object.fromEntries(bookingConditionsArr.map((b) => [b.id, b.label])));
-        setRiad(hotelData);
-        if (hotelData?.latitude && hotelData?.longitude) {
+        const normalizedHotel = normalizePartnerHotel(hotelData);
+        setRiad(normalizedHotel);
+        if (normalizedHotel?.latitude && normalizedHotel?.longitude) {
           setTimeout(() => setMapLoaded(true), 600);
         }
       } catch {
@@ -247,7 +331,6 @@ const RiadDetailPage = () => {
     }
   }, [hotelData, hotelError, hotelLoading, currentLanguage, toast]);
 
-  /* ─── Derived data ─── */
   const name = riad ? getTranslated(riad.name, currentLanguage) : "";
   const description = riad ? getTranslated(riad.description, currentLanguage) : "";
   const address = riad ? getTranslated(riad.address, currentLanguage) : "";
@@ -261,8 +344,13 @@ const RiadDetailPage = () => {
   const position = riad && riad.latitude && riad.longitude ? [riad.latitude, riad.longitude] : null;
   const ratingNum = riad ? (parseFloat(riad.rating_avg) || 0) : 0;
   const ratingFull = Math.round(ratingNum);
+  const extraInfo = riad ? getTranslated(riad.extra_info, currentLanguage) : "";
+  const extraInfoLines = extraInfo
+    ? extraInfo.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+    : [];
 
-  /* ─── GSAP cinematic slide transition ─── */
+  const hasMetrics = riad?.rating_avg || riad?.reviews_count || amenities.length > 0 || images.length > 1;
+
   const animateSlide = useCallback((newIdx, dir) => {
     const enterLayer = activeLayer.current === "A" ? imgLayerB : imgLayerA;
     const exitLayer = activeLayer.current === "A" ? imgLayerA : imgLayerB;
@@ -275,11 +363,32 @@ const RiadDetailPage = () => {
 
     const tl = gsap.timeline();
     tl.fromTo(enterLayer.current,
-      { opacity: 0, scale: 1.06, x: dir > 0 ? 60 : -60, filter: "blur(8px)" },
-      { opacity: 1, scale: 1, x: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out" }, 0
+      {
+        opacity: 0,
+        scale: 1.08,
+        x: dir > 0 ? 80 : -80,
+        filter: "blur(12px)",
+      },
+      {
+        opacity: 1,
+        scale: 1,
+        x: 0,
+        filter: "blur(0px)",
+        duration: 1.1,
+        ease: "power2.out",
+      },
+      0
     );
     tl.to(exitLayer.current,
-      { opacity: 0, scale: 1.02, x: dir > 0 ? -60 : 60, filter: "blur(8px)", duration: 0.9, ease: "power3.out" }, 0
+      {
+        opacity: 0,
+        scale: 1.03,
+        x: dir > 0 ? -60 : 60,
+        filter: "blur(8px)",
+        duration: 0.9,
+        ease: "power2.out",
+      },
+      0
     );
     activeLayer.current = activeLayer.current === "A" ? "B" : "A";
     if (progressBarRef.current) {
@@ -287,7 +396,6 @@ const RiadDetailPage = () => {
     }
   }, [images, name]);
 
-  /* ─── Initialize first image ─── */
   useEffect(() => {
     if (images.length === 0) return;
     if (imgLayerA.current) {
@@ -306,60 +414,68 @@ const RiadDetailPage = () => {
     }
   }, [images, name]);
 
-  /* ─── Advanced GSAP ScrollTrigger Animations ─── */
-  useLayoutEffect(() => {
+  /* ─── Hero entrance sequence ─── */
+  useEffect(() => {
     if (loading || !riad) return;
 
     const ctx = gsap.context(() => {
-      /* Carousel parallax */
+      if (heroContentRef.current) {
+        gsap.fromTo(heroContentRef.current,
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 1.2, ease: "power3.out", delay: 0.3 }
+        );
+      }
+      if (heroMetaRef.current) {
+        gsap.fromTo(heroMetaRef.current,
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", delay: 0.6 }
+        );
+      }
+    });
+
+    return () => ctx.revert();
+  }, [loading, riad]);
+
+  /* ─── Advanced GSAP ScrollTrigger Animations ─── */
+  useEffect(() => {
+    if (loading || !riad) return;
+
+    const ctx = gsap.context(() => {
       if (carouselRef.current) {
         gsap.to(carouselRef.current, {
-          y: 40,
-          scale: 1.02,
+          y: 60,
+          scale: 1.03,
           ease: "none",
           scrollTrigger: {
             trigger: carouselRef.current,
             start: "top top",
-            end: "bottom top+=200",
-            scrub: 1.5,
-          },
-        });
-        gsap.from(carouselRef.current, {
-          opacity: 0,
-          y: -20,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: carouselRef.current,
-            start: "top 90%",
-            once: true,
+            end: "bottom top+=300",
+            scrub: 2,
           },
         });
       }
 
-      /* Info card entrance */
       if (infoCardRef.current) {
         gsap.from(infoCardRef.current, {
           opacity: 0,
-          x: 60,
-          duration: 1,
-          ease: "power3.out",
+          x: 80,
+          duration: 1.2,
+          ease: "power4.out",
           scrollTrigger: {
             trigger: infoCardRef.current,
-            start: "top 85%",
+            start: "top 80%",
             once: true,
           },
         });
       }
 
-      /* Amenities stagger reveal */
       if (amenitiesRef.current) {
         gsap.from(amenitiesRef.current.querySelectorAll("li"), {
           opacity: 0,
-          y: 12,
-          duration: 0.5,
-          stagger: 0.04,
-          ease: "power2.out",
+          y: 16,
+          duration: 0.6,
+          stagger: 0.05,
+          ease: "power3.out",
           scrollTrigger: {
             trigger: amenitiesRef.current,
             start: "top 82%",
@@ -368,14 +484,13 @@ const RiadDetailPage = () => {
         });
       }
 
-      /* Services stagger reveal */
       if (servicesRef.current) {
         gsap.from(servicesRef.current.querySelectorAll("li"), {
           opacity: 0,
-          y: 12,
-          duration: 0.5,
-          stagger: 0.04,
-          ease: "power2.out",
+          y: 16,
+          duration: 0.6,
+          stagger: 0.05,
+          ease: "power3.out",
           scrollTrigger: {
             trigger: servicesRef.current,
             start: "top 82%",
@@ -384,14 +499,13 @@ const RiadDetailPage = () => {
         });
       }
 
-      /* Booking conditions stagger */
       if (bookingRef.current) {
         gsap.from(bookingRef.current.querySelectorAll("li"), {
           opacity: 0,
-          y: 10,
-          duration: 0.4,
-          stagger: 0.05,
-          ease: "power2.out",
+          y: 12,
+          duration: 0.5,
+          stagger: 0.06,
+          ease: "power3.out",
           scrollTrigger: {
             trigger: bookingRef.current,
             start: "top 82%",
@@ -400,30 +514,61 @@ const RiadDetailPage = () => {
         });
       }
 
-      /* Map section reveal */
       if (mapSectionRef.current) {
-        gsap.from(mapSectionRef.current, {
-          y: 40,
-          opacity: 0,
-          duration: 0.9,
-          ease: "power3.out",
+        const addressCard = mapSectionRef.current.querySelector("[data-address-card]");
+        const mapEl = mapSectionRef.current.querySelector("[data-map-container]");
+
+        const tl = gsap.timeline({
           scrollTrigger: {
             trigger: mapSectionRef.current,
             start: "top 80%",
             once: true,
           },
         });
+
+        if (addressCard) {
+          tl.from(addressCard, { opacity: 0, x: -60, duration: 0.8, ease: "power3.out" });
+        }
+        if (mapEl) {
+          tl.from(mapEl, { opacity: 0, y: 40, scale: 0.97, duration: 1, ease: "power4.out" }, "-=0.3");
+        }
+
+        const mapParallaxEl = mapSectionRef.current.querySelector("[data-map-parallax]");
+        if (mapParallaxEl) {
+          gsap.to(mapParallaxEl, {
+            y: 30,
+            ease: "none",
+            scrollTrigger: {
+              trigger: mapSectionRef.current,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: 1.5,
+            },
+          });
+        }
       }
 
-      /* Thumbnail strip entrance */
+      if (mapParallaxRef.current) {
+        gsap.to(mapParallaxRef.current, {
+          y: -40,
+          ease: "none",
+          scrollTrigger: {
+            trigger: mapSectionRef.current,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 2,
+          },
+        });
+      }
+
       const thumbStrip = carouselRef.current?.querySelector("[data-thumb-strip]");
       if (thumbStrip) {
         gsap.from(thumbStrip.children, {
           opacity: 0,
-          y: 16,
-          duration: 0.5,
-          stagger: 0.04,
-          ease: "power2.out",
+          y: 20,
+          duration: 0.6,
+          stagger: 0.06,
+          ease: "power3.out",
           scrollTrigger: {
             trigger: thumbStrip,
             start: "top 85%",
@@ -436,7 +581,17 @@ const RiadDetailPage = () => {
     return () => ctx.revert();
   }, [loading, riad]);
 
-  /* ─── Carousel autoplay ─── */
+  useEffect(() => {
+    if (!websiteIconRef.current) return;
+    gsap.to(websiteIconRef.current, {
+      y: -4,
+      duration: 2.2,
+      ease: "sine.inOut",
+      yoyo: true,
+      repeat: -1,
+    });
+  }, [loading, riad]);
+
   useEffect(() => { setPhotoIdx(0); }, [images.length]);
 
   useEffect(() => {
@@ -473,18 +628,20 @@ const RiadDetailPage = () => {
 
   const customIcon = useMemo(
     () => L.divIcon({
-      html: `<div style="width:36px;height:36px;background:#bf673e;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 14px rgba(0,0,0,0.25)"></div>`,
-      iconSize: [36, 36], iconAnchor: [18, 36], className: "",
+      html: `<div style="width:38px;height:38px;background:#bf673e;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 6px 20px rgba(0,0,0,0.3)"></div>`,
+      iconSize: [38, 38], iconAnchor: [19, 38], className: "",
     }),
     [],
   );
 
-  /* ─── Loading ─── */
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-        <div className="w-8 h-8 border-2 border-brand-beige border-t-brand-action animate-spin mb-4" />
-        <span className="text-sm text-brand-ink/50 font-montserrat tracking-wide">{t("loading")}</span>
+        <div className="relative w-10 h-10">
+          <div className="absolute inset-0 border-2 border-brand-beige rounded-full" />
+          <div className="absolute inset-0 border-2 border-transparent border-t-brand-action rounded-full animate-spin" />
+        </div>
+        <span className="mt-5 text-xs text-brand-ink/40 font-montserrat tracking-[0.3em] uppercase">{t("loading")}</span>
       </div>
     );
   }
@@ -495,6 +652,7 @@ const RiadDetailPage = () => {
     <>
       <Helmet>
         <title>{name} &middot; LA CENTRALE DES RIADS</title>
+        <meta name="description" content={description?.substring(0, 160)} />
       </Helmet>
 
       <GalleryModal
@@ -506,159 +664,149 @@ const RiadDetailPage = () => {
       />
 
       <div ref={pageRef} className="relative bg-white font-montserrat min-h-screen overflow-hidden">
-        <div className="absolute -top-40 right-0 w-[500px] h-[500px] bg-brand-action/5 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-40 left-0 w-[500px] h-[500px] bg-brand-action/5 blur-3xl pointer-events-none" />
 
-        <div className="relative max-w-[1400px] mx-auto px-6 lg:px-12 pt-[100px] pb-16">
-          {/* Back link */}
-          <Link
-            to="/all-riads"
-            className="inline-flex items-center gap-2 text-brand-ink/40 hover:text-brand-action transition-colors text-sm font-medium mb-10 group"
+        <div ref={carouselRef} className="relative h-screen max-h-[700px] md:max-h-[800px] overflow-hidden bg-[#1d1d1b]">
+          <img
+            ref={imgLayerA}
+            className="absolute inset-0 w-full h-full object-cover will-change-transform"
+            alt=""
+          />
+          <img
+            ref={imgLayerB}
+            className="absolute inset-0 w-full h-full object-cover will-change-transform"
+            alt=""
+            style={{ opacity: 0 }}
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1d1d1b]/80 via-[#1d1d1b]/30 via-40% to-transparent pointer-events-none z-[1]" />
+
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none z-[1]" />
+
+          <div className="absolute inset-6 border border-white/10 pointer-events-none z-[1]" />
+
+          {/* Back link — inside hero overlay */}
+          <div className="absolute top-8 left-8 z-20">
+            <Link
+              to="/all-riads"
+              className="inline-flex items-center gap-2.5 text-white/50 hover:text-white transition-colors text-xs tracking-[0.15em] uppercase group font-montserrat"
+            >
+              <span className="w-8 h-px bg-white/30 group-hover:bg-white transition-colors duration-500" />
+              <span className="transition-colors duration-500">{t("backToListings")}</span>
+            </Link>
+          </div>
+
+          {/* Hero content — animated entrance */}
+          <div
+            ref={heroContentRef}
+            className="absolute bottom-24 md:bottom-32 left-8 md:left-14 right-8 md:right-14 z-10"
           >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            {t("backToListings")}
-          </Link>
-
-          {/* ═══════ Main grid: Carousel (7) + Info Card (5) ═══════ */}
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-            {/* ============ Cinematic image gallery ============ */}
-            <div ref={carouselRef} className="lg:col-span-7 relative">
-              <div className="relative overflow-hidden shadow-xl h-[460px] md:h-[600px] bg-[#1d1d1b]">
-                <img
-                  ref={imgLayerA}
-                  className="absolute inset-0 w-full h-full object-cover will-change-transform"
-                  alt=""
-                />
-                <img
-                  ref={imgLayerB}
-                  className="absolute inset-0 w-full h-full object-cover will-change-transform"
-                  alt=""
-                  style={{ opacity: 0 }}
-                />
-
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1d1d1b]/75 via-[#1d1d1b]/10 to-transparent pointer-events-none" />
-                <div className="pointer-events-none absolute inset-3 border border-white/20" />
-
-                {propertyType && (
-                  <div className="absolute top-6 left-6 flex items-center gap-3 text-white z-10">
-                    <span className="h-px w-8 bg-brand-action" />
-                    <span className="font-montserrat uppercase tracking-[0.4em] text-[0.65rem] text-white/90">
-                      {propertyType}
-                    </span>
-                  </div>
-                )}
-
-                <div className="absolute bottom-20 left-6 right-6 flex items-end justify-between text-white z-10">
-                  <h1 className="font-montserrat font-bold uppercase text-white text-[clamp(1.2rem,2.4vw,2.2rem)] leading-tight max-w-md tracking-wide [text-shadow:0_3px_20px_rgba(0,0,0,0.6)]">
-                    {name}
-                  </h1>
-                  <span className="hidden md:block font-montserrat text-white/70 text-[0.72rem] tracking-[0.4em] uppercase">
-                    {String(photoIdx + 1).padStart(2, "0")} / {String(images.length).padStart(2, "0")}
+            <div className="max-w-3xl">
+              {propertyType && (
+                <div className="flex items-center gap-3 mb-5" ref={heroMetaRef}>
+                  <span className="h-px w-8 bg-brand-action" />
+                  <span className="font-montserrat uppercase tracking-[0.45em] text-[0.6rem] text-brand-action font-semibold">
+                    {propertyType}
                   </span>
                 </div>
-
-                {images.length > 1 && (
-                  <>
-                    <button
-                      onClick={goPrev}
-                      aria-label="Previous"
-                      className="group absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/30 text-white hover:bg-brand-action hover:border-brand-action transition-all duration-500"
-                    >
-                      <span className="text-xl leading-none transition-transform duration-500 group-hover:-translate-x-0.5">&#8249;</span>
-                    </button>
-                    <button
-                      onClick={goNext}
-                      aria-label="Next"
-                      className="group absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/30 text-white hover:bg-brand-action hover:border-brand-action transition-all duration-500"
-                    >
-                      <span className="text-xl leading-none transition-transform duration-500 group-hover:translate-x-0.5">&#8250;</span>
-                    </button>
-                  </>
-                )}
-
-                {images.length > 1 && (
-                  <div className="absolute bottom-6 left-6 right-6 flex items-center gap-4 text-white z-10">
-                    <span className="font-montserrat text-[0.7rem] tracking-[0.4em] text-brand-action font-medium">
-                      {String(photoIdx + 1).padStart(2, "0")}
-                    </span>
-                    <div className="flex-1 h-px bg-white/20 relative overflow-hidden">
-                      <span
-                        ref={progressBarRef}
-                        style={{ transformOrigin: "left", transform: "scaleX(0)" }}
-                        className="absolute inset-0 bg-gradient-to-r from-brand-action to-white/80"
-                      />
-                    </div>
-                    <span className="font-montserrat text-[0.7rem] tracking-[0.4em] text-white/80">
-                      {String(images.length).padStart(2, "0")}
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
+              <h1 className="font-montserrat font-bold uppercase text-white text-[clamp(1.8rem,3.5vw,3.2rem)] leading-[1.15] max-w-2xl tracking-[0.04em] [text-shadow:0_4px_30px_rgba(0,0,0,0.5)]">
+                {name}
+              </h1>
+              {(neighborhood || city) && (
+                <div className="flex items-center gap-2 mt-5 text-white/50">
+                  <MapPin className="w-3.5 h-3.5 text-brand-action" />
+                  <span className="text-[0.7rem] uppercase tracking-[0.2em] font-medium">
+                    {[neighborhood, city].filter(Boolean).join(" \u00b7 ")}
+                  </span>
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* ============ Info card — entire card matches main image height ============ */}
-            <div className="lg:col-span-5 relative">
-              <div
-                ref={infoCardRef}
-                className="bg-brand-beige border border-brand-action/15 relative shadow-sm flex flex-col overflow-hidden h-[460px] md:h-[600px]"
+          {/* Progress bar */}
+          {images.length > 1 && (
+            <div className="absolute bottom-8 md:bottom-12 left-8 md:left-14 right-8 md:right-14 flex items-center gap-4 text-white z-10">
+              <span className="font-montserrat text-[0.65rem] tracking-[0.4em] text-brand-action font-medium">
+                {String(photoIdx + 1).padStart(2, "0")}
+              </span>
+              <div className="flex-1 h-[1px] bg-white/15 relative overflow-hidden">
+                <span
+                  ref={progressBarRef}
+                  style={{ transformOrigin: "left", transform: "scaleX(0)" }}
+                  className="absolute inset-0 bg-gradient-to-r from-brand-action to-white/60"
+                />
+              </div>
+              <span className="font-montserrat text-[0.65rem] tracking-[0.4em] text-white/60">
+                {String(images.length).padStart(2, "0")}
+              </span>
+            </div>
+          )}
+
+          {/* Navigation arrows */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={goPrev}
+                aria-label="Previous"
+                className="group absolute left-6 top-1/2 -translate-y-1/2 z-10 w-14 h-14 flex items-center justify-center bg-black/20 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-brand-action/80 hover:border-brand-action transition-all duration-500"
               >
-                <span className="absolute top-3 left-3 w-3 h-3 border-t border-l border-brand-action pointer-events-none z-10" />
-                <span className="absolute top-3 right-3 w-3 h-3 border-t border-r border-brand-action pointer-events-none z-10" />
-                <span className="absolute bottom-3 left-3 w-3 h-3 border-b border-l border-brand-action pointer-events-none z-10" />
-                <span className="absolute bottom-3 right-3 w-3 h-3 border-b border-r border-brand-action pointer-events-none z-10" />
+                <span className="text-2xl leading-none transition-transform duration-500 group-hover:-translate-x-0.5">&#8249;</span>
+              </button>
+              <button
+                onClick={goNext}
+                aria-label="Next"
+                className="group absolute right-6 top-1/2 -translate-y-1/2 z-10 w-14 h-14 flex items-center justify-center bg-black/20 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-brand-action/80 hover:border-brand-action transition-all duration-500"
+              >
+                <span className="text-2xl leading-none transition-transform duration-500 group-hover:translate-x-0.5">&#8250;</span>
+              </button>
+            </>
+          )}
+        </div>
 
-                {/* Header: name, rating, location */}
-                <div className="shrink-0 px-8 md:px-10 pt-8 md:pt-10">
-                  {propertyType && (
-                    <div className="flex items-center gap-3">
-                      <span className="h-px w-6 bg-brand-action" />
-                      <span className="font-montserrat uppercase tracking-[0.35em] text-[0.6rem] text-brand-action font-semibold">
-                        {propertyType}
-                      </span>
-                    </div>
-                  )}
+        {/* ── Main content ── */}
+        <div className="max-w-[1440px] mx-auto px-6 md:px-12 lg:px-16 -mt-20 relative z-10 pb-16">
 
-                  <h2 className="mt-4 font-montserrat font-bold uppercase text-brand-ink text-[clamp(1.3rem,2.2vw,2rem)] leading-tight tracking-wide">
-                    {name}
-                  </h2>
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-start">
 
-                  <span className="block h-px bg-brand-action/20 mt-5 mb-5 shrink-0" />
+            {/* ── Empty left column spacer ── */}
+            <div className="hidden lg:block lg:col-span-1" />
 
+            {/* ── Info Card ── */}
+            <div className="lg:col-span-5 relative" ref={infoCardRef}>
+              <div className="bg-white border border-brand-ink/5 shadow-xl relative flex flex-col overflow-hidden">
+                <div className="absolute top-4 left-4 w-4 h-4 border-t border-l border-brand-action/20 pointer-events-none z-10" />
+                <div className="absolute top-4 right-4 w-4 h-4 border-t border-r border-brand-action/20 pointer-events-none z-10" />
+                <div className="absolute bottom-4 left-4 w-4 h-4 border-b border-l border-brand-action/20 pointer-events-none z-10" />
+                <div className="absolute bottom-4 right-4 w-4 h-4 border-b border-r border-brand-action/20 pointer-events-none z-10" />
+
+                {/* Rating + Location */}
+                <div className="px-8 md:px-10 pt-10 md:pt-12">
                   {riad.rating_avg && (
-                    <div className="flex items-center gap-3 mb-3 shrink-0">
+                    <div className="flex items-center gap-4 mb-4">
                       <StarRow count={5} filled={ratingFull} />
-                      <span className="text-brand-ink/55 text-sm">
+                      <span className="text-brand-ink/40 text-xs tracking-wide">
                         {riad.rating_avg} &middot; {riad.reviews_count} {t("reviews")}
                       </span>
                     </div>
                   )}
-
-                  {(neighborhood || city) && (
-                    <div className="flex items-center gap-2 text-brand-ink/50 mb-5 shrink-0">
-                      <MapPin className="w-3.5 h-3.5 text-brand-action" />
-                      <span className="text-[0.8rem] uppercase tracking-[0.12em] font-medium">
-                        {[neighborhood, city].filter(Boolean).join(" \u00b7 ")}
-                      </span>
-                    </div>
-                  )}
                 </div>
 
-                {/* Content: description, amenities, services — scrollable */}
-                <div className="relative flex-1 min-h-0 px-8 md:px-10">
-                  <div className={`h-full ${infoExpanded ? "overflow-y-auto" : "overflow-hidden"}`}>
+                {/* Scrollable content */}
+                <div className="relative flex-1 min-h-0 px-8 md:px-10 pb-4">
+                  <div className={`h-full ${infoExpanded ? "overflow-y-auto max-h-[560px]" : "overflow-hidden"}`}>
                     {description && (
-                      <p className="text-[0.9rem] text-brand-ink/65 leading-[1.85] mb-6">
+                      <p className="text-[0.85rem] text-brand-ink/60 leading-[1.9] mb-8 font-light">
                         {description}
                       </p>
                     )}
 
                     {amenities.length > 0 && (
-                      <div className="mb-5">
+                      <div className="mb-7">
                         <SectionEyebrow label={t("amenities")} />
-                        <ul ref={amenitiesRef} className="grid grid-cols-2 gap-x-5 gap-y-2.5 text-[0.82rem] text-brand-ink/75">
+                        <ul ref={amenitiesRef} className="grid grid-cols-2 gap-x-5 gap-y-3 text-[0.8rem] text-brand-ink/70">
                           {amenities.map((a, i) => (
-                            <li key={`${a}-${i}`} className="flex items-start gap-2.5">
-                              <span className="mt-[7px] h-[5px] w-[5px] bg-brand-action ring-2 ring-brand-action/30 flex-shrink-0" />
+                            <li key={`${a}-${i}`} className="flex items-start gap-3">
+                              <span className="mt-[6px] h-[4px] w-[4px] bg-brand-action shrink-0" />
                               <span>{a}</span>
                             </li>
                           ))}
@@ -667,12 +815,12 @@ const RiadDetailPage = () => {
                     )}
 
                     {services.length > 0 && (
-                      <div className="mb-5">
+                      <div className="mb-7">
                         <SectionEyebrow label={t("services")} />
-                        <ul ref={servicesRef} className="grid grid-cols-2 gap-x-5 gap-y-2.5 text-[0.82rem] text-brand-ink/75">
+                        <ul ref={servicesRef} className="grid grid-cols-2 gap-x-5 gap-y-3 text-[0.8rem] text-brand-ink/70">
                           {services.map((s, i) => (
-                            <li key={`${s}-${i}`} className="flex items-start gap-2.5">
-                              <span className="mt-[7px] h-[5px] w-[5px] bg-brand-action ring-2 ring-brand-action/30 flex-shrink-0" />
+                            <li key={`${s}-${i}`} className="flex items-start gap-3">
+                              <span className="mt-[6px] h-[4px] w-[4px] bg-brand-action shrink-0" />
                               <span>{s}</span>
                             </li>
                           ))}
@@ -680,13 +828,27 @@ const RiadDetailPage = () => {
                       </div>
                     )}
 
+                    {extraInfoLines.length > 0 && (
+                      <div className="mb-7">
+                        <SectionEyebrow label={t("practicalInformation") || "Practical Information"} />
+                        <ul className="grid grid-cols-1 gap-y-3 text-[0.8rem] text-brand-ink/70">
+                          {extraInfoLines.map((line, i) => (
+                            <li key={`extra-${i}`} className="flex items-start gap-3">
+                              <span className="mt-[6px] h-[4px] w-[4px] bg-brand-action shrink-0" />
+                              <span>{line}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     {bookingConditions.length > 0 && (
-                      <div className="mb-5">
+                      <div className="mb-7">
                         <SectionEyebrow label={t("bookingConditions")} />
-                        <ul ref={bookingRef} className="grid grid-cols-1 gap-y-2.5 text-[0.82rem] text-brand-ink/75">
+                        <ul ref={bookingRef} className="grid grid-cols-1 gap-y-3 text-[0.8rem] text-brand-ink/70">
                           {bookingConditions.map((bc, i) => (
-                            <li key={`bc-${i}`} className="flex items-start gap-2.5">
-                              <Shield className="w-3.5 h-3.5 text-brand-action mt-0.5 flex-shrink-0" />
+                            <li key={`bc-${i}`} className="flex items-start gap-3">
+                              <Shield className="w-3.5 h-3.5 text-brand-action mt-0.5 shrink-0" />
                               <span>{bc}</span>
                             </li>
                           ))}
@@ -695,24 +857,24 @@ const RiadDetailPage = () => {
                     )}
                   </div>
 
-                  {/* Gradient fade when collapsed */}
                   {!infoExpanded && (
-                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-brand-beige via-brand-beige/80 to-transparent pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
                   )}
                 </div>
 
-                {/* Bottom: Book Now + contact icons + Read more */}
-                <div className="shrink-0 px-8 md:px-10 pb-8 md:pb-10 pt-4">
+                {/* Bottom: actions + read more */}
+                <div className="shrink-0 px-8 md:px-10 pb-10 md:pb-12 pt-4">
                   <div className="flex items-center justify-between gap-4">
                     {riad.simple_booking_link ? (
                       <a
                         href={riad.simple_booking_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2.5 bg-brand-action text-white px-6 py-3.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
+                        className="group inline-flex items-center gap-3 bg-brand-action text-white px-7 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
-                        {t("bookNow")} <span aria-hidden>&#8594;</span>
+                        {t("bookNow")}
+                        <span className="inline-block transition-transform duration-500 group-hover:translate-x-1" aria-hidden>&#8594;</span>
                       </a>
                     ) : (
                       <div />
@@ -720,52 +882,63 @@ const RiadDetailPage = () => {
 
                     <div className="flex items-center gap-2">
                       {riad.phone_number && (
-                        <a href={`tel:${riad.phone_number}`} aria-label="Phone" className="w-10 h-10 border border-brand-action/30 text-brand-action flex items-center justify-center hover:bg-brand-action hover:text-white transition-colors duration-300">
+                        <a href={`tel:${riad.phone_number}`} aria-label="Phone" className="w-11 h-11 border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-400">
                           <Phone className="w-4 h-4" />
                         </a>
                       )}
                       {riad.email && (
-                        <a href={`mailto:${riad.email}`} aria-label="Email" className="w-10 h-10 border border-brand-action/30 text-brand-action flex items-center justify-center hover:bg-brand-action hover:text-white transition-colors duration-300">
+                        <a href={`mailto:${riad.email}`} aria-label="Email" className="w-11 h-11 border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-400">
                           <Mail className="w-4 h-4" />
                         </a>
                       )}
                       {riad.website && (
-                        <a href={riad.website} target="_blank" rel="noreferrer" aria-label="Website" className="w-10 h-10 border border-brand-action/30 text-brand-action flex items-center justify-center hover:bg-brand-action hover:text-white transition-colors duration-300">
-                          <Globe className="w-4 h-4" />
-                        </a>
+                        <div className="relative group">
+                          <div className="absolute -inset-3 bg-gradient-to-r from-brand-action/15 via-brand-action/5 to-brand-ink/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700" />
+                          <a
+                            href={riad.website}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="relative flex items-center gap-3 px-5 py-2.5 bg-white/80 backdrop-blur-sm border border-brand-ink/10 rounded-full shadow-sm hover:shadow-xl hover:border-brand-action/30 hover:bg-white transition-all duration-500"
+                          >
+                            <span ref={websiteIconRef} className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-brand-action to-brand-ink/80 text-white shadow-lg">
+                              <Globe className="w-4 h-4" />
+                            </span>
+                            <span className="text-[0.7rem] font-medium text-brand-ink/70 group-hover:text-brand-ink transition-colors font-montserrat tracking-tight">
+                              {(() => { try { return new URL(riad.website).hostname.replace(/^www\./, ''); } catch { return riad.website; } })()}
+                            </span>
+                            <ExternalLink className="w-3 h-3 text-brand-ink/20 group-hover:text-brand-action transition-colors" />
+                          </a>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Read more / Read less */}
-                  <div className="mt-4 text-center">
+                  <div className="mt-5 text-center">
                     <button
                       onClick={() => setInfoExpanded(!infoExpanded)}
-                      className="inline-flex items-center gap-2 font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-action hover:text-brand-ink transition-colors duration-300 group"
+                      className="inline-flex items-center gap-2 font-montserrat text-[0.6rem] font-semibold uppercase tracking-[0.25em] text-brand-action/70 hover:text-brand-ink transition-colors duration-400 group"
                     >
                       <span>{infoExpanded ? (t("showLess") || "Read less") : (t("showMore") || "Read more")}</span>
-                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${infoExpanded ? "rotate-180" : ""}`} />
+                      <ChevronDown className={`w-3 h-3 transition-all duration-400 ${infoExpanded ? "rotate-180" : ""}`} />
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Gallery strip below the grid */}
-          {images.length > 1 && (
-            <div className="lg:grid lg:grid-cols-12 lg:gap-10 lg:gap-14">
-              <div className="lg:col-span-7">
-                <div data-thumb-strip className="mt-5">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <span className="h-px flex-1 bg-brand-ink/8" />
-                    <span className="font-montserrat text-[0.55rem] uppercase tracking-[0.3em] text-brand-ink/30 font-semibold">
+            {/* ── Gallery Thumb Strip ── */}
+            <div className="lg:col-span-6">
+              {images.length > 1 && (
+                <div data-thumb-strip>
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="h-px flex-1 bg-brand-ink/5" />
+                    <span className="font-montserrat text-[0.5rem] uppercase tracking-[0.4em] text-brand-ink/20 font-semibold">
                       {t("gallery") || "Gallery"}
                     </span>
-                    <span className="h-px flex-1 bg-brand-ink/8" />
+                    <span className="h-px flex-1 bg-brand-ink/5" />
                   </div>
-                  <div className="grid grid-cols-4 gap-2.5">
-                    {images.slice(0, 7).map((src, i) => (
+                  <div className="grid grid-cols-2 gap-3">
+                    {images.slice(0, 6).map((src, i) => (
                       <button
                         key={`thumb-${i}`}
                         onClick={() => {
@@ -777,120 +950,216 @@ const RiadDetailPage = () => {
                         className={`relative group overflow-hidden transition-all duration-500 ${
                           photoIdx === i
                             ? "ring-2 ring-brand-action ring-offset-2 ring-offset-white scale-[1.02]"
-                            : "opacity-60 hover:opacity-100 hover:scale-[1.03]"
+                            : "opacity-50 hover:opacity-100 hover:scale-[1.02]"
                         }`}
                       >
                         <div className="aspect-[4/3] overflow-hidden bg-[#1d1d1b]">
-                          <img src={src} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                          <img
+                            src={src}
+                            alt=""
+                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                            loading="lazy"
+                          />
                         </div>
-                        <div className={`absolute inset-0 transition-colors duration-500 ${
-                          photoIdx === i ? "bg-transparent" : "bg-gradient-to-t from-[#1d1d1b]/60 via-transparent to-transparent group-hover:from-[#1d1d1b]/30"
+                        <div className={`absolute inset-0 transition-colors duration-600 ${
+                          photoIdx === i
+                            ? "bg-transparent"
+                            : "bg-gradient-to-t from-black/50 via-transparent to-transparent group-hover:from-black/20"
                         }`} />
-                        <span className="absolute bottom-1.5 left-1.5 font-montserrat text-[0.5rem] font-bold text-white/80 drop-shadow-md">
+                        <span className="absolute bottom-2 left-2 font-montserrat text-[0.45rem] font-bold text-white/70 drop-shadow-lg">
                           {String(i + 1).padStart(2, "0")}
                         </span>
                         {photoIdx === i && (
-                          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand-action shadow-sm" />
+                          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand-action shadow-sm" />
                         )}
                       </button>
                     ))}
-                    {images.length > 7 && (
+                    {images.length > 6 && (
                       <button
                         onClick={() => openGallery(0)}
-                        className="relative aspect-[4/3] overflow-hidden bg-brand-ink group cursor-pointer transition-all duration-500 hover:scale-[1.03]"
+                        className="relative aspect-[4/3] overflow-hidden bg-brand-ink group cursor-pointer transition-all duration-500 hover:scale-[1.02]"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand-action/20 to-brand-ink flex items-center justify-center">
-                          <span className="font-montserrat text-[0.6rem] font-bold text-white/90 uppercase tracking-[0.15em]">
-                            +{images.length - 7}
-                          </span>
+                        <div className="absolute inset-0 bg-gradient-to-br from-brand-action/10 to-brand-ink/90 flex items-center justify-center">
+                          <div className="text-center">
+                            <BookOpen className="w-5 h-5 text-white/60 mx-auto mb-2" />
+                            <span className="block font-montserrat text-[0.6rem] font-bold text-white/80 uppercase tracking-[0.2em]">
+                              +{images.length - 6}
+                            </span>
+                          </div>
                         </div>
                       </button>
                     )}
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* ═══════ Metrics Section ═══════ */}
+          {hasMetrics && (
+            <div className="mt-24 md:mt-32 relative">
+              {/* Full-bleed warm light background */}
+              <div className="absolute inset-0 bg-brand-beige/20 -mx-6 md:-mx-12 lg:-mx-16" />
+
+              <div className="relative">
+                {/* Editorial header */}
+                <div className="flex items-center gap-4 mb-12 md:mb-16 pt-14 md:pt-20">
+                  <span className="h-px w-12 md:w-20 bg-brand-action/40" />
+                  <span className="h-px flex-1 bg-brand-ink/5" />
+                  <span className="font-montserrat text-[0.45rem] md:text-[0.5rem] uppercase tracking-[0.5em] text-brand-ink/20 font-semibold whitespace-nowrap">
+                    {t("inNumbers") || "In Numbers"}
+                  </span>
+                  <span className="h-px flex-1 bg-brand-ink/5" />
+                  <span className="h-px w-12 md:w-20 bg-brand-action/40" />
+                </div>
+
+                {/* Metrics grid with gap-as-divider */}
+                <div className="pb-14 md:pb-20">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-[1px] bg-brand-ink/8 max-w-4xl mx-auto">
+                    {riad?.rating_avg && (
+                      <div className="bg-white flex items-center justify-center py-10 md:py-14 px-4">
+                        <MetricItem value={parseFloat(riad.rating_avg)} suffix="" label={t("rating") || "Rating"} icon={Star} isDecimal delay={0} />
+                      </div>
+                    )}
+                    {riad?.reviews_count && (
+                      <div className="bg-white flex items-center justify-center py-10 md:py-14 px-4">
+                        <MetricItem value={parseInt(riad.reviews_count, 10)} suffix="" label={t("reviews") || "Reviews"} icon={Heart} isDecimal={false} delay={0.15} />
+                      </div>
+                    )}
+                    {amenities.length > 0 && (
+                      <div className="bg-white flex items-center justify-center py-10 md:py-14 px-4">
+                        <MetricItem value={amenities.length} suffix="" label={t("amenities") || "Amenities"} icon={Sparkles} isDecimal={false} delay={0.3} />
+                      </div>
+                    )}
+                    {images.length > 1 && (
+                      <div className="bg-white flex items-center justify-center py-10 md:py-14 px-4">
+                        <MetricItem value={images.length} suffix="+" label={t("photos") || "Photos"} icon={BookOpen} isDecimal={false} delay={0.45} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom flourish */}
+                <div className="flex justify-center pb-14 md:pb-20">
+                  <span className="block w-16 md:w-24 h-px bg-gradient-to-r from-transparent via-brand-action/30 to-transparent" />
+                </div>
               </div>
             </div>
           )}
 
-          {/* ═══════ Stats Counter Section ═══════ */}
-          {(amenities.length > 0 || services.length > 0) && (
-            <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-8 py-10 border-t border-brand-ink/5">
-              {amenities.length > 0 && (
-                <AnimatedCounter value={amenities.length} label={t("amenities") || "Amenities"} />
-              )}
-              {services.length > 0 && (
-                <AnimatedCounter value={services.length} label={t("services") || "Services"} />
-              )}
-              {bookingConditions.length > 0 && (
-                <AnimatedCounter value={bookingConditions.length} label={t("bookingConditions") || "Conditions"} />
-              )}
-              {images.length > 0 && (
-                <AnimatedCounter value={images.length} suffix="+" label={t("photos") || "Photos"} />
-              )}
-            </div>
-          )}
-
-          {/* ═══════ Address + Map ═══════ */}
+          {/* ═══════ Address + Map Section ═══════ */}
           {(address || position) && (
-            <div ref={mapSectionRef} className="mt-14 grid lg:grid-cols-12 gap-10 lg:gap-14">
-              <div className="lg:col-span-7">
-                {address && (
-                  <div className="flex items-start gap-3 bg-brand-beige/40 border border-brand-ink/5 p-5 mb-6 relative">
-                    <span className="absolute top-2 left-2 w-2 h-2 border-t border-l border-brand-action/30 pointer-events-none" />
-                    <span className="absolute top-2 right-2 w-2 h-2 border-t border-r border-brand-action/30 pointer-events-none" />
-                    <span className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-brand-action/30 pointer-events-none" />
-                    <span className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-brand-action/30 pointer-events-none" />
-                    <MapPin className="w-4 h-4 text-brand-action mt-0.5 shrink-0" />
-                    <span className="text-sm text-brand-ink/60 leading-relaxed font-montserrat">{address}</span>
-                  </div>
-                )}
+            <div ref={mapSectionRef} className="mt-24 md:mt-32 relative overflow-hidden">
+              {/* Full-bleed warm background layer (parallax) */}
+              <div
+                ref={mapParallaxRef}
+                className="absolute inset-0 bg-gradient-to-b from-brand-beige/30 via-white to-brand-beige/20 -mx-6 md:-mx-12 lg:-mx-16"
+              />
 
-                {position && (
-                  <div className="bg-white border border-brand-ink/8 overflow-hidden shadow-sm relative">
-                    <span className="absolute top-2 left-2 w-2.5 h-2.5 border-t border-l border-brand-action/25 z-20 pointer-events-none" />
-                    <span className="absolute top-2 right-2 w-2.5 h-2.5 border-t border-r border-brand-action/25 z-20 pointer-events-none" />
-                    <span className="absolute bottom-2 left-2 w-2.5 h-2.5 border-b border-l border-brand-action/25 z-20 pointer-events-none" />
-                    <span className="absolute bottom-2 right-2 w-2.5 h-2.5 border-b border-r border-brand-action/25 z-20 pointer-events-none" />
+              <div className="relative">
+                {/* Section header */}
+                <div className="flex items-center gap-4 mb-10 md:mb-12">
+                  <span className="h-px w-10 bg-brand-action" />
+                  <span className="font-montserrat uppercase tracking-[0.4em] text-[0.5rem] text-brand-action font-semibold">
+                    {t("location") || "Location"}
+                  </span>
+                  <span className="h-px flex-1 bg-brand-action/10" />
+                </div>
 
-                    <div className="flex items-center justify-between px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-brand-action" />
-                        <span className="text-base font-bold text-brand-ink font-montserrat">{t("location")}</span>
-                      </div>
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${riad.latitude},${riad.longitude}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1 text-[0.65rem] uppercase tracking-[0.12em] text-brand-action hover:text-brand-action/80 font-semibold"
-                      >
-                        {t("googleMaps")} <ChevronRight className="w-2.5 h-2.5" />
-                      </a>
-                    </div>
-                    <div className="h-[280px] relative">
-                      {mapLoaded ? (
-                        <MapContainer center={position} zoom={15} scrollWheelZoom={false} style={{ width: "100%", height: "100%" }} zoomControl={false}>
-                          <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          />
-                          <Marker position={position} icon={customIcon}>
-                            <Popup>
-                              <div className="font-montserrat p-1">
-                                <strong className="block mb-1 text-brand-ink">{name}</strong>
-                                {address && <p className="text-xs text-brand-ink/60 mb-1">{address}</p>}
-                                {city && <p className="text-xs">{city}</p>}
-                              </div>
-                            </Popup>
-                          </Marker>
-                        </MapContainer>
-                      ) : (
-                        <div className="w-full h-full bg-brand-beige/50 flex items-center justify-center">
-                          <span className="text-sm text-brand-ink/40 font-montserrat">{t("loading")}...</span>
+                <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
+                  {/* Address Card */}
+                  <div className="lg:col-span-4" data-address-card>
+                    <div className="bg-white border border-brand-ink/5 shadow-lg p-8 md:p-10 relative h-full flex flex-col">
+                      <span className="absolute top-4 left-4 w-4 h-4 border-t border-l border-brand-action/20 pointer-events-none" />
+                      <span className="absolute top-4 right-4 w-4 h-4 border-t border-r border-brand-action/20 pointer-events-none" />
+                      <span className="absolute bottom-4 left-4 w-4 h-4 border-b border-l border-brand-action/20 pointer-events-none" />
+                      <span className="absolute bottom-4 right-4 w-4 h-4 border-b border-r border-brand-action/20 pointer-events-none" />
+
+                      <div className="flex flex-col gap-6 flex-1">
+                        <div className="w-12 h-12 bg-brand-action/10 flex items-center justify-center">
+                          <MapPin className="w-5 h-5 text-brand-action" />
                         </div>
-                      )}
+
+                        <div className="flex-1">
+                          <h3 className="font-montserrat text-[0.55rem] uppercase tracking-[0.3em] text-brand-ink/30 font-semibold mb-3">
+                            {t("address") || "Address"}
+                          </h3>
+                          <p className="text-sm text-brand-ink/60 leading-relaxed font-montserrat">
+                            {address}
+                          </p>
+                        </div>
+
+                        {position && (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${riad.latitude},${riad.longitude}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 text-[0.6rem] uppercase tracking-[0.2em] text-brand-action hover:text-brand-ink font-semibold transition-all duration-400 group mt-auto"
+                          >
+                            <span>{t("directions") || "Get Directions"}</span>
+                            <ChevronRight className="w-3 h-3 transition-transform duration-400 group-hover:translate-x-1" />
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
-                )}
+
+                  {/* Map */}
+                  <div className="lg:col-span-8" data-map-container>
+                    {position && (
+                      <div className="relative overflow-hidden shadow-xl bg-white">
+                        <span className="absolute top-4 left-4 w-5 h-5 border-t border-l border-white/40 z-20 pointer-events-none" />
+                        <span className="absolute top-4 right-4 w-5 h-5 border-t border-r border-white/40 z-20 pointer-events-none" />
+                        <span className="absolute bottom-4 left-4 w-5 h-5 border-b border-l border-white/40 z-20 pointer-events-none" />
+                        <span className="absolute bottom-4 right-4 w-5 h-5 border-b border-r border-white/40 z-20 pointer-events-none" />
+
+                        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-brand-ink/5">
+                          <div className="flex items-center gap-2.5">
+                            <MapPin className="w-4 h-4 text-brand-action" />
+                            <span className="text-sm font-semibold text-brand-ink font-montserrat tracking-wide">
+                              {name}
+                            </span>
+                          </div>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${riad.latitude},${riad.longitude}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1.5 text-[0.55rem] uppercase tracking-[0.15em] text-brand-action hover:text-brand-action/70 font-semibold transition-all duration-400 group"
+                          >
+                            <Globe className="w-3 h-3" />
+                            {t("googleMaps")}
+                          </a>
+                        </div>
+
+                        <div className="h-[400px] md:h-[500px] relative overflow-hidden">
+                          <div className="w-full h-full" data-map-parallax>
+                            {mapLoaded ? (
+                              <MapContainer center={position} zoom={15} scrollWheelZoom={false} style={{ width: "100%", height: "100%" }} zoomControl={false}>
+                                <TileLayer
+                                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                />
+                                <Marker position={position} icon={customIcon}>
+                                  <Popup>
+                                    <div className="font-montserrat p-1">
+                                      <strong className="block mb-1 text-brand-ink text-xs">{name}</strong>
+                                      {address && <p className="text-[0.7rem] text-brand-ink/60 mb-1">{address}</p>}
+                                      {city && <p className="text-[0.7rem] text-brand-ink/40">{city}</p>}
+                                    </div>
+                                  </Popup>
+                                </Marker>
+                              </MapContainer>
+                            ) : (
+                              <div className="w-full h-full bg-brand-beige/30 flex items-center justify-center">
+                                <span className="text-xs text-brand-ink/30 font-montserrat tracking-[0.2em] uppercase">{t("loading")}...</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}

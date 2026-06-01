@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
         import { Routes, Route } from 'react-router-dom';
         import { Toaster } from '@/components/ui/toaster';
         import HomePage from '@/pages/HomePage';
@@ -19,10 +19,23 @@ import React, { useState } from 'react';
         import MedinaQuartiersPage from '@/pages/MedinaQuartiersPage';
         import QuartierDetailPage from '@/pages/QuartierDetailPage';
         import AboutPage from '@/pages/AboutPage';
+        import { useLanguage } from '@/contexts/LanguageContext';
+        import { fetchCatalog } from '@/lib/catalogs';
 
         const AppContent = () => {
           const { loading } = useAuth();
           const [date, setDate] = useState({ from: undefined, to: undefined });
+          const { currentLanguage } = useLanguage();
+
+          useEffect(() => {
+            const catalogs = [
+              "mgh_cities", "mgh_neighborhoods", "mgh_property_types",
+              "mgh_amenities_catalog", "mgh_services_catalog", "mgh_booking_conditions"
+            ];
+            catalogs.forEach((table) => {
+              fetchCatalog(table, currentLanguage).catch(() => {});
+            });
+          }, [currentLanguage]);
 
           if (loading) {
             return (

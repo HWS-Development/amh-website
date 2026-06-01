@@ -9,8 +9,7 @@ import { supabase } from "@/lib/customSupabaseClient";
 import { listExperiences, listDestinations } from "@/lib/mghApi";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
-import { usePartnerHotels } from "@/lib/partnerHotelsApi";
-import PropertySearchModal from "./ui/PropertySearchModal";
+import { extractCentraHotelId, extractCentraOrganizationId, usePartnerHotels } from "@/lib/partnerHotelsApi";
 import i18n from "@/i18n";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import gsap from "gsap";
@@ -37,7 +36,6 @@ const Sidebar = ({ open, onClose, navLinks, riads, t, currentLanguage, changeLan
   const overlayRef = useRef(null);
   const panelRef = useRef(null);
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -179,29 +177,10 @@ const Sidebar = ({ open, onClose, navLinks, riads, t, currentLanguage, changeLan
             </div>
           </div>
 
-          <div data-sidebar-item>
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-3 w-full px-4 py-3 bg-brand-beige/50 border border-brand-ink/8 text-brand-ink/50 hover:bg-brand-beige hover:text-brand-ink hover:border-brand-action/30 transition-all duration-300 group"
-            >
-              <Search className="w-4 h-4 text-brand-ink/30 group-hover:text-brand-action transition-colors" />
-              <span className="font-montserrat text-[0.78rem] text-brand-ink/40 group-hover:text-brand-ink/60 transition-colors">
-                {t("search") || "Search"}
-              </span>
-              <kbd className="ml-auto font-montserrat text-[0.55rem] uppercase tracking-wider text-brand-ink/20 bg-white/50 px-2 py-0.5 border border-brand-ink/5">
-                Ctrl+K
-              </kbd>
-            </button>
-            <PropertySearchModal
-              open={searchOpen}
-              onClose={() => setSearchOpen(false)}
-              riads={riads}
-              locale={currentLanguage}
-            />
-          </div>
-        </div>
+          
       </div>
     </div>
+  </div>
   );
 };
 
@@ -304,7 +283,8 @@ const Header = ({ date, onDateChange }) => {
 
         setRiads(
           hotelsData.map(riad => ({
-            id: riad.id,
+            id: extractCentraHotelId(riad.image_urls) || riad.id,
+            organizationId: extractCentraOrganizationId(riad.image_urls),
             name: getTranslated(riad.name, currentLanguage),
             name_tr: riad.name,
             city: citiesMap[riad.city_id] || "",

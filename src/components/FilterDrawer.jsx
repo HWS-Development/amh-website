@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -37,12 +37,12 @@ const FilterDrawer = ({
   open,
   onOpenChange,
   filters,
-  neighborhoods = [],
   cities = [],
   propertyTypes = [],
   amenities = [],
   onFiltersChange,
   resultCount,
+  riadsMap = [],
 }) => {
   const { t } = useLanguage();
   const [local, setLocal] = useState(filters);
@@ -78,6 +78,49 @@ const FilterDrawer = ({
     onFiltersChange(r);
     onOpenChange(false);
   };
+
+  const previewCount = useMemo(() => {
+    let list = [...riadsMap];
+    if (!list.length) return 0;
+
+    if (local.city_id) {
+      list = list.filter((r) => String(r.city_id) === String(local.city_id));
+    }
+    if (local.neighborhood_id) {
+      list = list.filter((r) => String(r.neighborhood_id) === String(local.neighborhood_id));
+    }
+    if (local.property_type_id) {
+      list = list.filter((r) => String(r.property_type_id) === String(local.property_type_id));
+    }
+    if (local.amenity_ids?.length > 0) {
+      list = list.filter((r) =>
+        local.amenity_ids.some((aid) => (r.amenity_ids || []).includes(aid))
+      );
+    }
+    if (local.rating) {
+      list = list.filter((r) => (r.rating_avg || 0) >= local.rating);
+    }
+    if (local.onlyBookable) {
+      list = list.filter((r) => r.simple_booking_link && r.simple_booking_link.trim());
+    }
+    return list.length;
+  }, [riadsMap, local]);
+
+  const localNeighborhoods = useMemo(() => {
+    const source = riadsMap.filter((r) =>
+      !local.city_id || String(r.city_id) === String(local.city_id)
+    );
+    const map = new Map();
+    source.forEach((r) => {
+      if (r.neighborhood_id) {
+        const nid = String(r.neighborhood_id);
+        if (!map.has(nid)) {
+          map.set(nid, r.neighborhood || nid);
+        }
+      }
+    });
+    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
+  }, [riadsMap, local.city_id]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -146,7 +189,7 @@ const FilterDrawer = ({
           </FilterSection>
 
           {/* Neighborhood (only if city selected) */}
-          {local.city_id && neighborhoods.length > 0 && (
+          {local.city_id && localNeighborhoods.length > 0 && (
             <FilterSection icon={MapPin} title={t("quartier") || "Neighborhood"}>
               <RadioGroup
                 value={local.neighborhood_id || ""}
@@ -159,7 +202,7 @@ const FilterDrawer = ({
                   <RadioGroupItem value="" className="border-brand-ink/20 data-[state=checked]:bg-brand-action data-[state=checked]:border-brand-action" />
                   <span className="font-montserrat text-[0.82rem] text-brand-ink/50">{t("all")}</span>
                 </Label>
-                {neighborhoods.map((n) => (
+                {localNeighborhoods.map((n) => (
                   <Label key={n.id} className="flex items-center gap-2 cursor-pointer font-normal">
                     <RadioGroupItem value={n.id} className="border-brand-ink/20 data-[state=checked]:bg-brand-action data-[state=checked]:border-brand-action" />
                     <span className="font-montserrat text-[0.82rem] text-brand-ink/70">{n.label}</span>
@@ -245,7 +288,7 @@ const FilterDrawer = ({
             className="flex-1 h-12 bg-brand-action hover:bg-brand-ink text-white font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.15em] transition-all duration-500"
             onClick={apply}
           >
-            {t("showResults")} ({resultCount})
+            {t("showResults")} ({previewCount})
           </Button>
         </SheetFooter>
       </SheetContent>

@@ -5,6 +5,7 @@ import AmenityIcon from "@/components/AmenityIcon";
 import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+import { buildRiadDetailHref } from "@/lib/partnerHotelsApi";
 
 const FALLBACK_IMAGE =
   import.meta.env.VITE_FALLBACK_IMAGE ||
@@ -35,6 +36,7 @@ const RiadCard = ({ riad }) => {
   ].filter((entry) => Boolean(entry.label));
   const visibleAmenities = prioritizedAmenities.slice(0, MAX_AMENITIES);
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
+  const detailHref = buildRiadDetailHref(riad.id);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
@@ -44,7 +46,7 @@ const RiadCard = ({ riad }) => {
       {/* IMAGE — taller editorial aspect (4/3) */}
       <div className="relative overflow-hidden bg-brand-beige">
         <Link
-          to={`/riad/${riad.id}`}
+          to={detailHref}
           aria-label={riad.name}
           className="block relative aspect-[3/4] md:aspect-[4/5]"
         >
@@ -84,7 +86,7 @@ const RiadCard = ({ riad }) => {
       {/* CONTENT */}
       <div className="px-5 pt-5 pb-5 flex flex-col flex-1">
         {/* TITLE — serif editorial */}
-        <Link to={`/riad/${riad.id}`}>
+        <Link to={detailHref}>
           <h3 className="font-display text-[clamp(1.1rem,1.4vw,1.35rem)] leading-tight text-brand-ink line-clamp-1 group-hover:text-brand-action transition-colors duration-500 ease-editorial">
             {riad.name}
           </h3>
@@ -151,7 +153,7 @@ const RiadCard = ({ riad }) => {
         {/* CTA — refined link button (editorial) */}
         <div className="mt-auto pt-5">
           <Link
-            to={`/riad/${riad.id}`}
+            to={detailHref}
             className="group/btn relative flex items-center justify-between w-full px-4 py-3 border border-brand-ink/15 text-brand-ink hover:border-brand-action hover:text-brand-action transition-colors duration-500 ease-editorial"
           >
             <span className="font-montserrat text-[0.68rem] font-semibold uppercase tracking-[0.28em]">

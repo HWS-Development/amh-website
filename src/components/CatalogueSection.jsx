@@ -3,7 +3,7 @@ import { Loader2, Search, Filter, X } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { usePartnerHotels } from "@/lib/partnerHotelsApi";
+import { extractCentraHotelId, extractCentraOrganizationId, usePartnerHotels } from "@/lib/partnerHotelsApi";
 import { fetchCatalog } from "@/lib/catalogs";
 import { getTranslated } from "@/lib/utils";
 import RiadCard from "@/components/RiadCard";
@@ -249,7 +249,8 @@ export default function CatalogueSection() {
       if (!slug) return;
 
       const mapped = {
-        id: r.id,
+        id: extractCentraHotelId(r.image_urls) || r.id,
+        organizationId: extractCentraOrganizationId(r.image_urls),
         name: getTranslated(r.name, currentLanguage),
         description: getTranslated(r.description, currentLanguage),
         city: catalogs.cities[r.city_id] || "",

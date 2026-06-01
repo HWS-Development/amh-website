@@ -265,7 +265,7 @@ const HeroSection = () => {
               {/* Subtitle */}
               <p
                 ref={subtitleRef}
-                className="mt-5 max-w-2xl mx-auto lg:mx-0 text-white/82 font-montserrat text-[0.92rem] sm:text-base md:text-[1.05rem] leading-[1.7]"
+                className="mt-5 max-w-2xl mx-auto lg:mx-0 text-white font-montserrat text-[0.92rem] sm:text-base md:text-[1.05rem] leading-[1.7]"
               >
                 {t("heroSubtitle")}
               </p>

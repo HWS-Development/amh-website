@@ -7,6 +7,7 @@ import AmenityIcon from "@/components/AmenityIcon";
 import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import { buildRiadDetailHref } from '@/lib/partnerHotelsApi';
 
 const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_IMAGE ||
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
@@ -17,6 +18,7 @@ const RiadListItem = ({ riad }) => {
   const { t } = useLanguage();
   const featureLabels = [...(riad.amenities || []), ...(riad.services || [])];
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
+  const detailHref = buildRiadDetailHref(riad.id);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
@@ -25,7 +27,7 @@ const RiadListItem = ({ riad }) => {
     <div className="group flex flex-col md:flex-row gap-4 p-4 bg-white border border-gray-200 hover:shadow-lg transition-shadow">
       {/* IMAGE */}
       <div className="relative shrink-0">
-        <Link to={`/riad/${riad.id}`}>
+        <Link to={detailHref}>
           <OptimizedImage
             src={riad.imageUrl || FALLBACK_IMAGE}
             alt={riad.name}
@@ -51,7 +53,7 @@ const RiadListItem = ({ riad }) => {
       {/* CONTENT */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* TITLE */}
-        <Link to={`/riad/${riad.id}`}>
+        <Link to={detailHref}>
           <h3 className="text-lg font-semibold text-gray-950 truncate group-hover:text-brand-action transition-colors">
             {riad.name}
           </h3>
@@ -118,7 +120,7 @@ const RiadListItem = ({ riad }) => {
               variant="outline"
               className="flex-1 h-11"
             >
-              <Link to={`/riad/${riad.id}`}>More details</Link>
+              <Link to={detailHref}>More details</Link>
             </Button>
 
             {/* Réserver - seulement si simple_booking_link existe */}

@@ -16,7 +16,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useQueryParams, StringParam, NumberParam } from "use-query-params";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
-import { usePartnerHotels } from "@/lib/partnerHotelsApi";
+import { extractCentraHotelId, extractCentraOrganizationId, usePartnerHotels } from "@/lib/partnerHotelsApi";
 import gsap from "gsap";
 
 const ITEMS_PER_PAGE = 12;
@@ -34,7 +34,6 @@ const AllRiadsPage = () => {
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
 
-  const [riads, setRiads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -98,32 +97,29 @@ const AllRiadsPage = () => {
     const amenitiesMap = Object.fromEntries(amenities.map((a) => [a.id, a.label]));
 
     return (hotelsData || []).map((r) => ({
-      id: r.id,
+      id: extractCentraHotelId(r.image_urls || r.imageUrls) || r.id,
+      organizationId: extractCentraOrganizationId(r.image_urls || r.imageUrls),
       name: getTranslated(r.name, currentLanguage),
       description: getTranslated(r.description, currentLanguage),
       address: getTranslated(r.address, currentLanguage),
-      city_id: r.city_id,
-      neighborhood_id: r.neighborhood_id,
-      property_type_id: r.property_type_id,
-      city: citiesMap[r.city_id] || "",
-      neighborhood: neighborhoodsMap[r.neighborhood_id] || "",
-      propertyType: propertyTypesMap[r.property_type_id] || "",
-      amenity_ids: r.amenity_ids || [],
-      amenities: (r.amenity_ids || []).map((id) => amenitiesMap[id]).filter(Boolean),
-      service_ids: r.service_ids || [],
-      services: (r.service_ids || []).map((id) => amenitiesMap[id]).filter(Boolean),
-      rating_avg: r.rating_avg,
-      reviews_count: r.reviews_count,
-      imageUrl: Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : null,
-      simple_booking_link: r.simple_booking_link,
+      city_id: r.city_id || r.cityId || null,
+      neighborhood_id: r.neighborhood_id || r.neighborhoodId || null,
+      property_type_id: r.property_type_id || r.propertyTypeId || null,
+      city: citiesMap[r.city_id || r.cityId] || "",
+      neighborhood: neighborhoodsMap[r.neighborhood_id || r.neighborhoodId] || "",
+      propertyType: propertyTypesMap[r.property_type_id || r.propertyTypeId] || "",
+      amenity_ids: r.amenity_ids || r.amenityIds || [],
+      amenities: (r.amenity_ids || r.amenityIds || []).map((id) => amenitiesMap[id]).filter(Boolean),
+      service_ids: r.service_ids || r.serviceIds || [],
+      services: (r.service_ids || r.serviceIds || []).map((id) => amenitiesMap[id]).filter(Boolean),
+      rating_avg: r.rating_avg || r.ratingAvg || null,
+      reviews_count: r.reviews_count ?? r.reviewsCount ?? null,
+      imageUrl: Array.isArray(r.image_urls || r.imageUrls) && (r.image_urls || r.imageUrls).length > 0 ? (r.image_urls || r.imageUrls)[0] : null,
+      simple_booking_link: r.simple_booking_link || r.simpleBookingLink || null,
     }));
   }, [hotelsData, cities, neighborhoods, propertyTypes, amenities, currentLanguage]);
 
-  useEffect(() => {
-    if (riadsMap.length > 0 && !loading) {
-      setRiads(riadsMap);
-    }
-  }, [riadsMap, loading]);
+
 
   // Initial loading state
   useEffect(() => {
@@ -135,7 +131,6 @@ const AllRiadsPage = () => {
         title: "Error loading riads",
         description: hotelsError.message || "Failed to load riads",
       });
-      setRiads([]);
       setLoading(false);
     } else if (hotelsData && cities.length > 0) {
       setLoading(false);
@@ -153,9 +148,11 @@ const AllRiadsPage = () => {
     return n;
   }, [filters]);
 
-  // Client-side search filtering (search is local-only for instant UX)
+  // Client-side filtering: all filters applied instantly on the full dataset
   const filtered = useMemo(() => {
-    let list = [...riads];
+    let list = [...riadsMap];
+    if (!list.length) return [];
+
     if (search.trim()) {
       const q = normalize(search);
       list = list.filter(
@@ -165,6 +162,20 @@ const AllRiadsPage = () => {
           normalize(r.neighborhood).includes(q)
       );
     }
+    if (filters.city_id) {
+      list = list.filter((r) => String(r.city_id) === String(filters.city_id));
+    }
+    if (filters.neighborhood_id) {
+      list = list.filter((r) => String(r.neighborhood_id) === String(filters.neighborhood_id));
+    }
+    if (filters.property_type_id) {
+      list = list.filter((r) => String(r.property_type_id) === String(filters.property_type_id));
+    }
+    if (filters.amenity_ids?.length > 0) {
+      list = list.filter((r) =>
+        filters.amenity_ids.some((aid) => (r.amenity_ids || []).includes(aid))
+      );
+    }
     if (filters.rating) {
       list = list.filter((r) => (r.rating_avg || 0) >= filters.rating);
     }
@@ -172,86 +183,7 @@ const AllRiadsPage = () => {
       list = list.filter((r) => r.simple_booking_link && r.simple_booking_link.trim());
     }
     return list;
-  }, [riads, search, filters.rating, filters.onlyBookable]);
-
-  // Server-side filter params: city, neighborhood, property_type, amenities
-  const serverFilters = useMemo(() => {
-    const sf = {};
-    if (filters.city_id) sf.city_id = filters.city_id;
-    if (filters.neighborhood_id) sf.neighborhood_id = filters.neighborhood_id;
-    if (filters.property_type_id) sf.property_type_id = filters.property_type_id;
-    if (filters.amenity_ids?.length > 0) sf.amenity_ids = filters.amenity_ids;
-    return sf;
-  }, [filters]);
-
-  // When server filters change, re-fetch from API with filter params
-  const serverFilterKey = JSON.stringify(serverFilters);
-  useEffect(() => {
-    const hasServerFilters = Object.keys(serverFilters).length > 0;
-    if (!hasServerFilters) {
-      if (riadsMap.length > 0) setRiads(riadsMap);
-      return;
-    }
-
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (serverFilters.city_id) params.set("city_id", serverFilters.city_id);
-    if (serverFilters.neighborhood_id) params.set("neighborhood_id", serverFilters.neighborhood_id);
-    if (serverFilters.property_type_id) params.set("property_type_id", serverFilters.property_type_id);
-    if (serverFilters.amenity_ids?.length > 0) params.set("amenity_ids", serverFilters.amenity_ids.join(","));
-
-    const url = `/api/partner/hotels?${params.toString()}`;
-    fetch(url)
-      .then((r) => r.json())
-      .then((body) => {
-        if (body.success && Array.isArray(body.data)) {
-          const citiesMap = Object.fromEntries(cities.map((c) => [c.id, c.label]));
-          const neighborhoodsMap = Object.fromEntries(neighborhoods.map((n) => [n.id, n.label]));
-          const propertyTypesMap = Object.fromEntries(propertyTypes.map((p) => [p.id, p.label]));
-          const amenitiesMap = Object.fromEntries(amenities.map((a) => [a.id, a.label]));
-
-          const mapped = body.data.map((r) => ({
-            id: r.id,
-            name: getTranslated(r.name, currentLanguage),
-            description: getTranslated(r.description, currentLanguage),
-            address: getTranslated(r.address, currentLanguage),
-            city_id: r.city_id,
-            neighborhood_id: r.neighborhood_id,
-            property_type_id: r.property_type_id,
-            city: citiesMap[r.city_id] || "",
-            neighborhood: neighborhoodsMap[r.neighborhood_id] || "",
-            propertyType: propertyTypesMap[r.property_type_id] || "",
-            amenity_ids: r.amenity_ids || [],
-            amenities: (r.amenity_ids || []).map((id) => amenitiesMap[id]).filter(Boolean),
-            service_ids: r.service_ids || [],
-            services: (r.service_ids || []).map((id) => amenitiesMap[id]).filter(Boolean),
-            rating_avg: r.rating_avg,
-            reviews_count: r.reviews_count,
-            imageUrl: Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : null,
-            simple_booking_link: r.simple_booking_link,
-          }));
-          setRiads(mapped);
-        } else {
-          setRiads([]);
-        }
-      })
-      .catch((err) => {
-        console.error("[AllRiadsPage] server filter error:", err);
-        setRiads([]);
-      })
-      .finally(() => setLoading(false));
-  }, [serverFilterKey, riadsMap, cities, neighborhoods, propertyTypes, amenities, currentLanguage]);
-
-  const neighborhoodsForCity = useMemo(() => {
-    if (!filters.city_id) return [];
-    const map = new Map();
-    riadsMap.forEach((r) => {
-      if (r.city_id === filters.city_id && r.neighborhood_id) {
-        map.set(r.neighborhood_id, r.neighborhood || r.neighborhood_id);
-      }
-    });
-    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
-  }, [filters.city_id, riadsMap]);
+  }, [riadsMap, search, filters]);
 
   // Pagination
   const paged = useMemo(() => {
@@ -351,26 +283,26 @@ const AllRiadsPage = () => {
       </Helmet>
 
       <div className="bg-gradient-to-b from-white via-white to-gray-50 pt-32 section-padding content-wrapper">
-        <div ref={headerRef} className="flex flex-col md:flex-row justify-between mb-10 gap-6">
+        <div ref={headerRef} className="flex flex-col md:flex-row justify-between mb-10 gap-6 bg-brand-beige/60 rounded-lg p-6 md:p-8">
           <div>
-            <h1 className="h1-style bg-gradient-to-r from-brand-ink to-brand-action bg-clip-text text-transparent">
+            <h1 className="h1-style text-brand-ink font-bold">
               {t("allRiads")}
             </h1>
-            <p className="body-text mt-3 text-gray-600">
+            <p className="body-text mt-3 text-brand-ink font-semibold">
               {t("exploreAllOurCertifiedRiads")}
             </p>
           </div>
 
           <div className="flex items-center gap-3 self-start md:self-end">
-            <div className="flex border border-gray-300 overflow-hidden bg-white shadow-sm">
+            <div className="flex border-2 border-brand-ink/30 overflow-hidden bg-white shadow-lg">
               {["cards", "list"].map((viewOption) => (
                 <button
                   key={viewOption}
                   onClick={() => setQuery({ view: viewOption }, "push")}
-                  className={`px-4 h-12 font-semibold transition-all active:scale-95 ${
+                  className={`px-5 h-14 font-bold transition-all active:scale-95 text-brand-ink ${
                     view === viewOption
-                      ? "bg-gradient-to-r from-brand-action to-brand-action/80 text-white shadow-lg"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
+                      ? "bg-brand-action text-white"
+                      : "bg-brand-beige text-brand-ink hover:bg-brand-beige/80"
                   }`}
                   aria-label={viewOption}
                 >
@@ -548,12 +480,12 @@ const AllRiadsPage = () => {
         open={isFilterOpen}
         onOpenChange={setIsFilterOpen}
         filters={filters}
-        neighborhoods={neighborhoodsForCity}
         cities={cities}
         propertyTypes={propertyTypes}
         amenities={amenities}
         onFiltersChange={handleFiltersChange}
         resultCount={filtered.length}
+        riadsMap={riadsMap}
         t={t}
       />
     </>

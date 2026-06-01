@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Fuse from "fuse.js";
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import { buildRiadDetailHref } from '@/lib/partnerHotelsApi';
 
 export default function PropertySearchModal({ open, onClose, riads, locale = "fr" }) {
   const norm = (s) => (s || "")
@@ -35,7 +36,7 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowDown") { e.preventDefault(); setI(x => Math.min(x + 1, results.length - 1)); }
       if (e.key === "ArrowUp")   { e.preventDefault(); setI(x => Math.max(x - 1, 0)); }
-      if (e.key === "Enter" && results[i]) window.location.href = `/riad/${results[i].id}`;
+      if (e.key === "Enter" && results[i]) window.location.href = buildRiadDetailHref(results[i].id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -64,7 +65,7 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
             <li
               key={r.id}
               onMouseEnter={() => setI(idx)}
-              onClick={() => (window.location.href = `/riad/${r.id}`)}
+              onClick={() => (window.location.href = buildRiadDetailHref(r.id))}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${i===idx ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
             >
               <OptimizedImage src={r.image_urls?.[0]} alt="" className="h-14 w-20 rounded-lg object-cover" />

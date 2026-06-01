@@ -9,6 +9,74 @@
  */
 import { useQuery } from '@tanstack/react-query';
 
+const PARTNER_ORG_CACHE_KEY = 'partnerHotelOrganizations';
+
+export function extractCentraHotelId(imageUrls = []) {
+  const urls = Array.isArray(imageUrls) ? imageUrls : [];
+  for (const url of urls) {
+    const match = String(url).match(/\/(HT-[A-Z0-9]+)\//i);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+export function extractCentraOrganizationId(imageUrls = []) {
+  const urls = Array.isArray(imageUrls) ? imageUrls : [];
+  for (const url of urls) {
+    const match = String(url).match(/\/(ORG-[A-Z0-9]+)\//i);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+export function buildRiadDetailHref(id) {
+  return `/riad/${id}`;
+}
+
+function readOrganizationCache() {
+  if (typeof window === 'undefined') return {};
+
+  try {
+    const raw = window.localStorage.getItem(PARTNER_ORG_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeOrganizationCache(cache) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(PARTNER_ORG_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore storage failures; detail fetch still has a server fallback.
+  }
+}
+
+function cacheHotelOrganizations(hotels = []) {
+  const nextCache = { ...readOrganizationCache() };
+  let changed = false;
+
+  for (const hotel of Array.isArray(hotels) ? hotels : []) {
+    const hotelId = extractCentraHotelId(hotel?.image_urls) || hotel?.id;
+    const organizationId = extractCentraOrganizationId(hotel?.image_urls);
+    if (!hotelId || !organizationId || nextCache[hotelId] === organizationId) continue;
+    nextCache[hotelId] = organizationId;
+    changed = true;
+  }
+
+  if (changed) {
+    writeOrganizationCache(nextCache);
+  }
+}
+
+function getCachedOrganizationId(hotelId) {
+  return readOrganizationCache()[hotelId];
+}
+
 function buildFilterParams(filters = {}) {
   const params = new URLSearchParams();
   if (filters.city_id) params.set('city_id', filters.city_id);
@@ -43,6 +111,7 @@ async function fetchAllHotels() {
     );
   }
   const count = Array.isArray(body.data) ? body.data.length : 'N/A';
+  cacheHotelOrganizations(body.data);
   console.log(`[partnerHotelsApi] OK — received ${count} hotels`);
   return body.data;
 }
@@ -68,13 +137,19 @@ async function fetchFilteredHotels(filters = {}) {
     );
   }
   const count = Array.isArray(body.data) ? body.data.length : 'N/A';
+  cacheHotelOrganizations(body.data);
   console.log(`[partnerHotelsApi] Filtered OK — received ${count} hotels`);
   return { data: body.data, meta: body.meta };
 }
 
 async function fetchHotelById(id) {
-  console.log(`[partnerHotelsApi] Fetching hotel ${id} from /api/partner/hotels/${id} ...`);
-  const res = await fetch(`/api/partner/hotels/${encodeURIComponent(id)}`);
+  console.log(`[partnerHotelsApi] Fetching hotel ${id} from /api/partner/hotels/${id}/content ...`);
+  const cachedOrganizationId = getCachedOrganizationId(id);
+  const res = await fetch(`/api/partner/hotels/${id}/content`, {
+    headers: cachedOrganizationId
+      ? { 'x-partner-organization-id': cachedOrganizationId }
+      : undefined,
+  });
   const contentType = res.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) {
     const preview = await res.text().catch(() => '');
@@ -84,6 +159,8 @@ async function fetchHotelById(id) {
     );
   }
   const body = await res.json();
+  console.log(`[BODY BODY] Received response for hotel ${id}:`, body);
+  console.log(`[BODY BODY JSON] Hotel ${id} response JSON:\n${JSON.stringify(body, null, 2)}`);
   if (!res.ok || !body.success) {
     throw new Error(
       `Partner API route error (status ${res.status}):\n` +
@@ -91,6 +168,7 @@ async function fetchHotelById(id) {
     );
   }
   console.log(`[partnerHotelsApi] OK — received hotel ${id}`);
+  cacheHotelOrganizations([body.data]);
   return body.data;
 }
 

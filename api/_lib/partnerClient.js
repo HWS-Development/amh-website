@@ -14,6 +14,76 @@
 // ── Module-level token cache (persists across warm invocations) ──────────
 let cachedToken = null;
 let tokenExpiresAt = 0;
+let cachedOrganizationId = null;
+let cachedLoginOrganizationFields = null;
+let cachedLoginPayloadPreview = null;
+
+function buildLoginPayloadPreview(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+
+  const accessToken = typeof payload.accessToken === 'string' ? payload.accessToken : null;
+
+  return {
+    ...payload,
+    accessTokenPreview: accessToken ? `${accessToken.slice(0, 12)}...` : null,
+    accessTokenPresent: Boolean(accessToken),
+    accessToken: undefined,
+  };
+}
+
+function buildHotelDetailDebugInfo(organizationId) {
+  return {
+    organizationId: organizationId || cachedOrganizationId || null,
+    organizationSource: organizationId ? 'fallback' : (cachedOrganizationId ? 'login' : 'none'),
+    loginOrganizationId: cachedOrganizationId || null,
+    loginOrganizationFields: cachedLoginOrganizationFields,
+    loginPayloadPreview: cachedLoginPayloadPreview,
+  };
+}
+
+function extractOrganizationIdFromLoginPayload(payload) {
+  return payload?.organizationId
+    || payload?.organization_id
+    || payload?.orgId
+    || payload?.org_id
+    || payload?.app?.orgId
+    || payload?.app?.organizationId
+    || payload?.app?.org_id
+    || payload?.app?.organization_id
+    || payload?.organization?.id
+    || payload?.org?.id
+    || payload?.user?.organizationId
+    || payload?.account?.organizationId
+    || null;
+}
+
+function getLoginOrganizationFields(payload) {
+  return {
+    organization_id: payload?.organization_id ?? null,
+    organizationId: payload?.organizationId ?? null,
+    org_id: payload?.org_id ?? null,
+    orgId: payload?.orgId ?? null,
+    appOrgId: payload?.app?.orgId ?? null,
+    appOrganizationId: payload?.app?.organizationId ?? null,
+    appOrg_id: payload?.app?.org_id ?? null,
+    appOrganization_id: payload?.app?.organization_id ?? null,
+    organization: payload?.organization ?? null,
+    org: payload?.org ?? null,
+    userOrganizationId: payload?.user?.organizationId ?? null,
+    accountOrganizationId: payload?.account?.organizationId ?? null,
+  };
+}
+
+function buildPartnerUrl(apiBaseUrl, endpointPath) {
+  const base = String(apiBaseUrl || '').replace(/\/$/, '');
+  const endpoint = String(endpointPath || '');
+
+  if (base.endsWith('/api') && endpoint.startsWith('/api/')) {
+    return `${base}${endpoint.slice(4)}`;
+  }
+
+  return `${base}${endpoint}`;
+}
 
 /**
  * Authenticate with the partner API using app credentials.
@@ -31,7 +101,7 @@ export async function appLogin(apiBaseUrl, clientId, clientSecret) {
   const contentType = res.headers.get('content-type') || '';
   const rawBody = await res.text();
 
-  console.log(`[partnerClient] Login response: status=${res.status}, content-type=${contentType}, body=${rawBody.substring(0, 300)}`);
+  console.log(`[partnerClient] Login response: status=${res.status}, content-type=${contentType}, body=${rawBody}`);
 
   if (!res.ok) {
     throw new Error(
@@ -61,7 +131,10 @@ export async function appLogin(apiBaseUrl, clientId, clientSecret) {
   }
 
   const payload = body.data ?? body;
+  console.log(`[partnerClient] Login response JSON: ${JSON.stringify(body, null, 2)}`);
+  console.log(`[partnerClient] Login payload JSON: ${JSON.stringify(payload, null, 2)}`);
   const { accessToken, expiresIn } = payload;
+  const loginOrganizationFields = getLoginOrganizationFields(payload);
 
   if (!accessToken) {
     throw new Error(
@@ -73,8 +146,12 @@ export async function appLogin(apiBaseUrl, clientId, clientSecret) {
   }
 
   cachedToken = accessToken;
+  cachedOrganizationId = extractOrganizationIdFromLoginPayload(payload);
+  cachedLoginOrganizationFields = loginOrganizationFields;
+  cachedLoginPayloadPreview = buildLoginPayloadPreview(payload);
   tokenExpiresAt = Date.now() + ((expiresIn || 3600) - 60) * 1000;
-  console.log(`[partnerClient] Login OK — token cached, expires in ${expiresIn || 3600}s`);
+  console.log(`[partnerClient] Login organization fields: ${JSON.stringify(loginOrganizationFields)}`);
+  console.log(`[partnerClient] Login OK — token cached, expires in ${expiresIn || 3600}s, organizationId=${cachedOrganizationId || 'none'}`);
 
   return cachedToken;
 }
@@ -83,9 +160,9 @@ export async function appLogin(apiBaseUrl, clientId, clientSecret) {
  * Return a valid token, logging in if necessary.
  */
 export async function getValidToken(apiBaseUrl, clientId, clientSecret) {
-  if (cachedToken && Date.now() < tokenExpiresAt) {
-    return cachedToken;
-  }
+  // if (cachedToken && Date.now() < tokenExpiresAt) {
+  //   return cachedToken;
+  // }
   return appLogin(apiBaseUrl, clientId, clientSecret);
 }
 
@@ -95,6 +172,13 @@ export async function getValidToken(apiBaseUrl, clientId, clientSecret) {
 export function invalidateToken() {
   cachedToken = null;
   tokenExpiresAt = 0;
+  cachedOrganizationId = null;
+  cachedLoginOrganizationFields = null;
+  cachedLoginPayloadPreview = null;
+}
+
+export function getPartnerAuthDebugInfo(organizationId) {
+  return buildHotelDetailDebugInfo(organizationId);
 }
 
 /**
@@ -113,7 +197,7 @@ export async function fetchPartnerHotels(apiBaseUrl, clientId, clientSecret) {
 
   let token = await getValidToken(apiBaseUrl, clientId, clientSecret);
 
-  const hotelsUrl = `${apiBaseUrl}/partner/hotels/content?limit=all`;
+  const hotelsUrl = buildPartnerUrl(apiBaseUrl, '/partner/hotels/content?limit=all');
   console.log(`[partnerClient] GET ${hotelsUrl}`);
 
   let res = await fetch(hotelsUrl, {
@@ -188,7 +272,7 @@ export async function fetchPartnerHotels(apiBaseUrl, clientId, clientSecret) {
  * @param {string} hotelId
  * @returns {Promise<object>} hotel object
  */
-export async function fetchPartnerHotelById(apiBaseUrl, clientId, clientSecret, hotelId) {
+export async function fetchPartnerHotelById(apiBaseUrl, clientId, clientSecret, hotelId, organizationId) {
   if (!apiBaseUrl || !clientId || !clientSecret) {
     const missing = [
       !apiBaseUrl && 'API_BASE_URL',
@@ -203,12 +287,22 @@ export async function fetchPartnerHotelById(apiBaseUrl, clientId, clientSecret, 
   }
 
   let token = await getValidToken(apiBaseUrl, clientId, clientSecret);
+  let resolvedOrganizationId = organizationId || cachedOrganizationId;
+  const debugInfo = buildHotelDetailDebugInfo(organizationId);
 
-  const hotelUrl = `${apiBaseUrl}/partner/hotels/content/${encodeURIComponent(hotelId)}`;
+  const hotelUrl = buildPartnerUrl(apiBaseUrl, `/api/partner/hotels/${hotelId}/content`);
   console.log(`[partnerClient] GET ${hotelUrl}`);
+  console.log(`[partnerClient] Final x-organization-id for hotel ${hotelId}: ${resolvedOrganizationId || 'none'} (source: ${debugInfo.organizationSource})`);
+  console.log(`[partnerClient] Hotel detail headers: ${JSON.stringify({
+    Authorization: `Bearer ${String(token).slice(0, 12)}...`,
+    'x-organization-id': resolvedOrganizationId || null,
+  })}`);
 
   let res = await fetch(hotelUrl, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(resolvedOrganizationId ? { 'x-organization-id': resolvedOrganizationId } : {}),
+    },
   });
 
   console.log(`[partnerClient] Hotel detail response: status=${res.status}`);
@@ -218,8 +312,18 @@ export async function fetchPartnerHotelById(apiBaseUrl, clientId, clientSecret, 
     console.log('[partnerClient] Got 401 — refreshing token and retrying...');
     invalidateToken();
     token = await appLogin(apiBaseUrl, clientId, clientSecret);
+    resolvedOrganizationId = organizationId || cachedOrganizationId;
+    const retryDebugInfo = buildHotelDetailDebugInfo(organizationId);
+    console.log(`[partnerClient] Final retry x-organization-id for hotel ${hotelId}: ${resolvedOrganizationId || 'none'} (source: ${retryDebugInfo.organizationSource})`);
+    console.log(`[partnerClient] Hotel detail retry headers: ${JSON.stringify({
+      Authorization: `Bearer ${String(token).slice(0, 12)}...`,
+      'x-organization-id': resolvedOrganizationId || null,
+    })}`);
     res = await fetch(hotelUrl, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(resolvedOrganizationId ? { 'x-organization-id': resolvedOrganizationId } : {}),
+      },
     });
     console.log(`[partnerClient] Hotel detail retry response: status=${res.status}`);
   }

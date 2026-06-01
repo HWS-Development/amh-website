@@ -17,8 +17,90 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  */
 function partnerApiDevPlugin() {
   // ── token cache (lives for the lifetime of the dev server) ──
-  let cachedToken = null;
-  let tokenExpiresAt = 0;
+      let cachedToken = null;
+      let tokenExpiresAt = 0;
+      let cachedOrganizationId = null;
+      let cachedLoginOrganizationFields = null;
+      let cachedLoginPayloadPreview = null;
+
+      const buildLoginPayloadPreview = (payload) => {
+        if (!payload || typeof payload !== 'object') return null;
+
+        const accessToken = typeof payload.accessToken === 'string' ? payload.accessToken : null;
+
+        return {
+          ...payload,
+          accessTokenPreview: accessToken ? `${accessToken.slice(0, 12)}...` : null,
+          accessTokenPresent: Boolean(accessToken),
+          accessToken: undefined,
+        };
+      };
+
+      const buildHotelDetailDebugInfo = (organizationId) => ({
+        organizationId: organizationId || cachedOrganizationId || null,
+        organizationSource: organizationId ? 'fallback' : (cachedOrganizationId ? 'login' : 'none'),
+        loginOrganizationId: cachedOrganizationId || null,
+        loginOrganizationFields: cachedLoginOrganizationFields,
+        loginPayloadPreview: cachedLoginPayloadPreview,
+      });
+
+      const extractOrganizationIdFromLoginPayload = (payload) => payload?.organizationId
+        || payload?.organization_id
+        || payload?.orgId
+        || payload?.org_id
+        || payload?.app?.orgId
+        || payload?.app?.organizationId
+        || payload?.app?.org_id
+        || payload?.app?.organization_id
+        || payload?.organization?.id
+        || payload?.org?.id
+        || payload?.user?.organizationId
+        || payload?.account?.organizationId
+        || null;
+
+      const getLoginOrganizationFields = (payload) => ({
+        organization_id: payload?.organization_id ?? null,
+        organizationId: payload?.organizationId ?? null,
+        org_id: payload?.org_id ?? null,
+        orgId: payload?.orgId ?? null,
+        appOrgId: payload?.app?.orgId ?? null,
+        appOrganizationId: payload?.app?.organizationId ?? null,
+        appOrg_id: payload?.app?.org_id ?? null,
+        appOrganization_id: payload?.app?.organization_id ?? null,
+        organization: payload?.organization ?? null,
+        org: payload?.org ?? null,
+        userOrganizationId: payload?.user?.organizationId ?? null,
+        accountOrganizationId: payload?.account?.organizationId ?? null,
+      });
+
+      const extractCentraHotelId = (imageUrls = []) => {
+        const urls = Array.isArray(imageUrls) ? imageUrls : [];
+        for (const url of urls) {
+          const match = String(url).match(/\/(HT-[A-Z0-9]+)\//i);
+          if (match) return match[1];
+        }
+        return null;
+      };
+
+      const extractCentraOrganizationId = (imageUrls = []) => {
+        const urls = Array.isArray(imageUrls) ? imageUrls : [];
+        for (const url of urls) {
+          const match = String(url).match(/\/(ORG-[A-Z0-9]+)\//i);
+          if (match) return match[1];
+        }
+        return null;
+      };
+
+      const buildPartnerUrl = (apiBaseUrl, endpointPath) => {
+        const base = String(apiBaseUrl || '').replace(/\/$/, '');
+        const endpoint = String(endpointPath || '');
+
+        if (base.endsWith('/api') && endpoint.startsWith('/api/')) {
+          return `${base}${endpoint.slice(4)}`;
+        }
+
+        return `${base}${endpoint}`;
+      };
 
   return {
     name: 'partner-api-dev',
@@ -64,7 +146,7 @@ function partnerApiDevPlugin() {
         const contentType = loginRes.headers.get('content-type') || '';
         const rawBody = await loginRes.text();
 
-        console.log(`[partner-api] Login response: status=${loginRes.status}, content-type=${contentType}, body=${rawBody.substring(0, 300)}`);
+        console.log(`[partner-api] Login response: status=${loginRes.status}, content-type=${contentType}, body=${rawBody}`);
 
         if (!loginRes.ok) {
           throw new Error(
@@ -94,6 +176,9 @@ function partnerApiDevPlugin() {
         }
 
         const payload = loginBody.data ?? loginBody;
+        console.log(`[partner-api] Login response JSON: ${JSON.stringify(loginBody, null, 2)}`);
+        console.log(`[partner-api] Login payload JSON: ${JSON.stringify(payload, null, 2)}`);
+        const loginOrganizationFields = getLoginOrganizationFields(payload);
         if (!payload.accessToken) {
           throw new Error(
             `Login succeeded (${loginRes.status}) but no accessToken in response.\n` +
@@ -104,27 +189,39 @@ function partnerApiDevPlugin() {
         }
 
         cachedToken = payload.accessToken;
+        cachedOrganizationId = extractOrganizationIdFromLoginPayload(payload);
+        cachedLoginOrganizationFields = loginOrganizationFields;
+        cachedLoginPayloadPreview = buildLoginPayloadPreview(payload);
         tokenExpiresAt = Date.now() + ((payload.expiresIn || 3600) - 60) * 1000;
-        console.log(`[partner-api] Login OK — token cached, expires in ${payload.expiresIn || 3600}s`);
+        console.log(`[partner-api] Login organization fields: ${JSON.stringify(loginOrganizationFields)}`);
+        console.log(`[partner-api] Login OK — token cached, expires in ${payload.expiresIn || 3600}s, organizationId=${cachedOrganizationId || 'none'}`);
         return cachedToken;
       };
 
       const getValidToken = async (apiBaseUrl, clientId, clientSecret) => {
-        if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken;
+        // if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken;
         return appLogin(apiBaseUrl, clientId, clientSecret);
       };
 
       /**
        * Fetch from the partner API with token management and 401 retry.
        */
-      const partnerFetch = async (apiBaseUrl, clientId, clientSecret, endpointPath) => {
+      const partnerFetch = async (apiBaseUrl, clientId, clientSecret, endpointPath, organizationId) => {
         let token = await getValidToken(apiBaseUrl, clientId, clientSecret);
+        let resolvedOrganizationId = organizationId || cachedOrganizationId;
+        const debugInfo = buildHotelDetailDebugInfo(organizationId);
 
-        const url = `${apiBaseUrl}${endpointPath}`;
+        const url = buildPartnerUrl(apiBaseUrl, endpointPath);
         console.log(`[partner-api] GET ${url}`);
+        if (/\/partner\/hotels\/[^/]+\/content$/i.test(endpointPath)) {
+          console.log(`[partner-api] Final x-organization-id: ${resolvedOrganizationId || 'none'} (source: ${debugInfo.organizationSource})`);
+        }
 
         let apiRes = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(resolvedOrganizationId ? { 'x-organization-id': resolvedOrganizationId } : {}),
+          },
         });
 
         console.log(`[partner-api] Response: status=${apiRes.status}`);
@@ -133,9 +230,19 @@ function partnerApiDevPlugin() {
         if (apiRes.status === 401) {
           console.log('[partner-api] Got 401 — refreshing token and retrying...');
           cachedToken = null;
+          cachedLoginPayloadPreview = null;
+          cachedLoginOrganizationFields = null;
           token = await appLogin(apiBaseUrl, clientId, clientSecret);
+          resolvedOrganizationId = organizationId || cachedOrganizationId;
+          const retryDebugInfo = buildHotelDetailDebugInfo(organizationId);
+          if (/\/partner\/hotels\/[^/]+\/content$/i.test(endpointPath)) {
+            console.log(`[partner-api] Final retry x-organization-id: ${resolvedOrganizationId || 'none'} (source: ${retryDebugInfo.organizationSource})`);
+          }
           apiRes = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: {
+              Authorization: `Bearer ${token}`,
+              ...(resolvedOrganizationId ? { 'x-organization-id': resolvedOrganizationId } : {}),
+            },
           });
           console.log(`[partner-api] Retry response: status=${apiRes.status}`);
         }
@@ -198,7 +305,7 @@ function partnerApiDevPlugin() {
             apiBaseUrl,
             clientId,
             clientSecret,
-            hotelId ? `/partner/hotels/content/${encodeURIComponent(hotelId)}` : '/partner/hotels/content?limit=all'
+            hotelId ? `/api/partner/hotels/${hotelId}/content` : '/partner/hotels/content?limit=all'
           );
 
           if (hotelId) {
@@ -216,9 +323,9 @@ function partnerApiDevPlugin() {
         }
       });
 
-      // ── Route: GET /api/partner/hotels/:id ──
+      // ── Route: GET /api/partner/hotels/:id/content ──
       server.middlewares.use(async (req, res, next) => {
-        const match = req.url?.match(/^\/api\/partner\/hotels\/([^/?]+)/);
+        const match = req.url?.match(/^\/api\/partner\/hotels\/([^/?]+)\/content(?:\?.*)?$/);
         if (!match) return next();
         if (req.method !== 'GET') {
           sendJson(res, 405, { success: false, error: 'Method not allowed' });
@@ -229,12 +336,58 @@ function partnerApiDevPlugin() {
 
         try {
           const { apiBaseUrl, clientId, clientSecret } = getEnv();
-          const data = await partnerFetch(apiBaseUrl, clientId, clientSecret, `/partner/hotels/content/${encodeURIComponent(hotelId)}`);
+          const endpoint = `/api/partner/hotels/${hotelId}/content`;
+          let data;
+          let debug;
+          let fallbackAttempted = false;
+          try {
+            console.log(`[partner-api] Attempting detail fetch with organization source: ${cachedOrganizationId ? 'login' : 'none'}`);
+            data = await partnerFetch(apiBaseUrl, clientId, clientSecret, endpoint);
+            debug = {
+              hotelId,
+              requestOrganizationId: null,
+              fallbackAttempted,
+              ...buildHotelDetailDebugInfo(),
+            };
+          } catch (err) {
+            fallbackAttempted = true;
+            console.log(`[partner-api] Initial detail fetch failed, attempting organization fallback for ${hotelId}: ${err.message}`);
+            const hotels = await partnerFetch(apiBaseUrl, clientId, clientSecret, '/partner/hotels/content?limit=all');
+            const matchedHotel = Array.isArray(hotels)
+              ? hotels.find((item) => extractCentraHotelId(item.image_urls) === hotelId)
+              : null;
+            const organizationId = matchedHotel ? extractCentraOrganizationId(matchedHotel.image_urls) : undefined;
+            console.log(`[partner-api] Matched hotel from list: ${matchedHotel ? JSON.stringify({
+              id: matchedHotel.id,
+              centraHotelId: extractCentraHotelId(matchedHotel.image_urls),
+              organizationId,
+              firstImageUrl: matchedHotel.image_urls?.[0] || null,
+            }) : 'not found'}`);
+            console.log(`[partner-api] Resolved organizationId: ${organizationId || 'not found'}`);
+            console.log(`[partner-api] Retrying detail fetch with fallback organizationId: ${organizationId || 'none'}`);
+            data = await partnerFetch(apiBaseUrl, clientId, clientSecret, endpoint, organizationId);
+            debug = {
+              hotelId,
+              requestOrganizationId: organizationId || null,
+              fallbackAttempted,
+              ...buildHotelDetailDebugInfo(organizationId),
+            };
+          }
+          console.log(`[partner-api] Upstream endpoint called: ${apiBaseUrl}${endpoint}`);
+          console.log(`[partner-api] Upstream parsed response: ${JSON.stringify(data)}`);
           console.log(`[partner-api] Success — returning hotel ${hotelId}`);
-          sendJson(res, 200, { success: true, data });
+          sendJson(res, 200, { success: true, data, debug });
         } catch (err) {
           console.error(`[partner-api] ERROR (hotel ${hotelId}):\n${err.message}`);
-          sendJson(res, 500, { success: false, error: err.message });
+          sendJson(res, 500, {
+            success: false,
+            error: err.message,
+            debug: {
+              hotelId,
+              requestOrganizationId: req.headers['x-partner-organization-id'] || null,
+              ...buildHotelDetailDebugInfo(req.headers['x-partner-organization-id']),
+            },
+          });
         }
       });
     },
