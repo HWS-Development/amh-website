@@ -14,7 +14,9 @@
 import { supabase } from '@/lib/customSupabaseClient';
 
 const RAW_BASE = import.meta.env.VITE_MGH_API_URL || '';
-const API_BASE = RAW_BASE.replace(/\/+$/, '');
+// Normalize: strip trailing slash AND a trailing "/public" so the env var can be
+// set as either `https://host/api` or `https://host/api/public` without breaking.
+const API_BASE = RAW_BASE.replace(/\/+$/, '').replace(/\/public$/, '');
 const USE_PROXY = Boolean(API_BASE);
 
 // ─── Legacy proxy helper (used only when VITE_MGH_API_URL is set) ───────────
