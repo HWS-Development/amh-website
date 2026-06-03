@@ -1,4 +1,6 @@
 {
+  "somethingWentWrong": "Une erreur est survenue. Veuillez réessayer.",
+  "tryAgain": "Réessayer",
   "home": "Accueil",
   "destinations": "Destinations",
   "collections": "Collections",
