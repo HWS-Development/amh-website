@@ -4,41 +4,33 @@ import { Helmet } from 'react-helmet';
 import { supabase } from '@/lib/customSupabaseClient';
 import { getExperienceBySlug } from '@/lib/mghApi';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
-import { 
-  ArrowLeft, CheckCircle, Info, MapPin, Sun, Users, DollarSign, Camera, Star,
-  ShieldCheck, Box, Utensils, Coffee, Moon, Mountain, Droplets, Bath, Ticket, Wind, Waves
+import {
+  ArrowLeft, ArrowUpRight, CheckCircle, Info, MapPin, Sun, Users, DollarSign,
+  Camera, ShieldCheck, Box, Utensils, Coffee, Moon, Mountain, Droplets, Bath,
+  Ticket, Wind, Waves, Clock, Accessibility, CalendarRange,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import RiadCard from '@/components/RiadCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated, getTranslatedArray } from '@/lib/utils';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { gsapEase, duration as motionDur, stagger } from '@/lib/motion';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const iconMapping = {
-  "Best Time to Visit": <Sun className="w-5 h-5 text-brand-action" />,
-  "Dress Code": <Users className="w-5 h-5 text-brand-action" />,
-  "Bargaining": <DollarSign className="w-5 h-5 text-brand-action" />,
-  "Authenticity": <ShieldCheck className="w-5 h-5 text-brand-action" />,
-  "Shipping": <Box className="w-5 h-5 text-brand-action" />,
-  "Photography": <Camera className="w-5 h-5 text-brand-action" />,
-  "Street Food": <Utensils className="w-5 h-5 text-brand-action" />,
-  "Mint Tea": <Coffee className="w-5 h-5 text-brand-action" />,
-  "Ramadan": <Moon className="w-5 h-5 text-brand-action" />,
-  "Mountain Weather": <Mountain className="w-5 h-5 text-brand-action" />,
-  "Hydration": <Droplets className="w-5 h-5 text-brand-action" />,
-  "Hammam Etiquette": <Bath className="w-5 h-5 text-brand-action" />,
-  "Event Tickets": <Ticket className="w-5 h-5 text-brand-action" />,
-  "Social Scene": <Users className="w-5 h-5 text-brand-action" />,
-  "Respectful Photography": <Camera className="w-5 h-5 text-brand-action" />,
-  "The Wind": <Wind className="w-5 h-5 text-brand-action" />,
-  "Best Surf Season": <Waves className="w-5 h-5 text-brand-action" />,
-  "Getting There": <MapPin className="w-5 h-5 text-brand-action" />,
-  "default": <Info className="w-5 h-5 text-brand-action" />
+  'Best Time to Visit': Sun, 'Dress Code': Users, 'Bargaining': DollarSign,
+  'Authenticity': ShieldCheck, 'Shipping': Box, 'Photography': Camera,
+  'Street Food': Utensils, 'Mint Tea': Coffee, 'Ramadan': Moon,
+  'Mountain Weather': Mountain, 'Hydration': Droplets, 'Hammam Etiquette': Bath,
+  'Event Tickets': Ticket, 'Social Scene': Users, 'Respectful Photography': Camera,
+  'The Wind': Wind, 'Best Surf Season': Waves, 'Getting There': MapPin,
+  default: Info,
+};
+const renderIcon = (title) => {
+  const Cmp = iconMapping[title] || iconMapping.default;
+  return <Cmp className="w-4 h-4 text-brand-action" strokeWidth={1.5} />;
 };
 
 const ExperiencePage = () => {
@@ -46,10 +38,13 @@ const ExperiencePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t, currentLanguage } = useLanguage();
+
+  const pageRef = useRef(null);
   const heroRef = useRef(null);
   const heroImgRef = useRef(null);
-  const pageRef = useRef(null);
   const heroContentRef = useRef(null);
+  const introRef = useRef(null);
+  const factsRef = useRef(null);
 
   const [experience, setExperience] = useState(null);
   const [recommendedRiads, setRecommendedRiads] = useState([]);
@@ -61,28 +56,16 @@ const ExperiencePage = () => {
       try {
         const data = await getExperienceBySlug(slug);
         if (!data) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not find the requested experience.",
-          });
+          toast({ variant: 'destructive', title: 'Error', description: 'Could not find the requested experience.' });
           navigate('/404', { replace: true });
           return;
         }
-
         setExperience(data);
-        if (data.related_riads && data.related_riads.length > 0) {
-          fetchRecommendedRiads(data.related_riads);
-        }
+        if (data.related_riads?.length > 0) fetchRecommendedRiads(data.related_riads);
       } catch (error) {
         console.error('Error fetching experience:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not find the requested experience.",
-        });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not find the requested experience.' });
         navigate('/404', { replace: true });
-        return;
       } finally {
         setLoading(false);
       }
@@ -90,86 +73,98 @@ const ExperiencePage = () => {
 
     const fetchRecommendedRiads = async (riadIds) => {
       const { data, error } = await supabase
-        .from('mgh_properties')
-        .select('*')
-        .in('id', riadIds);
-
-      if (error) {
-        console.error('Error fetching recommended riads:', error);
-      } else if (data) {
-         const formattedRiads = data.map(riad => ({
-          id: riad.id,
-          name: getTranslated(riad.name_tr, currentLanguage),
-          location: getTranslated(riad.area_tr, currentLanguage) || riad.address,
-          city: riad.city,
-          imageUrl: riad.image_urls && riad.image_urls.length > 0 ? riad.image_urls[0] : (import.meta.env.VITE_FALLBACK_IMAGE || "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png"),
-          imageDescription: `Image of ${getTranslated(riad.name_tr, currentLanguage)}`,
-          amenities: riad.amenities || [],
-          reviews: riad.google_reviews_count,
-          rating: riad.google_rating ? parseFloat(riad.google_rating) : 4.7,
-          bookNowLink: riad.sblink,
-          category: 'Recommended'
-        }));
-        setRecommendedRiads(formattedRiads);
-      }
+        .from('mgh_properties').select('*').in('id', riadIds);
+      if (error) { console.error('Error fetching recommended riads:', error); return; }
+      if (!data) return;
+      setRecommendedRiads(data.map((riad) => ({
+        id: riad.id,
+        name: getTranslated(riad.name_tr, currentLanguage),
+        location: getTranslated(riad.area_tr, currentLanguage) || riad.address,
+        city: riad.city,
+        imageUrl: riad.image_urls?.[0] || (import.meta.env.VITE_FALLBACK_IMAGE || 'https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png'),
+        imageDescription: `Image of ${getTranslated(riad.name_tr, currentLanguage)}`,
+        amenities: riad.amenities || [],
+        reviews: riad.google_reviews_count,
+        rating: riad.google_rating ? parseFloat(riad.google_rating) : 4.7,
+        bookNowLink: riad.sblink,
+        category: 'Recommended',
+      })));
     };
 
-    if (currentLanguage) {
-      fetchExperience();
-    }
+    if (currentLanguage) fetchExperience();
   }, [slug, navigate, toast, currentLanguage]);
 
-  // GSAP parallax + page fade-in
   useEffect(() => {
     if (loading || !experience) return;
-
     const ctx = gsap.context(() => {
-      // Page fade in
-      gsap.from(pageRef.current, { opacity: 0, duration: 0.8 });
-
-      // Hero parallax
+      gsap.from(pageRef.current, { opacity: 0, duration: motionDur.slow });
       if (heroImgRef.current && heroRef.current) {
         gsap.to(heroImgRef.current, {
-          yPercent: 30,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: true,
-          }
+          yPercent: 25, ease: 'none',
+          scrollTrigger: { trigger: heroRef.current, start: 'top top', end: 'bottom top', scrub: true },
         });
       }
-
-      // Hero content reveal
       if (heroContentRef.current) {
-        gsap.from(heroContentRef.current, { opacity: 0, y: 20, duration: 0.8, delay: 0.2 });
+        gsap.from(heroContentRef.current.children, {
+          y: 32, opacity: 0, duration: motionDur.slow, stagger: stagger.tight,
+          ease: gsapEase.editorial, delay: 0.15,
+        });
+      }
+      if (introRef.current) {
+        gsap.from(introRef.current.querySelectorAll('.exp-fade'), {
+          y: 40, opacity: 0, duration: motionDur.slow, stagger: stagger.base,
+          ease: gsapEase.editorial,
+          scrollTrigger: { trigger: introRef.current, start: 'top 80%', once: true },
+        });
+      }
+      if (factsRef.current) {
+        gsap.from(factsRef.current.children, {
+          y: 24, opacity: 0, duration: motionDur.base, stagger: stagger.tight,
+          ease: gsapEase.editorial,
+          scrollTrigger: { trigger: factsRef.current, start: 'top 85%', once: true },
+        });
       }
     }, pageRef);
-
     return () => ctx.revert();
   }, [loading, experience]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-brand-action border-t-transparent animate-spin"></div>
+      <div className="min-h-screen bg-brand-beige/40 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-brand-beige border-t-brand-action animate-spin" />
+          <span className="font-montserrat text-xs text-brand-ink/40 uppercase tracking-[0.3em]">
+            {t('loading')}
+          </span>
+        </div>
       </div>
     );
   }
-
-  if (!experience) {
-    return null;
-  }
+  if (!experience) return null;
 
   const title = getTranslated(experience.title_tr, currentLanguage);
   const subtitle = getTranslated(experience.subtitle_tr, currentLanguage);
-  const destination = getTranslated(experience.destination_tr, currentLanguage);
+  const destinationName = getTranslated(experience.destination_tr, currentLanguage);
+  const shortIntro = getTranslated(experience.short_intro_tr, currentLanguage);
   const description_rich = getTranslated(experience.description_rich_tr, currentLanguage);
   const what_to_do = getTranslatedArray(experience.what_to_do_tr, currentLanguage);
   const good_to_know = getTranslatedArray(experience.good_to_know_tr, currentLanguage);
+  const bookingCtaLabel = getTranslated(experience.booking_cta_label_tr, currentLanguage);
+  const accessibilityNotes = experience.accessibility_notes;
   const seo_title = getTranslated(experience.seo_title_tr, currentLanguage);
   const seo_description = getTranslated(experience.seo_description_tr, currentLanguage);
+
+  const {
+    hero_image_url, gallery_urls, map_embed_url,
+    recommended_season, duration_hint, approx_budget_hint,
+  } = experience;
+
+  const facts = [
+    duration_hint && { icon: Clock, label: t('duration') || 'Durée', value: duration_hint },
+    recommended_season && { icon: CalendarRange, label: t('bestSeason') || 'Saison idéale', value: recommended_season },
+    approx_budget_hint && { icon: DollarSign, label: t('budget') || 'Budget', value: approx_budget_hint },
+    destinationName && { icon: MapPin, label: t('destination') || 'Destination', value: destinationName },
+  ].filter(Boolean);
 
   return (
     <>
@@ -178,110 +173,308 @@ const ExperiencePage = () => {
         <meta name="description" content={seo_description || subtitle} />
         <meta property="og:title" content={seo_title || `${title} · MGH`} />
         <meta property="og:description" content={seo_description || subtitle} />
-        {experience.hero_image_url && <meta property="og:image" content={experience.hero_image_url} />}
+        {hero_image_url && <meta property="og:image" content={hero_image_url} />}
       </Helmet>
 
       <div ref={pageRef} className="bg-white">
-        <section ref={heroRef} className="relative h-[70vh] min-h-[500px] flex items-end justify-center text-white overflow-hidden">
-          <div ref={heroImgRef} className="absolute inset-0 z-0">
-            <OptimizedImage src={experience.hero_image_url} alt={title} className="w-full h-full object-cover" />
+        {/* ─── HERO ─── */}
+        <section
+          ref={heroRef}
+          className="relative h-[88vh] min-h-[620px] flex items-end overflow-hidden"
+        >
+          <div ref={heroImgRef} className="absolute inset-0 z-0 scale-105">
+            {hero_image_url && (
+              <OptimizedImage src={hero_image_url} alt={title} className="w-full h-full object-cover" />
+            )}
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent z-10"></div>
-          <div ref={heroContentRef} className="relative z-20 text-center content-wrapper pb-16">
-            <Badge variant="secondary" className="mb-4 bg-white/20 text-white border-white/30">{destination}</Badge>
-            <h1 className="h1-style font-bold tracking-tight">{title}</h1>
-            <p className="text-lg md:text-xl mt-2 text-white/90 max-w-3xl mx-auto">{subtitle}</p>
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-ink/80 via-brand-ink/30 to-brand-ink/10 z-10" />
+          <div ref={heroContentRef} className="relative z-20 content-wrapper pb-20 md:pb-28 text-white">
+            {destinationName && (
+              <p className="font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.42em] text-white/70 mb-5">
+                {destinationName}
+              </p>
+            )}
+            <h1 className="font-display text-white text-[clamp(2.6rem,6vw,5.4rem)] leading-[1.02] tracking-tight max-w-4xl">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="mt-6 font-display italic text-white/85 text-[clamp(1.1rem,1.6vw,1.6rem)] max-w-2xl leading-snug">
+                {subtitle}
+              </p>
+            )}
+            <div className="mt-8 h-px w-16 bg-brand-action/70" />
+          </div>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-white/40">
+            <span className="font-montserrat text-[0.55rem] uppercase tracking-[0.35em]">{t('scroll') || 'Scroll'}</span>
+            <span className="block w-px h-10 bg-gradient-to-b from-white/40 to-transparent" />
           </div>
         </section>
-        
-        <div className="sticky top-[64px] bg-white z-30 shadow-sm">
-            <div className="content-wrapper">
-                <div className="flex items-center justify-between py-3">
-                    <Button asChild variant="ghost" className="text-brand-ink/80 hover:text-brand-ink">
-                        <Link to="/#experiences">
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            {t('backToExperiences')}
-                        </Link>
-                    </Button>
-                    <div className="hidden md:flex items-center space-x-4">
-                        <Button variant="outline" onClick={() => toast({ title: "This feature isn't implemented yet—but don't worry! You can request it in your next prompt!" })}>{t('planThisExperience')}</Button>
-                        <Button asChild className="btn-action">
-                            <Link to="/all-riads">{t('seeMemberRiads')}</Link>
-                        </Button>
-                    </div>
-                </div>
-            </div>
+
+        {/* ─── STICKY BACK BAR ─── */}
+        <div className="sticky top-[64px] bg-white/95 backdrop-blur z-30 border-b border-brand-ink/5">
+          <div className="content-wrapper py-4 flex items-center justify-between">
+            <Link
+              to="/#experiences"
+              className="group inline-flex items-center gap-2 font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-brand-ink/70 hover:text-brand-ink transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+              {t('backToExperiences')}
+            </Link>
+            <Link
+              to="/all-riads"
+              className="hidden md:inline-flex items-center gap-2 font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-brand-ink hover:text-brand-action transition-colors"
+            >
+              {t('seeMemberRiads')}
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
 
-        <div className="section-padding">
-          <div className="content-wrapper grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <main className="lg:col-span-2">
-              <section id="overview" className="mb-12">
-                <div className="prose max-w-none text-brand-ink/90 text-lg leading-relaxed">
-                  <div dangerouslySetInnerHTML={{ __html: description_rich?.replace(/##/g, '<h2 class="h6-style text-lg text-brand-ink mb-4 mt-8">').replace(/\n/g, '<br/>') }} />
-                </div>
-              </section>
+        {/* ─── INTRO (editorial split) ─── */}
+        <section ref={introRef} className="relative py-24 md:py-32 bg-white overflow-hidden">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-8 -right-6 md:right-10 select-none font-display italic text-[clamp(7rem,18vw,16rem)] leading-none text-brand-action/[0.05] tracking-tight"
+          >
+            {destinationName || title}
+          </div>
+          <div className="content-wrapper relative">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-x-10 gap-y-10 items-start">
+              <div className="md:col-span-4 md:sticky md:top-32 exp-fade">
+                <span className="block font-montserrat uppercase tracking-[0.4em] text-[0.6rem] text-brand-action font-semibold mb-5">
+                  {t('overview') || 'Aperçu'}
+                </span>
+                {shortIntro ? (
+                  <p className="font-display italic text-brand-ink/85 text-[clamp(1.3rem,1.9vw,1.9rem)] leading-[1.2] tracking-tight">
+                    {shortIntro}
+                  </p>
+                ) : (
+                  <h2 className="font-display italic text-brand-ink/90 text-[clamp(1.3rem,1.9vw,1.9rem)] leading-[1.2] tracking-tight">
+                    {subtitle}
+                  </h2>
+                )}
+                <div className="mt-6 h-px w-16 bg-brand-action/50" />
+              </div>
 
-              <section id="what-to-do" className="mb-12">
-                <h2 className="h2-style text-brand-ink mb-6">{t('whatToDo')}</h2>
-                <ul className="space-y-4">
-                  {what_to_do?.map((item, index) => (
-                    <li key={index} className="flex items-start space-x-4">
-                      <CheckCircle className="w-6 h-6 text-brand-action mt-1 flex-shrink-0" />
+              <div className="md:col-span-8 exp-fade">
+                {description_rich && (
+                  <div
+                    className="font-montserrat text-[clamp(1rem,1.25vw,1.1rem)] text-brand-ink/75 leading-[1.95] tracking-[0.005em] space-y-4 [&_h2]:font-display [&_h2]:text-brand-ink [&_h2]:text-2xl [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:tracking-tight"
+                    dangerouslySetInnerHTML={{
+                      __html: description_rich
+                        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                        .replace(/\n\n/g, '</p><p>')
+                        .replace(/^/, '<p>')
+                        .replace(/$/, '</p>'),
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── FACTS STRIP ─── */}
+        {facts.length > 0 && (
+          <section className="py-12 md:py-16 bg-brand-beige/40 border-y border-brand-ink/5">
+            <div className="content-wrapper">
+              <div
+                ref={factsRef}
+                className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10"
+              >
+                {facts.map(({ icon: Icon, label, value }, i) => (
+                  <div key={i} className="flex flex-col items-start">
+                    <Icon className="w-5 h-5 text-brand-action mb-4" strokeWidth={1.4} />
+                    <span className="font-montserrat text-[0.6rem] font-semibold uppercase tracking-[0.32em] text-brand-ink/50 mb-2">
+                      {label}
+                    </span>
+                    <span className="font-display text-brand-ink text-lg md:text-xl leading-tight tracking-tight">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ─── WHAT TO DO + GOOD TO KNOW ─── */}
+        <section className="section-padding bg-white">
+          <div className="content-wrapper grid grid-cols-1 lg:grid-cols-12 gap-x-12 gap-y-16">
+            {what_to_do?.length > 0 && (
+              <div className="lg:col-span-7">
+                <span className="block font-montserrat uppercase tracking-[0.4em] text-[0.6rem] text-brand-action font-semibold mb-4">
+                  {t('whatToDo') || 'À faire'}
+                </span>
+                <h2 className="font-display text-brand-ink text-[clamp(2rem,3.2vw,3rem)] leading-[1.05] tracking-tight mb-10">
+                  {t('experienceHighlights') || 'Au programme'}
+                </h2>
+                <ul className="space-y-8">
+                  {what_to_do.map((item, index) => (
+                    <li key={index} className="grid grid-cols-[auto_1fr] gap-5 pb-8 border-b border-brand-ink/10 last:border-0 last:pb-0">
+                      <span className="font-display italic text-brand-action/60 text-2xl leading-none pt-1">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
                       <div>
-                        <h3 className="font-bold text-lg text-brand-ink">{item.title}</h3>
-                        <p className="text-brand-ink/80">{item.blurb}</p>
+                        <h3 className="font-display text-brand-ink text-xl md:text-2xl leading-tight tracking-tight mb-2">
+                          {item.title}
+                        </h3>
+                        {item.blurb && (
+                          <p className="font-montserrat text-[0.92rem] text-brand-ink/70 leading-[1.85]">
+                            {item.blurb}
+                          </p>
+                        )}
                       </div>
                     </li>
                   ))}
                 </ul>
-              </section>
-              
-              <section id="gallery">
-                <h2 className="h2-style text-brand-ink mb-6">{t('photoGallery')}</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {experience.gallery_urls?.map((url, index) => (
-                    <div key={index} className="aspect-square bg-gray-200 rounded-none overflow-hidden">
-                      <OptimizedImage src={url} alt={`Gallery image ${index + 1}`} className="w-full h-full object-cover" />
-                    </div>
-                  )) || <p>{t('galleryComingSoon')}!</p>}
-                </div>
-              </section>
-            </main>
+              </div>
+            )}
 
-            <aside className="lg:col-span-1">
-              <div className="sticky top-32">
-                <div className="border border-brand-ink/10 p-6 rounded-none">
-                  <h3 className="h3-style text-brand-ink mb-4">{t('goodToKnow')}</h3>
-                  <ul className="space-y-4">
+            {(good_to_know?.length > 0 || accessibilityNotes) && (
+              <aside className="lg:col-span-5">
+                <div className="lg:sticky lg:top-32 border-l border-brand-action/40 pl-8">
+                  <span className="block font-montserrat uppercase tracking-[0.4em] text-[0.6rem] text-brand-action font-semibold mb-4">
+                    {t('goodToKnow') || 'Bon à savoir'}
+                  </span>
+                  <h3 className="font-display text-brand-ink text-2xl md:text-3xl leading-tight tracking-tight mb-8">
+                    {t('practicalTips') || 'Conseils pratiques'}
+                  </h3>
+                  <ul className="space-y-6">
                     {good_to_know?.map((item, index) => (
-                      <li key={index} className="flex items-start space-x-3">
-                        {iconMapping[item.title] || iconMapping.default}
+                      <li key={index} className="flex items-start gap-4">
+                        <span className="mt-1 shrink-0">{renderIcon(item.title)}</span>
                         <div>
-                          <h4 className="font-semibold text-brand-ink">{item.title}</h4>
-                          <p className="text-sm text-brand-ink/80">{item.tip}</p>
+                          <h4 className="font-display text-brand-ink text-base mb-1.5 tracking-tight">{item.title}</h4>
+                          <p className="font-montserrat text-[0.85rem] text-brand-ink/65 leading-[1.7]">{item.tip}</p>
                         </div>
                       </li>
                     ))}
+                    {accessibilityNotes && (
+                      <li className="flex items-start gap-4 pt-6 border-t border-brand-ink/10">
+                        <span className="mt-1 shrink-0">
+                          <Accessibility className="w-4 h-4 text-brand-action" strokeWidth={1.5} />
+                        </span>
+                        <div>
+                          <h4 className="font-display text-brand-ink text-base mb-1.5 tracking-tight">
+                            {t('accessibility') || 'Accessibilité'}
+                          </h4>
+                          <p className="font-montserrat text-[0.85rem] text-brand-ink/65 leading-[1.7]">
+                            {accessibilityNotes}
+                          </p>
+                        </div>
+                      </li>
+                    )}
                   </ul>
                 </div>
-              </div>
-            </aside>
+              </aside>
+            )}
           </div>
-        </div>
+        </section>
 
-        {recommendedRiads.length > 0 && (
-          <section className="section-padding bg-gray-50">
+        {/* ─── GALLERY ─── */}
+        {gallery_urls?.length > 0 && (
+          <section className="section-padding bg-brand-beige/30">
+            <div className="content-wrapper-wide">
+              <div className="mb-12 md:mb-16">
+                <span className="block font-montserrat uppercase tracking-[0.4em] text-[0.6rem] text-brand-action font-semibold mb-4">
+                  {t('photoGallery') || 'Galerie'}
+                </span>
+                <h2 className="font-display text-brand-ink text-[clamp(2rem,3.2vw,3rem)] leading-[1.05] tracking-tight">
+                  {title}
+                </h2>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
+                {gallery_urls.map((url, index) => (
+                  <div
+                    key={index}
+                    className={`group relative overflow-hidden bg-brand-beige ${
+                      index % 5 === 0 ? 'md:col-span-2 md:row-span-2 aspect-[4/3]' : 'aspect-square'
+                    }`}
+                  >
+                    <OptimizedImage
+                      src={url}
+                      alt={`${title} — ${index + 1}`}
+                      className="w-full h-full object-cover transition-transform duration-[1400ms] ease-editorial group-hover:scale-[1.06]"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ─── MAP ─── */}
+        {map_embed_url && (
+          <section className="section-padding-tight bg-white">
             <div className="content-wrapper">
-              <h2 className="h2-style text-brand-ink mb-8 text-center">{t('recommendedRiads')}</h2>
+              <div className="mb-10">
+                <span className="block font-montserrat uppercase tracking-[0.4em] text-[0.6rem] text-brand-action font-semibold mb-4">
+                  {t('location') || 'Emplacement'}
+                </span>
+                <h2 className="font-display text-brand-ink text-[clamp(1.8rem,2.6vw,2.4rem)] leading-tight tracking-tight">
+                  {destinationName || title}
+                </h2>
+              </div>
+              <div className="relative w-full aspect-[16/9] bg-brand-beige overflow-hidden">
+                <iframe
+                  src={map_embed_url}
+                  title={`${title} map`}
+                  className="absolute inset-0 w-full h-full border-0"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ─── RECOMMENDED RIADS ─── */}
+        {recommendedRiads.length > 0 && (
+          <section className="section-padding bg-brand-beige/40">
+            <div className="content-wrapper">
+              <div className="mb-12 md:mb-16 text-center">
+                <span className="block font-montserrat uppercase tracking-[0.4em] text-[0.6rem] text-brand-action font-semibold mb-4">
+                  {t('staySomewhereSpecial') || 'Où séjourner'}
+                </span>
+                <h2 className="font-display text-brand-ink text-[clamp(2rem,3.2vw,3rem)] leading-[1.05] tracking-tight">
+                  {t('recommendedRiads')}
+                </h2>
+                <div className="mt-6 h-px w-16 bg-brand-action/50 mx-auto" />
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {recommendedRiads.map(riad => (
+                {recommendedRiads.map((riad) => (
                   <RiadCard key={riad.id} riad={riad} />
                 ))}
               </div>
             </div>
           </section>
         )}
+
+        {/* ─── CLOSING CTA ─── */}
+        <section className="section-padding-tight bg-brand-ink text-white relative overflow-hidden">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -bottom-16 -left-10 select-none font-display italic text-[clamp(10rem,22vw,18rem)] leading-none text-white/[0.04] tracking-tight"
+          >
+            {destinationName || 'Maroc'}
+          </div>
+          <div className="content-wrapper relative text-center">
+            <p className="font-montserrat text-[0.7rem] font-semibold uppercase tracking-[0.42em] text-brand-action mb-5">
+              {t('liveTheExperience') || 'Vivez l\u2019expérience'}
+            </p>
+            <h2 className="font-display text-[clamp(2rem,4vw,3.4rem)] leading-[1.05] tracking-tight max-w-3xl mx-auto">
+              {title}
+            </h2>
+            <Link
+              to="/all-riads"
+              className="mt-10 inline-flex items-center gap-3 bg-white text-brand-ink px-10 py-4 font-montserrat text-[0.7rem] font-semibold uppercase tracking-[0.32em] hover:bg-brand-action hover:text-white transition-colors duration-500 ease-editorial"
+            >
+              {bookingCtaLabel || t('seeMemberRiads')}
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
       </div>
     </>
   );

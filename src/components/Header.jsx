@@ -27,10 +27,88 @@ const useScroll = () => {
 };
 
 const languages = [
-  { code: "fr", name: "Français" },
-  { code: "en", name: "English" },
-  { code: "es", name: "Español" },
+  { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "en", name: "English",  flag: "🇬🇧" },
+  { code: "es", name: "Español",  flag: "🇪🇸" },
 ];
+
+const LanguageSelector = ({ currentLanguage, changeLanguage }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = languages.find((l) => l.code === currentLanguage) || languages[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const onEsc = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="group flex items-center gap-2 px-3 py-2 border border-brand-ink/10 hover:border-brand-action transition-colors duration-300"
+      >
+        <span className="text-base leading-none">{current.flag}</span>
+        <span className="font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-brand-ink group-hover:text-brand-action transition-colors duration-300">
+          {current.code}
+        </span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="10" height="10" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" strokeWidth="2.4"
+          strokeLinecap="round" strokeLinejoin="round"
+          className={`text-brand-ink/40 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      <div
+        role="listbox"
+        className={`absolute right-0 top-[calc(100%+8px)] min-w-[170px] bg-white border border-brand-ink/10 shadow-[0_18px_40px_-20px_rgba(20,20,20,0.25)] origin-top-right transition-all duration-300 ${
+          open ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+        }`}
+      >
+        {languages.map((lang) => {
+          const active = lang.code === currentLanguage;
+          return (
+            <button
+              key={lang.code}
+              role="option"
+              aria-selected={active}
+              onClick={() => { changeLanguage(lang.code); setOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-200 ${
+                active
+                  ? "bg-brand-beige/60 text-brand-action"
+                  : "text-brand-ink hover:bg-brand-beige/40 hover:text-brand-action"
+              }`}
+            >
+              <span className="text-lg leading-none">{lang.flag}</span>
+              <span className="flex-1 font-montserrat text-[0.72rem] font-semibold tracking-wide">
+                {lang.name}
+              </span>
+              <span className={`font-montserrat text-[0.6rem] font-semibold uppercase tracking-[0.2em] ${active ? "text-brand-action" : "text-brand-ink/30"}`}>
+                {lang.code}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const Sidebar = ({ open, onClose, navLinks, riads, t, currentLanguage, changeLanguage }) => {
   const overlayRef = useRef(null);
@@ -319,36 +397,13 @@ const Header = ({ date, onDateChange }) => {
             />
           </Link>
 
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="hidden md:flex items-center gap-1 mr-1">
-              {languages.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => changeLanguage(lang.code)}
-                  className={`px-2 py-1 font-montserrat text-[0.6rem] font-semibold uppercase tracking-wider transition-all duration-200 ${
-                    currentLanguage === lang.code
-                      ? "bg-brand-action text-white"
-                      : "text-brand-ink/50 hover:text-brand-action"
-                  }`}
-                >
-                  {lang.code}
-                </button>
-              ))}
+          <div className="flex items-center gap-3 md:gap-5">
+            <div className="hidden md:block">
+              <LanguageSelector
+                currentLanguage={currentLanguage}
+                changeLanguage={changeLanguage}
+              />
             </div>
-
-            <Link
-              to="/destinations"
-              className="hidden md:inline-block uppercase font-medium text-xs tracking-widest text-brand-ink hover:text-brand-action transition-colors duration-200"
-            >
-              {t("destinations") || "Destinations"}
-            </Link>
-
-            <Link
-              to="/all-riads"
-              className="hidden md:inline-block uppercase font-medium text-xs tracking-widest text-brand-ink hover:text-brand-action transition-colors duration-200"
-            >
-              {t("allProperties") || "Nos riads"}
-            </Link>
 
             <Link
               to="/about"

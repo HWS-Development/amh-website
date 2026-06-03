@@ -151,7 +151,14 @@ const DestinationPage = () => {
     map_embed_url,
     related_experiences,
     cta_url,
+    best_months,
   } = destination;
+
+  const bestMonthsList = Array.isArray(best_months)
+    ? best_months
+    : (typeof best_months === 'object' && best_months !== null
+        ? getTranslatedArray(best_months, currentLanguage)
+        : []);
 
   const breadcrumbItems = [
     { label: t("home") || "Home", href: "/" },
@@ -210,17 +217,48 @@ const DestinationPage = () => {
         />
 
         {intro_rich && (
-          <section className="py-20 md:py-28 bg-white" ref={introRef}>
-            <div className="content-wrapper">
-              <div className="max-w-3xl mx-auto text-center">
-                <span className="block font-montserrat uppercase tracking-[0.35em] text-[0.6rem] text-brand-action font-semibold mb-4">
-                  {t("introduction") || "Introduction"}
-                </span>
-                <p className="font-montserrat text-[clamp(1rem,1.4vw,1.15rem)] text-brand-ink/70 leading-[1.9] tracking-wide">
-                  {intro_rich}
-                </p>
-                <div className="mt-8 flex justify-center">
-                  <span className="block w-8 h-[2px] bg-brand-action/40" />
+          <section
+            className="relative py-24 md:py-32 bg-white overflow-hidden"
+            ref={introRef}
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -top-10 -right-6 md:right-10 select-none font-display italic text-[clamp(7rem,18vw,16rem)] leading-none text-brand-action/[0.05] tracking-tight"
+            >
+              {name}
+            </div>
+            <div className="content-wrapper relative">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-x-10 gap-y-8 items-start">
+                <div className="md:col-span-4 md:sticky md:top-32">
+                  <span className="block font-montserrat uppercase tracking-[0.4em] text-[0.6rem] text-brand-action font-semibold mb-5">
+                    {t("introduction") || "Introduction"}
+                  </span>
+                  <h2 className="font-display italic text-brand-ink/90 text-[clamp(1.6rem,2.2vw,2.2rem)] leading-[1.15] tracking-tight">
+                    {subtitle || name}
+                  </h2>
+                  <div className="mt-6 h-px w-16 bg-brand-action/50" />
+                  {bestMonthsList.length > 0 && (
+                    <div className="mt-8">
+                      <span className="block font-montserrat uppercase tracking-[0.3em] text-[0.55rem] text-brand-ink/40 font-semibold mb-3">
+                        {t("bestMonths") || "Meilleure période"}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {bestMonthsList.map((m, i) => (
+                          <span
+                            key={i}
+                            className="font-montserrat text-[0.65rem] uppercase tracking-[0.2em] text-brand-ink/70 border border-brand-ink/15 px-3 py-1.5"
+                          >
+                            {m}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="md:col-span-8">
+                  <p className="font-montserrat text-[clamp(1rem,1.3vw,1.15rem)] text-brand-ink/75 leading-[1.95] tracking-[0.005em]">
+                    {intro_rich}
+                  </p>
                 </div>
               </div>
             </div>
