@@ -41,12 +41,12 @@ BEGIN
       q.name_tr,
       q.short_desc_tr,
       q.long_desc_tr,
-      COALESCE(q.images, '[]'::jsonb),
+      COALESCE(to_jsonb(q.images), '[]'::jsonb),
       COALESCE(q.is_featured, false),
       q.display_order,
       q.walking_minutes_from_jemaa,
-      COALESCE(q.category_tags, '[]'::jsonb),
-      COALESCE(q.ambiance_tags, '[]'::jsonb),
+      COALESCE(to_jsonb(q.category_tags), '[]'::jsonb),
+      COALESCE(to_jsonb(q.ambiance_tags), '[]'::jsonb),
       q.latitude,
       q.longitude
     FROM public.amh_quartiers q
@@ -57,14 +57,14 @@ BEGIN
     SET short_desc_tr              = COALESCE(n.short_desc_tr, q.short_desc_tr),
         long_desc_tr               = COALESCE(n.long_desc_tr, q.long_desc_tr),
         images                     = CASE WHEN jsonb_array_length(COALESCE(n.images,'[]'::jsonb)) = 0
-                                          THEN COALESCE(q.images,'[]'::jsonb) ELSE n.images END,
+                                          THEN COALESCE(to_jsonb(q.images),'[]'::jsonb) ELSE n.images END,
         is_featured                = COALESCE(q.is_featured, n.is_featured),
         display_order              = COALESCE(n.display_order, q.display_order),
         walking_minutes_from_jemaa = COALESCE(n.walking_minutes_from_jemaa, q.walking_minutes_from_jemaa),
         category_tags              = CASE WHEN jsonb_array_length(COALESCE(n.category_tags,'[]'::jsonb)) = 0
-                                          THEN COALESCE(q.category_tags,'[]'::jsonb) ELSE n.category_tags END,
+                                          THEN COALESCE(to_jsonb(q.category_tags),'[]'::jsonb) ELSE n.category_tags END,
         ambiance_tags              = CASE WHEN jsonb_array_length(COALESCE(n.ambiance_tags,'[]'::jsonb)) = 0
-                                          THEN COALESCE(q.ambiance_tags,'[]'::jsonb) ELSE n.ambiance_tags END,
+                                          THEN COALESCE(to_jsonb(q.ambiance_tags),'[]'::jsonb) ELSE n.ambiance_tags END,
         latitude                   = COALESCE(n.latitude, q.latitude),
         longitude                  = COALESCE(n.longitude, q.longitude)
     FROM public.amh_quartiers q
