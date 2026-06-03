@@ -12,6 +12,72 @@ import { gsapEase, duration, stagger } from "@/lib/motion";
 
 gsap.registerPlugin(ScrollTrigger);
 
+// ─── Static fallback experiences (used when backend returns 0 or fails) ─────
+// Keeps the home section populated with the 4 curated experiences requested
+// by the client. Slugs match the SQL seed in scripts/seed_experiences.sql.
+const FALLBACK_EXPERIENCES = [
+  {
+    slug: "marrakech-caleche",
+    title_tr: {
+      fr: "Marrakech en calèche",
+      en: "Marrakech by horse-drawn carriage",
+      es: "Marrakech en calesa",
+    },
+    short_intro_tr: {
+      fr: "Découvrez les ruelles, remparts et jardins de la ville ocre au rythme tranquille d'une calèche traditionnelle.",
+      en: "Discover the lanes, ramparts and gardens of the ochre city at the gentle pace of a traditional horse-drawn carriage.",
+      es: "Descubra las callejuelas, murallas y jardines de la ciudad ocre al tranquilo ritmo de una calesa tradicional.",
+    },
+    hero_image_url: "https://images.unsplash.com/photo-1539020140153-e479b8c5b3b3?w=1600&q=80",
+    sort_order: 1,
+  },
+  {
+    slug: "ouarzazate-ait-ben-haddou",
+    title_tr: {
+      fr: "Ouarzazate : la Kasbah d'Aït Ben Haddou",
+      en: "Ouarzazate: the Aït Ben Haddou Kasbah",
+      es: "Ouarzazate: la Kasbah de Aït Ben Haddou",
+    },
+    short_intro_tr: {
+      fr: "Explorez le ksar classé UNESCO d'Aït Ben Haddou, joyau d'architecture berbère en pisé, décor de films mythiques.",
+      en: "Explore the UNESCO-listed ksar of Aït Ben Haddou, a jewel of Berber earthen architecture and legendary film set.",
+      es: "Explore el ksar Patrimonio de la Humanidad de Aït Ben Haddou, joya de la arquitectura bereber en adobe.",
+    },
+    hero_image_url: "https://images.unsplash.com/photo-1548013146-72479768bada?w=1600&q=80",
+    sort_order: 2,
+  },
+  {
+    slug: "desert-agafay-dromadaire-quad",
+    title_tr: {
+      fr: "Désert d'Agafay en dromadaire ou en quad",
+      en: "Agafay Desert by camel or quad bike",
+      es: "Desierto de Agafay en dromedario o en quad",
+    },
+    short_intro_tr: {
+      fr: "À une heure de Marrakech, traversez les paysages lunaires du désert d'Agafay à dos de dromadaire ou en quad.",
+      en: "One hour from Marrakech, cross the lunar landscapes of the Agafay desert on camelback or by quad bike.",
+      es: "A una hora de Marrakech, atraviese los paisajes lunares del desierto de Agafay en dromedario o en quad.",
+    },
+    hero_image_url: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1600&q=80",
+    sort_order: 3,
+  },
+  {
+    slug: "essaouira-velo",
+    title_tr: {
+      fr: "Essaouira en vélo",
+      en: "Essaouira by bike",
+      es: "Essaouira en bicicleta",
+    },
+    short_intro_tr: {
+      fr: "Longez les remparts portugais et la plage d'Essaouira à vélo, entre embruns de l'Atlantique et alizés.",
+      en: "Cycle along Essaouira's Portuguese ramparts and beach, between Atlantic spray and trade winds.",
+      es: "Recorra en bicicleta las murallas portuguesas y la playa de Essaouira, entre la brisa atlántica y los vientos alisios.",
+    },
+    hero_image_url: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1600&q=80",
+    sort_order: 4,
+  },
+];
+
 export default function Experiences() {
   const { t, currentLanguage } = useLanguage();
   const [items, setItems] = useState([]);
@@ -23,26 +89,33 @@ export default function Experiences() {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      let raw = [];
       try {
-        const data = await listExperiences();
-        if (cancelled) return;
-        const mapped = (data || [])
-          .map((x) => ({
-            title: getTranslated(x.title_tr, currentLanguage),
-            desc: getTranslated(x.short_intro_tr, currentLanguage),
-            img: x.hero_image_url,
-            href: `/experiences/${x.slug}`,
-            sort: x.sort_order ?? 9999,
-          }))
-          .sort((a, b) => a.sort - b.sort);
-        setItems(mapped);
+        raw = await listExperiences();
       } catch (error) {
-        if (cancelled) return;
         console.error("mgh_experiences fetch error:", error);
-        setItems([]);
-      } finally {
-        if (!cancelled) setLoading(false);
       }
+      if (cancelled) return;
+
+      // Merge backend results with static fallback (backend wins on slug match)
+      const bySlug = new Map();
+      [...FALLBACK_EXPERIENCES, ...(raw || [])].forEach((x) => {
+        if (x?.slug) bySlug.set(x.slug, x);
+      });
+
+      const mapped = Array.from(bySlug.values())
+        .map((x) => ({
+          slug: x.slug,
+          title: getTranslated(x.title_tr, currentLanguage),
+          desc: getTranslated(x.short_intro_tr, currentLanguage),
+          img: x.hero_image_url,
+          href: `/experiences/${x.slug}`,
+          sort: x.sort_order ?? 9999,
+        }))
+        .sort((a, b) => a.sort - b.sort);
+
+      setItems(mapped);
+      setLoading(false);
     })();
     return () => {
       cancelled = true;

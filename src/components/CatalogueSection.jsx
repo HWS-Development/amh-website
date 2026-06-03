@@ -156,7 +156,6 @@ export default function CatalogueSection() {
     property_type_id: null,
     amenity_ids: [],
     rating: null,
-    onlyBookable: false,
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -281,15 +280,14 @@ export default function CatalogueSection() {
     if (filters.neighborhood_id) n++;
     if (filters.property_type_id) n++;
     if (filters.rating) n++;
-    if (filters.onlyBookable) n++;
     if (filters.amenity_ids?.length) n += filters.amenity_ids.length;
     return n;
   }, [filters]);
 
-  // Client-side search + rating + bookable filter on top of grouped data
+  // Client-side search + rating filter on top of grouped data
   const filteredGrouped = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const hasLocalFilters = q || filters.rating || filters.onlyBookable;
+    const hasLocalFilters = q || filters.rating;
     if (!hasLocalFilters) return groupedByCity;
 
     const result = {};
@@ -306,13 +304,10 @@ export default function CatalogueSection() {
       if (filters.rating) {
         filtered = filtered.filter((r) => (r.rating_avg || 0) >= filters.rating);
       }
-      if (filters.onlyBookable) {
-        filtered = filtered.filter((r) => r.simple_booking_link && r.simple_booking_link.trim());
-      }
       if (filtered.length > 0) result[slug] = filtered;
     });
     return result;
-  }, [groupedByCity, search, filters.rating, filters.onlyBookable]);
+  }, [groupedByCity, search, filters.rating]);
 
   const visibleCities = CITY_ORDER
     .map((slug) => ({ slug, riads: filteredGrouped[slug] || [] }))
@@ -321,7 +316,7 @@ export default function CatalogueSection() {
   const totalCount = Object.values(filteredGrouped).reduce((sum, list) => sum + list.length, 0);
 
   const clearFilters = useCallback(() => {
-    setFilters({ city_id: null, neighborhood_id: null, property_type_id: null, amenity_ids: [], rating: null, onlyBookable: false });
+    setFilters({ city_id: null, neighborhood_id: null, property_type_id: null, amenity_ids: [], rating: null });
     setSearch("");
   }, []);
 
@@ -340,7 +335,7 @@ export default function CatalogueSection() {
   }
 
   return (
-    <section className="section-padding bg-white relative overflow-hidden">
+    <section className="section-padding bg-brand-beige relative overflow-hidden">
       <div className="content-wrapper-wide relative">
         <SectionHeader
           eyebrow={t("catalogueEyebrow") || "Our collection"}

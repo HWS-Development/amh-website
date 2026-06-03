@@ -25,8 +25,8 @@ export default function FeaturedQuartiers() {
       setLoading(true);
       setError(null);
       const { data, error } = await supabase
-        .from('amh_quartiers')
-        .select('slug, name_tr, short_desc_tr, images, display_order, is_featured')
+        .from('mgh_neighborhoods')
+        .select('id, label, short_desc_tr, images, display_order, is_featured')
         .eq('is_featured', true)
         .order('display_order', { ascending: true, nullsFirst: false })
         .limit(3);
@@ -114,12 +114,12 @@ export default function FeaturedQuartiers() {
 
         <div className="fq-grid grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 mt-2">
           {quartiers.map((quartier, index) => {
-            const name = getTranslated(quartier.name_tr, currentLanguage);
+            const name = getTranslated(quartier.label, currentLanguage);
             const shortDesc = getTranslated(quartier.short_desc_tr, currentLanguage);
             return (
               <Link
-                key={quartier.slug}
-                to={`/quartiers-medina#${quartier.slug}`}
+                key={quartier.id}
+                to={`/quartiers-medina#${quartier.id}`}
                 className="fq-card group relative block"
               >
                 <div className="relative overflow-hidden aspect-[4/5] bg-brand-beige">

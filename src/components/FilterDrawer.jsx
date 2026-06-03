@@ -72,7 +72,6 @@ const FilterDrawer = ({
       property_type_id: null,
       amenity_ids: [],
       rating: null,
-      onlyBookable: false,
     };
     setLocal(r);
     onFiltersChange(r);
@@ -99,9 +98,6 @@ const FilterDrawer = ({
     }
     if (local.rating) {
       list = list.filter((r) => (r.rating_avg || 0) >= local.rating);
-    }
-    if (local.onlyBookable) {
-      list = list.filter((r) => r.simple_booking_link && r.simple_booking_link.trim());
     }
     return list.length;
   }, [riadsMap, local]);
@@ -146,22 +142,6 @@ const FilterDrawer = ({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 md:px-8 py-6">
-          {/* Booking */}
-          <FilterSection title={t("booking") || "Booking"}>
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <Checkbox
-                checked={Boolean(local.onlyBookable)}
-                onCheckedChange={(checked) =>
-                  setLocal((prev) => ({ ...prev, onlyBookable: Boolean(checked) }))
-                }
-                className="border-brand-ink/20 data-[state=checked]:bg-brand-action data-[state=checked]:border-brand-action"
-              />
-              <span className="font-montserrat text-[0.82rem] text-brand-ink/70 group-hover:text-brand-ink transition-colors">
-                {t("onlyShowBookableRiads")}
-              </span>
-            </label>
-          </FilterSection>
-
           {/* City */}
           <FilterSection icon={MapPin} title={t("cities") || "City"}>
             <RadioGroup

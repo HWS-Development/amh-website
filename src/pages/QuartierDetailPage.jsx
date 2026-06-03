@@ -57,9 +57,9 @@ const QuartierDetailPage = () => {
             setLoading(true);
             setError(null);
             const { data: quartierData, error: quartierError } = await supabase
-                .from('amh_quartiers')
+                .from('mgh_neighborhoods')
                 .select('*')
-                .eq('slug', slug)
+                .eq('id', slug)
                 .single();
 
             if (quartierError || !quartierData) {
@@ -72,14 +72,14 @@ const QuartierDetailPage = () => {
             const { data: poisData, error: poisError } = await supabase
                 .from('amh_pois')
                 .select('*')
-                .eq('quartier_id', quartierData.id)
+                .eq('neighborhood_id', quartierData.id)
                 .order('display_order');
             
             if (poisError) {
                 console.error('Error fetching POIs:', poisError);
             }
 
-            setQuartier(quartierData);
+            setQuartier({ ...quartierData, slug: quartierData.id, name_tr: quartierData.label });
             setPois(poisData || []);
             setLoading(false);
         };

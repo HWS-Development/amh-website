@@ -48,7 +48,6 @@ const AllRiadsPage = () => {
     property_type_id: null,
     amenity_ids: [],
     rating: null,
-    onlyBookable: false,
   });
 
   const [query, setQuery] = useQueryParams({
@@ -65,16 +64,15 @@ const AllRiadsPage = () => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr, quartiersArr] =
+        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr] =
           await Promise.all([
             fetchCatalog("mgh_cities", currentLanguage),
             fetchCatalog("mgh_neighborhoods", currentLanguage),
             fetchCatalog("mgh_property_types", currentLanguage),
             fetchCatalog("mgh_amenities_catalog", currentLanguage),
-            fetchCatalog("mgh_serivces_catalog", currentLanguage).catch(() =>
-              fetchCatalog("mgh_services_catalog", currentLanguage).catch(() => [])
+            fetchCatalog("mgh_services_catalog", currentLanguage).catch(() =>
+              fetchCatalog("mgh_serivces_catalog", currentLanguage).catch(() => [])
             ),
-            supabase.from("amh_quartiers").select("slug, name_tr"),
           ]);
 
         setCities(citiesArr);
@@ -143,7 +141,6 @@ const AllRiadsPage = () => {
     if (filters.neighborhood_id) n++;
     if (filters.property_type_id) n++;
     if (filters.rating) n++;
-    if (filters.onlyBookable) n++;
     if (filters.amenity_ids?.length) n += filters.amenity_ids.length;
     return n;
   }, [filters]);
@@ -178,9 +175,6 @@ const AllRiadsPage = () => {
     }
     if (filters.rating) {
       list = list.filter((r) => (r.rating_avg || 0) >= filters.rating);
-    }
-    if (filters.onlyBookable) {
-      list = list.filter((r) => r.simple_booking_link && r.simple_booking_link.trim());
     }
     return list;
   }, [riadsMap, search, filters]);
@@ -270,7 +264,6 @@ const AllRiadsPage = () => {
       property_type_id: null,
       amenity_ids: [],
       rating: null,
-      onlyBookable: false,
     });
     setQuery({ page: 1 }, "push");
   }, [setQuery]);

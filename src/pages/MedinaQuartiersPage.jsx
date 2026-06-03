@@ -65,7 +65,7 @@ const MedinaQuartiersPage = () => {
     const fetchQuartiers = async () => {
       setLoading(true);
       let { data, error } = await supabase
-        .from('amh_quartiers')
+        .from('mgh_neighborhoods')
         .select('*')
         .order('display_order', { ascending: true });
 
@@ -73,7 +73,12 @@ const MedinaQuartiersPage = () => {
         console.error('Error fetching quartiers:', error);
         setError(error);
       } else {
-        setQuartiers(data);
+        // Normalize: id → slug, label → name_tr for downstream compatibility
+        setQuartiers((data || []).map((row) => ({
+          ...row,
+          slug: row.id,
+          name_tr: row.label,
+        })));
       }
       setLoading(false);
     };

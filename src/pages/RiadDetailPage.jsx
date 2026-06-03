@@ -20,7 +20,7 @@ import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import {
-  ArrowLeft, Star, MapPin, Check, Shield, Phone, Mail, Globe,
+  ArrowLeft, Star, MapPin, Check, Shield, Phone, Mail, Globe, MessageCircle,
   ChevronRight, Sparkles, X, Wifi, Waves, Bath, Sun, Wind, Users,
   Utensils, Tv, Coffee, Car, Key, Thermometer, Heart, Baby,
   Accessibility, Dumbbell, ParkingCircle, BedDouble, Shirt, PawPrint,
@@ -46,6 +46,7 @@ const fetchServicesCatalog = async (language) => {
   try {
     return await fetchCatalog("mgh_services_catalog", language);
   } catch {
+    console.warn("mgh_services_catalog not found, trying typo fallback");
     return fetchCatalog("mgh_serivces_catalog", language);
   }
 };
@@ -263,8 +264,7 @@ const RiadDetailPage = () => {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [photoIdx, setPhotoIdx] = useState(0);
-  const [infoExpanded, setInfoExpanded] = useState(false);
-
+  
   const [cities, setCities] = useState({});
   const [neighborhoods, setNeighborhoods] = useState({});
   const [propertyTypes, setPropertyTypes] = useState({});
@@ -793,7 +793,7 @@ const RiadDetailPage = () => {
 
                 {/* Scrollable content */}
                 <div className="relative flex-1 min-h-0 px-8 md:px-10 pb-4">
-                  <div className={`h-full ${infoExpanded ? "overflow-y-auto max-h-[560px]" : "overflow-hidden"}`}>
+                  <div className="h-full overflow-y-auto max-h-[560px]">
                     {description && (
                       <p className="text-[0.85rem] text-brand-ink/60 leading-[1.9] mb-8 font-light">
                         {description}
@@ -856,10 +856,6 @@ const RiadDetailPage = () => {
                       </div>
                     )}
                   </div>
-
-                  {!infoExpanded && (
-                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
-                  )}
                 </div>
 
                 {/* Bottom: actions + read more */}
@@ -884,6 +880,11 @@ const RiadDetailPage = () => {
                       {riad.phone_number && (
                         <a href={`tel:${riad.phone_number}`} aria-label="Phone" className="w-11 h-11 border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-400">
                           <Phone className="w-4 h-4" />
+                        </a>
+                      )}
+                      {riad.phone_number && (
+                        <a href={`https://wa.me/${riad.phone_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="w-11 h-11 border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center hover:bg-green-500 hover:text-white hover:border-green-500 transition-all duration-400">
+                          <MessageCircle className="w-4 h-4" />
                         </a>
                       )}
                       {riad.email && (
@@ -911,16 +912,6 @@ const RiadDetailPage = () => {
                         </div>
                       )}
                     </div>
-                  </div>
-
-                  <div className="mt-5 text-center">
-                    <button
-                      onClick={() => setInfoExpanded(!infoExpanded)}
-                      className="inline-flex items-center gap-2 font-montserrat text-[0.6rem] font-semibold uppercase tracking-[0.25em] text-brand-action/70 hover:text-brand-ink transition-colors duration-400 group"
-                    >
-                      <span>{infoExpanded ? (t("showLess") || "Read less") : (t("showMore") || "Read more")}</span>
-                      <ChevronDown className={`w-3 h-3 transition-all duration-400 ${infoExpanded ? "rotate-180" : ""}`} />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -994,58 +985,6 @@ const RiadDetailPage = () => {
               )}
             </div>
           </div>
-
-          {/* ═══════ Metrics Section ═══════ */}
-          {hasMetrics && (
-            <div className="mt-24 md:mt-32 relative">
-              {/* Full-bleed warm light background */}
-              <div className="absolute inset-0 bg-brand-beige/20 -mx-6 md:-mx-12 lg:-mx-16" />
-
-              <div className="relative">
-                {/* Editorial header */}
-                <div className="flex items-center gap-4 mb-12 md:mb-16 pt-14 md:pt-20">
-                  <span className="h-px w-12 md:w-20 bg-brand-action/40" />
-                  <span className="h-px flex-1 bg-brand-ink/5" />
-                  <span className="font-montserrat text-[0.45rem] md:text-[0.5rem] uppercase tracking-[0.5em] text-brand-ink/20 font-semibold whitespace-nowrap">
-                    {t("inNumbers") || "In Numbers"}
-                  </span>
-                  <span className="h-px flex-1 bg-brand-ink/5" />
-                  <span className="h-px w-12 md:w-20 bg-brand-action/40" />
-                </div>
-
-                {/* Metrics grid with gap-as-divider */}
-                <div className="pb-14 md:pb-20">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-[1px] bg-brand-ink/8 max-w-4xl mx-auto">
-                    {riad?.rating_avg && (
-                      <div className="bg-white flex items-center justify-center py-10 md:py-14 px-4">
-                        <MetricItem value={parseFloat(riad.rating_avg)} suffix="" label={t("rating") || "Rating"} icon={Star} isDecimal delay={0} />
-                      </div>
-                    )}
-                    {riad?.reviews_count && (
-                      <div className="bg-white flex items-center justify-center py-10 md:py-14 px-4">
-                        <MetricItem value={parseInt(riad.reviews_count, 10)} suffix="" label={t("reviews") || "Reviews"} icon={Heart} isDecimal={false} delay={0.15} />
-                      </div>
-                    )}
-                    {amenities.length > 0 && (
-                      <div className="bg-white flex items-center justify-center py-10 md:py-14 px-4">
-                        <MetricItem value={amenities.length} suffix="" label={t("amenities") || "Amenities"} icon={Sparkles} isDecimal={false} delay={0.3} />
-                      </div>
-                    )}
-                    {images.length > 1 && (
-                      <div className="bg-white flex items-center justify-center py-10 md:py-14 px-4">
-                        <MetricItem value={images.length} suffix="+" label={t("photos") || "Photos"} icon={BookOpen} isDecimal={false} delay={0.45} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Bottom flourish */}
-                <div className="flex justify-center pb-14 md:pb-20">
-                  <span className="block w-16 md:w-24 h-px bg-gradient-to-r from-transparent via-brand-action/30 to-transparent" />
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* ═══════ Address + Map Section ═══════ */}
           {(address || position) && (

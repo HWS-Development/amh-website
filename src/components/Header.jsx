@@ -154,33 +154,8 @@ const Sidebar = ({ open, onClose, navLinks, riads, t, currentLanguage, changeLan
             ))}
           </ul>
         </nav>
-
-        <div className="shrink-0 border-t border-brand-ink/5 px-6 md:px-8 py-5 space-y-4">
-          <div className="flex items-center gap-3" data-sidebar-item>
-            <span className="font-montserrat text-[0.6rem] uppercase tracking-[0.25em] text-brand-ink/40 font-semibold">
-              {t("language") || "Language"}
-            </span>
-            <div className="flex gap-1">
-              {languages.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => changeLanguage(lang.code)}
-                  className={`px-3 py-1.5 font-montserrat text-[0.65rem] font-semibold uppercase tracking-wider transition-all duration-200 ${
-                    currentLanguage === lang.code
-                      ? "bg-brand-action text-white"
-                      : "bg-brand-beige/50 text-brand-ink/50 hover:bg-brand-beige hover:text-brand-action"
-                  }`}
-                >
-                  {lang.code}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          
       </div>
     </div>
-  </div>
   );
 };
 
@@ -335,16 +310,46 @@ const Header = ({ date, onDateChange }) => {
         className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-brand-ink/5"
         style={{ transform: "translateY(0%)" }}
       >
-        <div className="content-wrapper flex items-center justify-between py-3 md:py-4">
+        <div className="content-wrapper flex items-center justify-between py-1 md:py-2">
           <Link to="/" className="flex-shrink-0">
             <OptimizedImage
               src="/images/logo_mgh.svg"
               alt="Centrale des Riads"
-              className="h-14 md:h-[5.25rem] lg:h-[6rem] w-auto"
+              className="h-10 md:h-14 lg:h-[4.5rem] w-auto"
             />
           </Link>
 
-          <div className="flex items-center gap-4 md:gap-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="hidden md:flex items-center gap-1 mr-1">
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => changeLanguage(lang.code)}
+                  className={`px-2 py-1 font-montserrat text-[0.6rem] font-semibold uppercase tracking-wider transition-all duration-200 ${
+                    currentLanguage === lang.code
+                      ? "bg-brand-action text-white"
+                      : "text-brand-ink/50 hover:text-brand-action"
+                  }`}
+                >
+                  {lang.code}
+                </button>
+              ))}
+            </div>
+
+            <Link
+              to="/destinations"
+              className="hidden md:inline-block uppercase font-medium text-xs tracking-widest text-brand-ink hover:text-brand-action transition-colors duration-200"
+            >
+              {t("destinations") || "Destinations"}
+            </Link>
+
+            <Link
+              to="/all-riads"
+              className="hidden md:inline-block uppercase font-medium text-xs tracking-widest text-brand-ink hover:text-brand-action transition-colors duration-200"
+            >
+              {t("allProperties") || "Nos riads"}
+            </Link>
+
             <Link
               to="/about"
               className="hidden md:inline-block uppercase font-medium text-xs tracking-widest text-brand-ink hover:text-brand-action transition-colors duration-200"
