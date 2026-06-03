@@ -1,6 +1,11 @@
 {
   "somethingWentWrong": "Something went wrong. Please try again.",
   "tryAgain": "Try again",
+  "previous": "Previous",
+  "next": "Next",
+  "cityMarrakech": "Marrakech",
+  "cityEssaouira": "Essaouira",
+  "cityOuarzazate": "Ouarzazate",
   "home": "Home",
   "destinations": "Destinations",
   "collections": "Collections",

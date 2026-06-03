@@ -1,6 +1,11 @@
 {
   "somethingWentWrong": "Une erreur est survenue. Veuillez réessayer.",
   "tryAgain": "Réessayer",
+  "previous": "Précédent",
+  "next": "Suivant",
+  "cityMarrakech": "Marrakech",
+  "cityEssaouira": "Essaouira",
+  "cityOuarzazate": "Ouarzazate",
   "home": "Accueil",
   "destinations": "Destinations",
   "collections": "Collections",
