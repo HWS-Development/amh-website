@@ -38,6 +38,7 @@ const FilterDrawer = ({
   onOpenChange,
   filters,
   cities = [],
+  neighborhoods = [],
   propertyTypes = [],
   amenities = [],
   onFiltersChange,
@@ -47,12 +48,22 @@ const FilterDrawer = ({
   const { t } = useLanguage();
   const [local, setLocal] = useState(filters);
 
+  // Sync from parent (open + external resets)
   useEffect(() => {
     setLocal(filters);
   }, [filters, open]);
 
+  // LIVE: push every change up so chips + count + list update continuously
+  const updateLocal = (patch) => {
+    setLocal((prev) => {
+      const next = typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
+      onFiltersChange?.(next);
+      return next;
+    });
+  };
+
   const toggleAmenity = (id) => {
-    setLocal((prev) => ({
+    updateLocal((prev) => ({
       ...prev,
       amenity_ids: prev.amenity_ids.includes(id)
         ? prev.amenity_ids.filter((v) => v !== id)
@@ -61,7 +72,7 @@ const FilterDrawer = ({
   };
 
   const apply = () => {
-    onFiltersChange(local);
+    onFiltersChange?.(local);
     onOpenChange(false);
   };
 
@@ -74,8 +85,7 @@ const FilterDrawer = ({
       rating: null,
     };
     setLocal(r);
-    onFiltersChange(r);
-    onOpenChange(false);
+    onFiltersChange?.(r);
   };
 
   const previewCount = useMemo(() => {
@@ -102,21 +112,31 @@ const FilterDrawer = ({
     return list.length;
   }, [riadsMap, local]);
 
+  // Neighborhoods for the selected city:
+  // 1) Prefer the canonical catalog (mgh_neighborhoods has city_id),
+  // 2) fall back to hotels-derived list if catalog lacks city_id.
   const localNeighborhoods = useMemo(() => {
-    const source = riadsMap.filter((r) =>
-      !local.city_id || String(r.city_id) === String(local.city_id)
+    if (!local.city_id) return [];
+
+    const catalogScoped = neighborhoods.filter(
+      (n) => n.city_id != null && String(n.city_id) === String(local.city_id)
     );
+    if (catalogScoped.length > 0) {
+      return catalogScoped.map((n) => ({ id: String(n.id), label: n.label }));
+    }
+
+    // Fallback: derive from riads in the chosen city
     const map = new Map();
-    source.forEach((r) => {
-      if (r.neighborhood_id) {
-        const nid = String(r.neighborhood_id);
-        if (!map.has(nid)) {
-          map.set(nid, r.neighborhood || nid);
+    riadsMap
+      .filter((r) => String(r.city_id) === String(local.city_id))
+      .forEach((r) => {
+        if (r.neighborhood_id) {
+          const nid = String(r.neighborhood_id);
+          if (!map.has(nid)) map.set(nid, r.neighborhood || nid);
         }
-      }
-    });
+      });
     return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
-  }, [riadsMap, local.city_id]);
+  }, [neighborhoods, riadsMap, local.city_id]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -147,7 +167,7 @@ const FilterDrawer = ({
             <RadioGroup
               value={local.city_id || ""}
               onValueChange={(v) =>
-                setLocal((prev) => ({
+                updateLocal((prev) => ({
                   ...prev,
                   city_id: v || null,
                   neighborhood_id: null,
@@ -174,7 +194,7 @@ const FilterDrawer = ({
               <RadioGroup
                 value={local.neighborhood_id || ""}
                 onValueChange={(v) =>
-                  setLocal((prev) => ({ ...prev, neighborhood_id: v || null }))
+                  updateLocal((prev) => ({ ...prev, neighborhood_id: v || null }))
                 }
                 className="space-y-2"
               >
@@ -197,7 +217,7 @@ const FilterDrawer = ({
             <RadioGroup
               value={local.property_type_id || ""}
               onValueChange={(v) =>
-                setLocal((prev) => ({ ...prev, property_type_id: v || null }))
+                updateLocal((prev) => ({ ...prev, property_type_id: v || null }))
               }
               className="space-y-2"
             >
@@ -219,7 +239,7 @@ const FilterDrawer = ({
             <RadioGroup
               value={local.rating !== null ? String(local.rating) : ""}
               onValueChange={(v) =>
-                setLocal((prev) => ({ ...prev, rating: v === "" ? null : Number(v) }))
+                updateLocal((prev) => ({ ...prev, rating: v === "" ? null : Number(v) }))
               }
               className="space-y-2"
             >

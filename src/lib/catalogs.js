@@ -27,13 +27,21 @@ const normalizeFrPropertyTypeLabel = (s) => {
   return s.replace(/maison\s*d['’]?\s*h[oô]tes/gi, "Maison d'Hôtes");
 };
 
+// Tables that need extra columns surfaced in the catalog shape
+const EXTRA_COLUMNS = {
+  mgh_neighborhoods: ["city_id"],
+};
+
 export const fetchCatalog = async (table, lang) => {
   const key = `${table}:${lang}`;
   if (catalogCache.has(key)) return catalogCache.get(key);
 
+  const extras = EXTRA_COLUMNS[table] || [];
+  const selectCols = ["id", "label", ...extras].join(", ");
+
   const { data, error } = await supabase
     .from(table)
-    .select("id, label");
+    .select(selectCols);
 
   if (error) throw error;
 
@@ -41,7 +49,9 @@ export const fetchCatalog = async (table, lang) => {
     let label = getTranslated(row.label, lang);
     label = applyOverride(table, row.id, label, lang);
     if (table === "mgh_property_types") label = normalizeFrPropertyTypeLabel(label);
-    return { id: row.id, label };
+    const out = { id: row.id, label };
+    extras.forEach((col) => { out[col] = row[col] ?? null; });
+    return out;
   });
 
   // Deduplicate: collapse rows that share the same id OR the same

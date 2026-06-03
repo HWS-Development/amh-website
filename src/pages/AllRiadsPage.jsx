@@ -474,6 +474,7 @@ const AllRiadsPage = () => {
         onOpenChange={setIsFilterOpen}
         filters={filters}
         cities={cities}
+        neighborhoods={neighborhoods}
         propertyTypes={propertyTypes}
         amenities={amenities}
         onFiltersChange={handleFiltersChange}
