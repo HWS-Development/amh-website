@@ -47,8 +47,8 @@ BEGIN
       q.walking_minutes_from_jemaa,
       COALESCE(to_jsonb(q.category_tags), '[]'::jsonb),
       COALESCE(to_jsonb(q.ambiance_tags), '[]'::jsonb),
-      q.latitude,
-      q.longitude
+      q.lat,
+      q.lng
     FROM public.amh_quartiers q
     ON CONFLICT (id) DO NOTHING;
 
@@ -65,8 +65,8 @@ BEGIN
                                           THEN COALESCE(to_jsonb(q.category_tags),'[]'::jsonb) ELSE n.category_tags END,
         ambiance_tags              = CASE WHEN jsonb_array_length(COALESCE(n.ambiance_tags,'[]'::jsonb)) = 0
                                           THEN COALESCE(to_jsonb(q.ambiance_tags),'[]'::jsonb) ELSE n.ambiance_tags END,
-        latitude                   = COALESCE(n.latitude, q.latitude),
-        longitude                  = COALESCE(n.longitude, q.longitude)
+        latitude                   = COALESCE(n.latitude, q.lat),
+        longitude                  = COALESCE(n.longitude, q.lng)
     FROM public.amh_quartiers q
     WHERE n.id = q.slug;
 
