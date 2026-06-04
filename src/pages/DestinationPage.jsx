@@ -35,26 +35,32 @@ const DestinationPage = () => {
   const stickyNavRef = useRef(null);
 
   useEffect(() => {
+    const abortController = new AbortController();
     const fetchDestination = async () => {
       setLoading(true);
       setError(false);
       try {
-        const data = await getDestinationBySlug(slug);
+        const data = await getDestinationBySlug(slug, { signal: abortController.signal });
+        if (abortController.signal.aborted) return;
         if (!data) {
           setError(true);
         } else {
           setDestination(data);
         }
       } catch (err) {
+        if (err?.name === 'AbortError') return;
         console.error("Error fetching destination:", err);
         setError(true);
       } finally {
-        setLoading(false);
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
     if (currentLanguage) {
       fetchDestination();
     }
+    return () => abortController.abort();
   }, [slug, currentLanguage]);
 
   useEffect(() => {

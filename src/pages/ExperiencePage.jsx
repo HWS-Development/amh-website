@@ -51,10 +51,12 @@ const ExperiencePage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const abortController = new AbortController();
     const fetchExperience = async () => {
       setLoading(true);
       try {
-        const data = await getExperienceBySlug(slug);
+        const data = await getExperienceBySlug(slug, { signal: abortController.signal });
+        if (abortController.signal.aborted) return;
         if (!data) {
           toast({ variant: 'destructive', title: 'Error', description: 'Could not find the requested experience.' });
           navigate('/404', { replace: true });
@@ -63,17 +65,19 @@ const ExperiencePage = () => {
         setExperience(data);
         if (data.related_riads?.length > 0) fetchRecommendedRiads(data.related_riads);
       } catch (error) {
+        if (error?.name === 'AbortError') return;
         console.error('Error fetching experience:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not find the requested experience.' });
         navigate('/404', { replace: true });
       } finally {
-        setLoading(false);
+        if (!abortController.signal.aborted) setLoading(false);
       }
     };
 
     const fetchRecommendedRiads = async (riadIds) => {
       const { data, error } = await supabase
         .from('mgh_properties').select('*').in('id', riadIds);
+      if (abortController.signal.aborted) return;
       if (error) { console.error('Error fetching recommended riads:', error); return; }
       if (!data) return;
       setRecommendedRiads(data.map((riad) => ({
@@ -92,6 +96,7 @@ const ExperiencePage = () => {
     };
 
     if (currentLanguage) fetchExperience();
+    return () => abortController.abort();
   }, [slug, navigate, toast, currentLanguage]);
 
   useEffect(() => {
