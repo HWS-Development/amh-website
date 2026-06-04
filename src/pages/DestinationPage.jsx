@@ -144,12 +144,16 @@ const DestinationPage = () => {
     destination.seo_description,
     currentLanguage
   );
+  const seo_keywords = destination.seo_keywords?.[currentLanguage]
+    ? destination.seo_keywords[currentLanguage].join(', ')
+    : '';
 
   const {
     hero_image_urls,
     gallery_urls,
     map_embed_url,
     related_experiences,
+    related_collections,
     cta_url,
     best_months,
   } = destination;
@@ -197,6 +201,7 @@ const DestinationPage = () => {
         {hero_image_urls?.[0] && (
           <meta property="og:image" content={hero_image_urls[0]} />
         )}
+        {seo_keywords && <meta name="keywords" content={seo_keywords} />}
       </Helmet>
 
       <div ref={pageRef} className="bg-white">

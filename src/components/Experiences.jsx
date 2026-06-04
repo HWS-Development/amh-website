@@ -250,23 +250,12 @@ export default function Experiences() {
                     </p>
                     {!loading && (
                       <div className="mt-8 flex flex-wrap items-center gap-5">
-                        <MagneticButton
-                          as={Link}
-                          to={it.href}
-                          strength={12}
-                          className="group/btn inline-flex items-center gap-2 bg-brand-ink text-white px-6 py-3 rounded-full font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.28em] hover:bg-brand-action transition-colors duration-500"
-                        >
-                          {t("discoverMore") || "Discover"}
-                          <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-500 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1" />
-                        </MagneticButton>
                         <Link
                           to="/all-riads"
-                          className="group/link font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-brand-ink/60 hover:text-brand-action transition-colors duration-500"
+                          className="group/btn inline-flex items-center gap-3 bg-brand-ink text-white px-7 py-3.5 rounded-full font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.28em] hover:bg-brand-action transition-all duration-500 shadow-md hover:shadow-xl"
                         >
-                          <span className="relative pb-1">
-                            {t("bookARiadNearby") || "Book a riad nearby"}
-                            <span className="absolute left-0 -bottom-0 h-px w-full bg-brand-action origin-left scale-x-0 group-hover/link:scale-x-100 transition-transform duration-500" />
-                          </span>
+                          {t("bookARiadNearby") || "Book a riad nearby"}
+                          <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-500 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1" />
                         </Link>
                       </div>
                     )}

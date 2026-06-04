@@ -34,7 +34,7 @@ const customIcon = new L.Icon({
 const ChangeView = ({ center, zoom }) => {
   const map = useMap();
   useEffect(() => {
-    if (center) map.setView(center, zoom);
+    if (center && center.length === 2) map.setView(center, zoom);
   }, [center, zoom, map]);
   return null;
 };
@@ -114,8 +114,13 @@ const MedinaQuartiersPage = () => {
         seo_desc: getTranslated(q.seo_desc_tr, currentLanguage),
       }))
       .filter((q) => {
-        const nameMatch = q.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const proximityMatch = q.walking_minutes_from_jemaa <= proximity[0];
+        const nameMatch = searchTerm
+          ? q.name?.toLowerCase().includes(searchTerm.toLowerCase())
+          : true;
+        const proximityMatch =
+          q.walking_minutes_from_jemaa != null
+            ? q.walking_minutes_from_jemaa <= proximity[0]
+            : true;
         const categoryMatch =
           selectedCategories.length === 0 ||
           selectedCategories.some((cat) => q.category_tags?.includes(cat));
@@ -147,13 +152,17 @@ const MedinaQuartiersPage = () => {
 
   const pageTitle = `${t('medinaQuartiersTitle')} · MGH`;
 
+  const mapCenter = useMemo(() => {
+    if (activeQuartier?.lat && activeQuartier?.lng) {
+      return [activeQuartier.lat, activeQuartier.lng];
+    }
+    return [31.6258, -7.9935];
+  }, [activeQuartier]);
+
   const breadcrumbItems = [
     { label: t('home'), href: '/' },
     { label: t('quartiersMedina') },
   ];
-
-  // default map center (Jemaa el-Fna vicinity)
-  const DEFAULT_CENTER = [31.6258, -7.9935];
 
   return (
     <>
@@ -284,7 +293,7 @@ const MedinaQuartiersPage = () => {
               {showMapMobile && (
                 <div className="lg:hidden h-[45vh] overflow-hidden mb-6 shadow-lg border">
                   <MapContainer
-                    center={activeQuartier ? [activeQuartier.lat, activeQuartier.lng] : DEFAULT_CENTER}
+                    center={mapCenter}
                     zoom={activeQuartier ? 16 : 14}
                     scrollWheelZoom={false}
                     className="h-full w-full"
@@ -294,10 +303,10 @@ const MedinaQuartiersPage = () => {
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     <ChangeView
-                      center={activeQuartier ? [activeQuartier.lat, activeQuartier.lng] : DEFAULT_CENTER}
+                      center={mapCenter}
                       zoom={activeQuartier ? 16 : 14}
                     />
-                    {filteredQuartiers.map((quartier) => (
+                    {filteredQuartiers.filter((q) => q.lat && q.lng).map((quartier) => (
                       <Marker
                         key={quartier.id}
                         position={[quartier.lat, quartier.lng]}
@@ -339,12 +348,18 @@ const MedinaQuartiersPage = () => {
                     }`}
                   >
                     <Card className="flex flex-col md:flex-row w-full">
-                      <div className="md:w-1/3 xl:w-1/4">
-                        <OptimizedImage
-                          src={quartier.images[0]}
-                          alt={quartier.name}
-                          className="w-full h-48 md:h-full object-cover"
-                        />
+                      <div className="md:w-1/3 xl:w-1/4 bg-brand-beige/50">
+                        {quartier.images?.[0] ? (
+                          <OptimizedImage
+                            src={quartier.images[0]}
+                            alt={quartier.name}
+                            className="w-full h-48 md:h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-48 md:h-full flex items-center justify-center text-brand-ink/30 font-display italic text-lg">
+                            {quartier.name?.[0] || 'Q'}
+                          </div>
+                        )}
                       </div>
 
                       <div className="md:w-2/3 xl:w-3/4 flex flex-col">
@@ -399,7 +414,7 @@ const MedinaQuartiersPage = () => {
             <aside className="hidden lg:block lg:col-span-5">
               <div className="sticky top-28 h-[calc(100vh-8rem)] overflow-hidden shadow-lg border">
                 <MapContainer
-                  center={activeQuartier ? [activeQuartier.lat, activeQuartier.lng] : DEFAULT_CENTER}
+                  center={mapCenter}
                   zoom={activeQuartier ? 16 : 14}
                   scrollWheelZoom={false}
                   className="h-full w-full"
@@ -409,7 +424,7 @@ const MedinaQuartiersPage = () => {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   <ChangeView
-                    center={activeQuartier ? [activeQuartier.lat, activeQuartier.lng] : DEFAULT_CENTER}
+                    center={mapCenter}
                     zoom={activeQuartier ? 16 : 14}
                   />
                   {filteredQuartiers.map((quartier) => (
