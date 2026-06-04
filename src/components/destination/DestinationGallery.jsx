@@ -19,7 +19,6 @@ const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
     const ctx = gsap.context(() => {
       gsap.from(gridRef.current.children, {
         y: 30,
-        opacity: 0,
         duration: 0.7,
         stagger: 0.06,
         ease: "power3.out",

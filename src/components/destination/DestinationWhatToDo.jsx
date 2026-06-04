@@ -17,7 +17,6 @@ const DestinationWhatToDo = ({ whatToDo, sectionRef }) => {
     const ctx = gsap.context(() => {
       gsap.from(gridRef.current.children, {
         y: 50,
-        opacity: 0,
         duration: 0.9,
         stagger: 0.1,
         ease: "power3.out",

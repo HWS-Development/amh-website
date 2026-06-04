@@ -17,7 +17,6 @@ const DestinationMap = ({ mapUrl, destinationName, sectionRef }) => {
       if (headerRef.current) {
         gsap.from(headerRef.current, {
           y: 30,
-          opacity: 0,
           duration: 0.8,
           ease: "power3.out",
           scrollTrigger: {
@@ -30,7 +29,6 @@ const DestinationMap = ({ mapUrl, destinationName, sectionRef }) => {
       if (mapContainerRef.current) {
         gsap.from(mapContainerRef.current, {
           y: 40,
-          opacity: 0,
           duration: 0.9,
           ease: "power3.out",
           scrollTrigger: {

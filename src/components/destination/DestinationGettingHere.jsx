@@ -23,7 +23,6 @@ const DestinationGettingHere = ({ gettingHere, sectionRef }) => {
     const ctx = gsap.context(() => {
       gsap.from(cardsRef.current.children, {
         y: 40,
-        opacity: 0,
         duration: 0.8,
         stagger: 0.12,
         ease: "power3.out",

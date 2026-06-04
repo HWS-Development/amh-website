@@ -15,7 +15,6 @@ const DestinationGoodToKnow = ({ goodToKnow, sectionRef }) => {
     const ctx = gsap.context(() => {
       gsap.from(listRef.current.children, {
         y: 20,
-        opacity: 0,
         duration: 0.6,
         stagger: 0.08,
         ease: "power2.out",

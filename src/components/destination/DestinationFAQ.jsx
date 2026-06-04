@@ -20,7 +20,6 @@ const DestinationFAQ = ({ faq, sectionRef }) => {
     const ctx = gsap.context(() => {
       gsap.from(headerRef.current, {
         y: 30,
-        opacity: 0,
         duration: 0.8,
         ease: "power3.out",
         scrollTrigger: {
