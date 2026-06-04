@@ -111,18 +111,22 @@ const CityCarousel = ({ cityName, riads, index, totalCities }) => {
         <button
           onClick={() => emblaApi?.scrollPrev()}
           disabled={!canScrollPrev}
-          className="absolute left-[-2.75rem] md:left-[-3.35rem] top-1/2 -translate-y-1/2 z-10 p-2 disabled:opacity-35 disabled:pointer-events-none"
+          className="group/arrow absolute left-[-2.75rem] md:left-[-3.35rem] top-1/2 -translate-y-1/2 z-10 p-2 disabled:opacity-35 disabled:pointer-events-none"
           aria-label="Previous"
         >
-          <TriangleArrow direction="left" />
+          <span className="block transition-transform duration-300 group-hover/arrow:scale-110 group-hover/arrow:drop-shadow-[0_0_12px_rgba(191,103,62,0.5)]">
+            <TriangleArrow direction="left" />
+          </span>
         </button>
         <button
           onClick={() => emblaApi?.scrollNext()}
           disabled={!canScrollNext}
-          className="absolute right-[-2.75rem] md:right-[-3.35rem] top-1/2 -translate-y-1/2 z-10 p-2 disabled:opacity-35 disabled:pointer-events-none"
+          className="group/arrow absolute right-[-2.75rem] md:right-[-3.35rem] top-1/2 -translate-y-1/2 z-10 p-2 disabled:opacity-35 disabled:pointer-events-none"
           aria-label="Next"
         >
-          <TriangleArrow direction="right" />
+          <span className="block transition-transform duration-300 group-hover/arrow:scale-110 group-hover/arrow:drop-shadow-[0_0_12px_rgba(191,103,62,0.5)]">
+            <TriangleArrow direction="right" />
+          </span>
         </button>
 
         <div ref={emblaRef} className="overflow-hidden">
@@ -159,8 +163,6 @@ export default function CatalogueSection() {
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [filteredHotels, setFilteredHotels] = useState(null);
-  const [filterLoading, setFilterLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -190,89 +192,88 @@ export default function CatalogueSection() {
     return () => { mounted = false; };
   }, [currentLanguage]);
 
-  // Server-side filter fetch
-  const serverFilters = useMemo(() => {
-    const sf = {};
-    if (filters.city_id) sf.city_id = filters.city_id;
-    if (filters.neighborhood_id) sf.neighborhood_id = filters.neighborhood_id;
-    if (filters.property_type_id) sf.property_type_id = filters.property_type_id;
-    if (filters.amenity_ids?.length > 0) sf.amenity_ids = filters.amenity_ids;
-    return sf;
-  }, [filters]);
+  const loading = isLoading || catalogLoading;
 
-  const serverFilterKey = JSON.stringify(serverFilters);
+  // Client-side enriched riads map (same approach as AllRiadsPage)
+  const riadsMap = useMemo(() => {
+    if (!hotelsData || !catalogs) return [];
+    return (hotelsData || []).map((r) => ({
+      id: extractCentraHotelId(r.image_urls) || r.id,
+      organizationId: extractCentraOrganizationId(r.image_urls),
+      name: getTranslated(r.name, currentLanguage),
+      description: getTranslated(r.description, currentLanguage),
+      address: getTranslated(r.address, currentLanguage),
+      city_id: r.city_id || r.cityId || null,
+      neighborhood_id: r.neighborhood_id || r.neighborhoodId || null,
+      property_type_id: r.property_type_id || r.propertyTypeId || null,
+      city: catalogs.cities[r.city_id || r.cityId] || "",
+      neighborhood: catalogs.neighborhoods[r.neighborhood_id || r.neighborhoodId] || "",
+      propertyType: catalogs.propertyTypes[r.property_type_id || r.propertyTypeId] || "",
+      amenity_ids: r.amenity_ids || r.amenityIds || [],
+      amenities: (r.amenity_ids || r.amenityIds || []).map((id) => catalogs.amenities[id]).filter(Boolean),
+      service_ids: r.service_ids || r.serviceIds || [],
+      services: (r.service_ids || r.serviceIds || []).map((id) => catalogs.amenities[id]).filter(Boolean),
+      rating_avg: r.rating_avg || r.ratingAvg || null,
+      reviews_count: r.reviews_count ?? r.reviewsCount ?? null,
+      imageUrl: Array.isArray(r.image_urls || r.imageUrls) && (r.image_urls || r.imageUrls).length > 0 ? (r.image_urls || r.imageUrls)[0] : null,
+      simple_booking_link: r.simple_booking_link || r.simpleBookingLink || null,
+    }));
+  }, [hotelsData, catalogs, currentLanguage]);
 
-  useEffect(() => {
-    const hasFilters = Object.keys(serverFilters).length > 0;
-    if (!hasFilters) {
-      setFilteredHotels(null);
-      setFilterLoading(false);
-      return;
+  const normalize = (s = "") =>
+    s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+
+  // Client-side filtering (same business logic as AllRiadsPage)
+  const filtered = useMemo(() => {
+    let list = [...riadsMap];
+    if (!list.length) return [];
+
+    if (search.trim()) {
+      const q = normalize(search);
+      list = list.filter(
+        (r) =>
+          normalize(r.name).includes(q) ||
+          normalize(r.city).includes(q) ||
+          normalize(r.neighborhood).includes(q)
+      );
     }
+    if (filters.city_id) {
+      list = list.filter((r) => String(r.city_id) === String(filters.city_id));
+    }
+    if (filters.neighborhood_id) {
+      list = list.filter((r) => String(r.neighborhood_id) === String(filters.neighborhood_id));
+    }
+    if (filters.property_type_id) {
+      list = list.filter((r) => String(r.property_type_id) === String(filters.property_type_id));
+    }
+    if (filters.amenity_ids?.length > 0) {
+      list = list.filter((r) =>
+        filters.amenity_ids.some((aid) => (r.amenity_ids || []).includes(aid))
+      );
+    }
+    if (filters.rating) {
+      list = list.filter((r) => (r.rating_avg || 0) >= filters.rating);
+    }
+    return list;
+  }, [riadsMap, search, filters]);
 
-    setFilterLoading(true);
-    const params = new URLSearchParams();
-    if (serverFilters.city_id) params.set("city_id", serverFilters.city_id);
-    if (serverFilters.neighborhood_id) params.set("neighborhood_id", serverFilters.neighborhood_id);
-    if (serverFilters.property_type_id) params.set("property_type_id", serverFilters.property_type_id);
-    if (serverFilters.amenity_ids?.length > 0) params.set("amenity_ids", serverFilters.amenity_ids.join(","));
-
-    fetch(`/api/partner/hotels?${params.toString()}`)
-      .then((r) => r.json())
-      .then((body) => {
-        if (body.success && Array.isArray(body.data)) {
-          setFilteredHotels(body.data);
-        } else {
-          setFilteredHotels([]);
-        }
-      })
-      .catch((err) => {
-        console.error("CatalogueSection server filter error:", err);
-        setFilteredHotels([]);
-      })
-      .finally(() => setFilterLoading(false));
-  }, [serverFilterKey]);
-
-  const rawHotels = filteredHotels || hotelsData;
-  const loading = isLoading || catalogLoading || filterLoading;
-
+  // Group filtered results by city for carousel display
   const groupedByCity = useMemo(() => {
-    if (!rawHotels || !catalogs) return {};
+    if (!catalogs) return {};
     const groups = {};
-    rawHotels.forEach((r) => {
+    filtered.forEach((r) => {
       const cityLabel = (catalogs.cities[r.city_id] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       let slug = null;
       for (const s of CITY_ORDER) {
         if (cityLabel.includes(s)) { slug = s; break; }
       }
       if (!slug) return;
-
-      const mapped = {
-        id: extractCentraHotelId(r.image_urls) || r.id,
-        organizationId: extractCentraOrganizationId(r.image_urls),
-        name: getTranslated(r.name, currentLanguage),
-        description: getTranslated(r.description, currentLanguage),
-        city: catalogs.cities[r.city_id] || "",
-        neighborhood: catalogs.neighborhoods[r.neighborhood_id] || "",
-        propertyType: catalogs.propertyTypes[r.property_type_id] || "",
-        amenity_ids: r.amenity_ids || [],
-        amenities: (r.amenity_ids || []).map((id) => catalogs.amenities[id]).filter(Boolean),
-        rating_avg: r.rating_avg,
-        reviews_count: r.reviews_count,
-        imageUrl: Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : null,
-        simple_booking_link: r.simple_booking_link,
-      };
-
       if (!groups[slug]) groups[slug] = [];
-      groups[slug].push(mapped);
+      groups[slug].push(r);
     });
-
-    Object.keys(groups).forEach((key) => {
-      groups[key] = shuffleArray(groups[key]);
-    });
-
+    Object.keys(groups).forEach((key) => { groups[key] = shuffleArray(groups[key]); });
     return groups;
-  }, [rawHotels, catalogs, currentLanguage]);
+  }, [filtered, catalogs]);
 
   const activeFiltersCount = useMemo(() => {
     let n = 0;
@@ -284,36 +285,11 @@ export default function CatalogueSection() {
     return n;
   }, [filters]);
 
-  // Client-side search + rating filter on top of grouped data
-  const filteredGrouped = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const hasLocalFilters = q || filters.rating;
-    if (!hasLocalFilters) return groupedByCity;
-
-    const result = {};
-    Object.entries(groupedByCity).forEach(([slug, list]) => {
-      let filtered = [...list];
-      if (q) {
-        filtered = filtered.filter(
-          (r) =>
-            r.name.toLowerCase().includes(q) ||
-            r.city.toLowerCase().includes(q) ||
-            r.neighborhood.toLowerCase().includes(q)
-        );
-      }
-      if (filters.rating) {
-        filtered = filtered.filter((r) => (r.rating_avg || 0) >= filters.rating);
-      }
-      if (filtered.length > 0) result[slug] = filtered;
-    });
-    return result;
-  }, [groupedByCity, search, filters.rating]);
-
   const visibleCities = CITY_ORDER
-    .map((slug) => ({ slug, riads: filteredGrouped[slug] || [] }))
+    .map((slug) => ({ slug, riads: groupedByCity[slug] || [] }))
     .filter((c) => c.riads.length > 0);
 
-  const totalCount = Object.values(filteredGrouped).reduce((sum, list) => sum + list.length, 0);
+  const totalCount = filtered.length;
 
   const clearFilters = useCallback(() => {
     setFilters({ city_id: null, neighborhood_id: null, property_type_id: null, amenity_ids: [], rating: null });
@@ -336,6 +312,7 @@ export default function CatalogueSection() {
 
   return (
     <section className="section-padding bg-brand-beige relative overflow-hidden">
+      <div className="section-divider" aria-hidden />
       <div className="content-wrapper-wide relative">
         <SectionHeader
           eyebrow={t("catalogueEyebrow") || "Our collection"}
@@ -354,14 +331,14 @@ export default function CatalogueSection() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t("searchPlaceholder")}
-                  className="w-full h-full bg-transparent px-4 outline-none text-gray-800 placeholder:text-gray-400 font-montserrat text-sm"
+                  className="w-full h-full bg-transparent px-4 outline-none text-gray-800 placeholder:text-gray-400"
                 />
               </div>
             </div>
 
             <button
               onClick={() => setIsFilterOpen(true)}
-              className={`relative h-14 px-7 flex items-center justify-center gap-3 font-bold uppercase tracking-[0.14em] text-sm transition-all shadow-lg hover:shadow-2xl active:scale-95 font-montserrat group overflow-hidden shrink-0 ${
+              className={`relative h-14 px-7 flex items-center justify-center gap-3 font-bold uppercase tracking-[0.14em] text-sm transition-all shadow-lg hover:shadow-2xl active:scale-95 font-montserrat group overflow-hidden ${
                 activeFiltersCount > 0
                   ? "bg-brand-action text-white"
                   : "bg-brand-ink text-white hover:bg-brand-action"
@@ -384,7 +361,7 @@ export default function CatalogueSection() {
               {filters.city_id && catalogArrays.cities.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-action/10 text-brand-action text-[0.65rem] font-semibold font-montserrat uppercase tracking-[0.1em]">
                   {catalogArrays.cities.find((c) => c.id === filters.city_id)?.label || filters.city_id}
-                  <button onClick={() => removeFilter("city_id")} className="ml-1 hover:text-brand-ink"><X className="w-3 h-3" /></button>
+                  <button onClick={() => setFilters((p) => ({ ...p, city_id: null, neighborhood_id: null }))} className="ml-1 hover:text-brand-ink"><X className="w-3 h-3" /></button>
                 </span>
               )}
               {filters.property_type_id && catalogArrays.propertyTypes.length > 0 && (
@@ -399,19 +376,29 @@ export default function CatalogueSection() {
                   <button onClick={() => setFilters((p) => ({ ...p, amenity_ids: p.amenity_ids.filter((x) => x !== aid) }))} className="ml-1 hover:text-brand-ink"><X className="w-3 h-3" /></button>
                 </span>
               ))}
+              {filters.rating && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-action/10 text-brand-action text-[0.65rem] font-semibold font-montserrat uppercase tracking-[0.1em]">
+                  {filters.rating}+
+                  <button onClick={() => setFilters((p) => ({ ...p, rating: null }))} className="ml-1 hover:text-brand-ink"><X className="w-3 h-3" /></button>
+                </span>
+              )}
               <button onClick={clearFilters} className="inline-flex items-center gap-1.5 px-3 h-8 text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-brand-ink/50 hover:text-brand-action transition-colors font-montserrat">
                 {t("resetAll") || "Reset all"}
               </button>
             </div>
           )}
 
-          {totalCount > 0 && (
-            <div className="mt-3 text-center">
-              <span className="font-montserrat text-[0.72rem] text-brand-ink/40 uppercase tracking-[0.2em]">
-                {totalCount} {totalCount > 1 ? t("properties") || "properties" : t("property") || "property"} {t("available") || "available"}
-              </span>
-            </div>
-          )}
+          <div className="mt-4 flex items-center justify-between px-1">
+            <span className="text-sm font-semibold text-gray-600">
+              {totalCount}{" "}
+              <span className="text-brand-action">{t("results")}</span>
+              {activeFiltersCount > 0 && (
+                <span className="ml-2 text-xs text-brand-ink/55 font-normal">
+                  · {activeFiltersCount} {activeFiltersCount > 1 ? t("filtersActivePlural") : t("filtersActive")}
+                </span>
+              )}
+            </span>
+          </div>
         </div>
 
         {visibleCities.length === 0 ? (
@@ -435,15 +422,14 @@ export default function CatalogueSection() {
         open={isFilterOpen}
         onOpenChange={setIsFilterOpen}
         filters={filters}
-        neighborhoods={[]}
+        neighborhoods={catalogArrays.neighborhoods}
         cities={catalogArrays.cities}
         propertyTypes={catalogArrays.propertyTypes}
         amenities={catalogArrays.amenities}
-        onFiltersChange={(next) => {
-          setFilters(next);
-          setIsFilterOpen(false);
-        }}
+        onFiltersChange={(next) => { setFilters(next); }}
         resultCount={totalCount}
+        riadsMap={riadsMap}
+        t={t}
       />
     </section>
   );

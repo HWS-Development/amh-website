@@ -226,7 +226,126 @@
   }
 }
 
-/* Custom scrollbar for supporting browsers */
+/* ── Premium grain texture overlay ── */
+.grain-overlay::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ── Section divider — soft gradient wave ── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(191, 103, 62, 0.12) 15%, rgba(191, 103, 62, 0.08) 50%, rgba(191, 103, 62, 0.12) 85%, transparent 100%);
+  margin: 0;
+}
+
+/* ── Decorative corner bracket ── */
+.corner-bracket {
+  position: relative;
+}
+.corner-bracket::before,
+.corner-bracket::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: rgba(191, 103, 62, 0.2);
+  pointer-events: none;
+  transition: border-color 0.5s ease;
+}
+.corner-bracket::before {
+  top: 0; left: 0;
+  border-top: 1.5px solid;
+  border-left: 1.5px solid;
+}
+.corner-bracket::after {
+  bottom: 0; right: 0;
+  border-bottom: 1.5px solid;
+  border-right: 1.5px solid;
+}
+.corner-bracket:hover::before,
+.corner-bracket:hover::after {
+  border-color: rgba(191, 103, 62, 0.5);
+}
+
+/* ── Image clip reveal (for scroll-triggered reveals) ── */
+.img-reveal {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.img-reveal.is-hidden {
+  clip-path: inset(0 0 100% 0);
+}
+
+/* ── Soft glow ring for interactive elements ── */
+.glow-ring {
+  transition: box-shadow 0.4s ease;
+}
+.glow-ring:hover {
+  box-shadow: 0 0 0 2px rgba(191, 103, 62, 0.15), 0 0 30px -5px rgba(191, 103, 62, 0.2);
+}
+
+/* ── Premium focus-visible ── */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(191, 103, 62, 0.35), 0 0 0 4px rgba(191, 103, 62, 0.1);
+  border-radius: 2px;
+}
+
+/* ── Subtle text reveal for editorial headings ── */
+.text-reveal {
+  overflow: hidden;
+  display: block;
+}
+.text-reveal > span {
+  display: block;
+  animation: textRevealIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: left bottom;
+}
+@keyframes textRevealIn {
+  0% { opacity: 0; transform: translateY(0.35em) rotateX(5deg); }
+  100% { opacity: 1; transform: translateY(0) rotateX(0); }
+}
+
+/* ── Scale-in reveal for badges / numerals ── */
+.scale-reveal {
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.scale-reveal.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ── Pulsed dot for active indicators ── */
+.pulse-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #bf673e;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(191, 103, 62, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(191, 103, 62, 0); }
+}
+
+/* ── Section connector line (vertical decorative) ── */
+.section-connector {
+  width: 1px;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(191, 103, 62, 0.15), transparent);
+  margin: 0 auto;
+}
+
+/* ── Custom scrollbar ── */
 @media (min-width: 768px) {
   ::-webkit-scrollbar {
     width: 6px;
@@ -241,5 +360,20 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(29, 29, 27, 0.25);
+  }
+}
+
+/* ── Reduced motion — disable all decorative animations ── */
+@media (prefers-reduced-motion: reduce) {
+  .grain-overlay::after { opacity: 0.015; }
+  .hero-kenburns, .hero-badge-float, .hero-badge-spin,
+  .hero-scroll-hint, .text-reveal > span,
+  .scale-reveal, .pulse-dot { animation: none !important; }
+  .scale-reveal { opacity: 1; transform: none; }
+  .text-reveal > span { opacity: 1; transform: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

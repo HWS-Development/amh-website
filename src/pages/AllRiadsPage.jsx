@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Helmet } from "react-helmet";
 import {
   LayoutGrid, List, ChevronLeft, ChevronRight, Filter,
-  Search, Sparkles, X,
+  Search, Sparkles, X, Compass,
 } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ const AllRiadsPage = () => {
   const listStartRef = useRef(null);
   const hasPaginatedRef = useRef(false);
   const gridRef = useRef(null);
-  const headerRef = useRef(null);
+  const reduce = useReducedMotion();
 
   const [filters, setFilters] = useState({
     city_id: null,
@@ -203,15 +204,9 @@ const AllRiadsPage = () => {
   useEffect(() => {
     if (loading || !gridRef.current || !gridRef.current.children.length) return;
     gsap.from(gridRef.current.children, {
-      opacity: 0, y: 20, duration: 0.4, stagger: 0.05,
+      opacity: 0, y: 20, duration: 0.4, stagger: 0.05, clearProps: "all",
     });
   }, [loading, page, view]);
-
-  useEffect(() => {
-    if (headerRef.current) {
-      gsap.from(headerRef.current, { opacity: 0, y: 20, duration: 0.5 });
-    }
-  }, []);
 
   // Read URL params on mount
   useEffect(() => {
@@ -276,35 +271,64 @@ const AllRiadsPage = () => {
       </Helmet>
 
       <div className="bg-gradient-to-b from-white via-white to-gray-50 pt-32 section-padding content-wrapper">
-        <div ref={headerRef} className="flex flex-col md:flex-row justify-between mb-10 gap-6 bg-brand-beige/60 rounded-lg p-6 md:p-8">
-          <div>
-            <h1 className="h1-style text-brand-ink font-bold">
-              {t("allRiads")}
-            </h1>
-            <p className="body-text mt-3 text-brand-ink font-semibold">
-              {t("exploreAllOurCertifiedRiads")}
-            </p>
-          </div>
+        {/* ─── PREMIUM HEADER ─── */}
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 24 }}
+          animate={reduce ? undefined : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="relative mb-10 overflow-hidden rounded-[28px] border border-brand-ink/10 bg-gradient-to-br from-brand-beige/80 via-brand-beige/40 to-white p-7 md:p-10 shadow-[0_25px_70px_-30px_rgba(29,29,27,0.25)]"
+        >
+          {/* Decorative serif wordmark */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -top-8 -right-6 select-none font-display italic text-[clamp(7rem,16vw,13rem)] leading-none text-brand-action/[0.07] tracking-tight"
+          >
+            Riads
+          </span>
+          {/* Decorative hairline orbs */}
+          <span aria-hidden className="pointer-events-none absolute -bottom-24 -left-20 w-72 h-72 rounded-full bg-brand-action/10 blur-3xl" />
 
-          <div className="flex items-center gap-3 self-start md:self-end">
-            <div className="flex border-2 border-brand-ink/30 overflow-hidden bg-white shadow-lg">
-              {["cards", "list"].map((viewOption) => (
-                <button
-                  key={viewOption}
-                  onClick={() => setQuery({ view: viewOption }, "push")}
-                  className={`px-5 h-14 font-bold transition-all active:scale-95 text-brand-ink ${
-                    view === viewOption
-                      ? "bg-brand-action text-white"
-                      : "bg-brand-beige text-brand-ink hover:bg-brand-beige/80"
-                  }`}
-                  aria-label={viewOption}
-                >
-                  {viewOption === "cards" ? <LayoutGrid className="w-5 h-5" /> : <List className="w-5 h-5" />}
-                </button>
-              ))}
+          <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div className="max-w-2xl">
+              <p className="inline-flex items-center gap-2 font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.36em] text-brand-action mb-5">
+                <Compass className="w-3.5 h-3.5" />
+                {t("certifiedCollection") || "Collection certifiée"}
+              </p>
+              <h1 className="font-display text-brand-ink text-[clamp(2.2rem,5vw,4.2rem)] leading-[1.02] tracking-tight font-medium">
+                {t("allRiads")}
+              </h1>
+              <div className="mt-5 h-px w-16 bg-brand-action" />
+              <p className="mt-5 font-montserrat text-brand-ink/70 text-base md:text-lg leading-relaxed">
+                {t("exploreAllOurCertifiedRiads")}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0 self-start md:self-end">
+              <div className="inline-flex items-center rounded-full border border-brand-ink/15 bg-white/90 backdrop-blur-md p-1 shadow-[0_10px_30px_-15px_rgba(29,29,27,0.3)]">
+                {["cards", "list"].map((viewOption) => {
+                  const active = view === viewOption;
+                  return (
+                    <button
+                      key={viewOption}
+                      onClick={() => setQuery({ view: viewOption }, "push")}
+                      className={`relative inline-flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300 ${
+                        active
+                          ? "bg-brand-ink text-white shadow-[0_8px_24px_-8px_rgba(29,29,27,0.55)]"
+                          : "text-brand-ink/55 hover:text-brand-action"
+                      }`}
+                      aria-label={viewOption}
+                      aria-pressed={active}
+                    >
+                      {viewOption === "cards"
+                        ? <LayoutGrid className="w-4 h-4" />
+                        : <List className="w-4 h-4" />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Search + Filter + Quick actions */}
         <div className="mb-10">

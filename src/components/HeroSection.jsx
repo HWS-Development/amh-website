@@ -1,22 +1,16 @@
 import React, { useRef, useLayoutEffect, useState, useEffect, useCallback, useMemo } from "react";
 import gsap from "gsap";
+import { motion, AnimatePresence } from "framer-motion";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, EffectFade, Pagination, Parallax, Keyboard } from "swiper/modules";
+import { Autoplay, EffectFade, Pagination, Keyboard } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
 import "swiper/css/pagination";
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import BookingStrip from "@/components/BookingStrip";
-import { Sparkles, MapPin, ChevronDown } from "lucide-react";
 
-/* ────────────────────────────────────────────────────────────────────────
-   Destination × Activity slides
-   Iconic locations paired with an emblematic activity, as requested.
-   Images come from the existing Supabase `rotative` bucket (already used
-   site-wide) so we don't add new asset dependencies. Activity icons are
-   inline SVGs — crisp at any size, recolorable, zero extra HTTP.
-   ──────────────────────────────────────────────────────────────────────── */
+/* ─── Config ──────────────────────────────────────────────────────────── */
 const storageBase =
   import.meta.env.VITE_SUPABASE_STORAGE_BASE ||
   "https://dzuwwfttnigeisicqyto.supabase.co";
@@ -24,386 +18,516 @@ const storageBase =
 const rota = (file) =>
   `${storageBase}/storage/v1/object/public/amhimages/rotative/${file}`;
 
-/* Inline activity glyphs — each ~24×24, monoline, premium-feeling */
-const SidecarIcon = (p) => (
-  <svg viewBox="0 0 64 32" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" {...p}>
-    <circle cx="14" cy="24" r="6" /><circle cx="48" cy="24" r="6" />
-    <path d="M14 24h12l6-10h10l4 10" /><path d="M26 14l4-6h8l4 6" />
-    <path d="M44 24h-8a4 4 0 0 1-4-4v-2h14v2a4 4 0 0 1-2 4z" />
-  </svg>
-);
-const BikeIcon = (p) => (
-  <svg viewBox="0 0 64 32" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" {...p}>
-    <circle cx="14" cy="24" r="6" /><circle cx="50" cy="24" r="6" />
-    <path d="M14 24l10-12h12l6 12M24 12h6M36 12l-4 12" /><path d="M44 6h6" />
-  </svg>
-);
-const CarriageIcon = (p) => (
-  <svg viewBox="0 0 64 32" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" {...p}>
-    <circle cx="20" cy="24" r="6" /><circle cx="40" cy="24" r="6" />
-    <path d="M14 24h-2M14 18v6h32v-6a4 4 0 0 0-4-4H18a4 4 0 0 0-4 4z" />
-    <path d="M46 18l8-6 4 2-4 8" /><path d="M58 14l4-2" />
-  </svg>
-);
-const JeepIcon = (p) => (
-  <svg viewBox="0 0 64 32" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" {...p}>
-    <circle cx="16" cy="24" r="5" /><circle cx="48" cy="24" r="5" />
-    <path d="M6 24v-8l6-6h28l8 8h6v6M22 10v8M34 10v8M16 18v-2h-6M48 18v-2h6" />
-  </svg>
-);
-
-/* ────────────────────────────────────────────────────────────────────────
-   Round "Réservez en Direct / Meilleurs Tarifs Garantis" badge button.
-   Uses the official PNG asset and links to the SimpleBooking portal.
-   – Subtle floating animation + hover lift + rotating accent ring
-   ──────────────────────────────────────────────────────────────────────── */
 const BOOK_DIRECT_URL =
   `${import.meta.env.VITE_SIMPLEBOOKING_BASE || "https://www.simplebooking.it/portal/256"}?lang=EN&cur=EUR`;
 
-const RoundBadge = ({ t, size = "md" }) => {
-  const dims =
-    size === "sm"
-      ? "w-[112px] h-[112px]"
-      : "w-[150px] h-[150px] sm:w-[170px] sm:h-[170px] md:w-[190px] md:h-[190px]";
+/* ─── Side thumbnail images (2 static vignettes right column) ────────── */
+const SIDE_IMAGES = [
+  { src: rota("Ouarzazate_rota1.jpeg"), label: "Ouarzazate" },
+  { src: rota("Essaouira_rota1.jpg"),   label: "Essaouira"  },
+];
 
-  return (
-    <a
-      href={BOOK_DIRECT_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`${t("badgeBookDirect")} — ${t("badgeBestPrices")} ${t("badgeGuaranteed")}`}
-      className={`group relative inline-block ${dims} select-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-action focus-visible:ring-offset-2 focus-visible:ring-offset-transparent`}
-    >
-      {/* Soft glowing halo */}
-      <span
-        aria-hidden
-        className="absolute -inset-3 rounded-full bg-brand-action/30 blur-2xl opacity-70 group-hover:opacity-100 transition-opacity duration-500"
-      />
-
-      {/* Rotating accent ring (slow continuous spin) */}
-      <span
-        aria-hidden
-        className="absolute inset-0 rounded-full ring-1 ring-white/15 hero-badge-spin"
-      />
-
-      {/* The badge image itself */}
-      <img
-        src="/images/Badge-reservez-en-direct.png"
-        alt=""
-        draggable={false}
-        className="relative z-[1] w-full h-full object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)] transition-transform duration-500 ease-out group-hover:scale-[1.06] group-active:scale-[0.98] hero-badge-float"
-      />
-    </a>
-  );
+/* ─── Framer variants ─────────────────────────────────────────────────── */
+const headlineVariants = {
+  hidden:  { opacity: 0, y: 22, filter: "blur(6px)" },
+  visible: { opacity: 1, y: 0,  filter: "blur(0px)", transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] } },
+  exit:    { opacity: 0, y: -10, filter: "blur(4px)", transition: { duration: 0.28, ease: "easeIn" } },
 };
 
-/* ─────────────────────────────────────────────────────────── HERO ──── */
+const descVariants = {
+  hidden:  { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0,  transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.12 } },
+  exit:    { opacity: 0,        transition: { duration: 0.2 } },
+};
+
+/* ─── BookDirect Badge ────────────────────────────────────────────────── */
+const BookDirectBadge = ({ t }) => (
+  <motion.a
+    href={BOOK_DIRECT_URL}
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label={`${t("badgeBookDirect")} — ${t("badgeBestPrices")} ${t("badgeGuaranteed")}`}
+    initial={{ scale: 0.35, opacity: 0, rotate: -18 }}
+    animate={{ scale: 1,    opacity: 1, rotate: 0   }}
+    transition={{ delay: 1.3, duration: 0.7, ease: [0.34, 1.56, 0.64, 1] }}
+    whileHover={{ scale: 1.06 }}
+    whileTap={{ scale: 0.96 }}
+    className="relative block select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c4804a]"
+    style={{ width: 100, height: 100 }}
+  >
+    {/* Orbit ring */}
+    <span
+      aria-hidden
+      className="absolute inset-0 rounded-full border border-dashed"
+      style={{
+        borderColor: "rgba(196,128,74,0.28)",
+        animation: "hero-orbit 30s linear infinite",
+      }}
+    />
+    {/* Glow pulse */}
+    <span
+      aria-hidden
+      className="absolute inset-[-8px] rounded-full"
+      style={{
+        background: "radial-gradient(circle, rgba(196,128,74,0.18) 0%, transparent 70%)",
+        animation: "hero-pulse 4s ease-in-out infinite",
+      }}
+    />
+    {/* Badge image */}
+    <motion.img
+      src="/images/Badge-reservez-en-direct.png"
+      alt=""
+      draggable={false}
+      className="relative z-10 w-full h-full object-contain"
+      animate={{ y: [0, -5, 0] }}
+      transition={{ duration: 5, ease: "easeInOut", repeat: Infinity, repeatType: "loop" }}
+    />
+  </motion.a>
+);
+
+/* ═══════════════════════════════════════════════════════════ HERO ══════ */
 const HeroSection = () => {
   const { t, currentLanguage, date, onDateChange } = useLanguage();
 
-  const sectionRef = useRef(null);
-  const titleRef = useRef(null);
-  const subtitleRef = useRef(null);
-  const stripRef = useRef(null);
-  const eyebrowRef = useRef(null);
-  const badgeRef = useRef(null);
-  const slideMetaRef = useRef(null);
+  const sectionRef  = useRef(null);
+  const topBarRef   = useRef(null);
+  const bottomRef   = useRef(null);
+  const badgeRef    = useRef(null);
+  const mainImgRef  = useRef(null);
+  const cornersRef  = useRef([]);
 
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [activeIdx, setActiveIdx]         = useState(0);
+  const [titleKey,  setTitleKey]          = useState(0); // force AnimatePresence remount
 
-  /* Slides — translated, image + activity icon */
-  const slides = useMemo(
-    () => [
-      {
-        key: "marrakech",
-        image: rota("Marrakech_rota1.jpg"),
-        title: t("heroSliderMarrakech"),
-        desc: t("heroSliderMarrakechDesc"),
-        place: t("marrakech"),
-        Icon: SidecarIcon,
-      },
-      {
-        key: "essaouira",
-        image: rota("Essaouira_rota1.jpg"),
-        title: t("heroSliderEssaouira"),
-        desc: t("heroSliderEssaouiraDesc"),
-        place: t("essaouira"),
-        Icon: BikeIcon,
-      },
-      {
-        key: "ouarzazate",
-        image: rota("Ouarzazate_rota1.jpeg"),
-        title: t("heroSliderOuarzazate"),
-        desc: t("heroSliderOuarzazateDesc"),
-        place: t("ouarzazate"),
-        Icon: CarriageIcon,
-      },
-      {
-        key: "agafay",
-        // re-use Marrakech rota as a temporary stand-in for Agafay until a
-        // dedicated photo is uploaded to /rotative/Agafay_rota1.jpg
-        image: rota("Marrakech_rota1.jpg"),
-        title: t("heroSliderAgafay"),
-        desc: t("heroSliderAgafayDesc"),
-        place: t("marrakech"),
-        Icon: JeepIcon,
-      },
-    ],
-    [t, currentLanguage]
-  );
+  const slides = useMemo(() => [
+    {
+      key: "marrakech",
+      image:   rota("Marrakech_rota1.jpg"),
+      title:   t("heroSliderMarrakech"),
+      desc:    t("heroSliderMarrakechDesc"),
+      dest:    "Marrakech",
+    },
+    {
+      key: "ouarzazate",
+      image:   rota("Ouarzazate_rota1.jpeg"),
+      title:   t("heroSliderOuarzazate"),
+      desc:    t("heroSliderOuarzazateDesc"),
+      dest:    "Ouarzazate",
+    },
+    {
+      key: "agafay",
+      image:   rota("Marrakech_rota1.jpg"),
+      title:   t("heroSliderAgafay"),
+      desc:    t("heroSliderAgafayDesc"),
+      dest:    "Agafay",
+    },
+    {
+      key: "essaouira",
+      image:   rota("Essaouira_rota1.jpg"),
+      title:   t("heroSliderEssaouira"),
+      desc:    t("heroSliderEssaouiraDesc"),
+      dest:    "Essaouira",
+    },
+  ], [t, currentLanguage]);
 
-  /* GSAP entrance choreography */
+  const current = slides[activeIdx];
+
+  /* ── Slide change: bump titleKey so AnimatePresence re-animates ────── */
+  const handleSlideChange = useCallback((swiper) => {
+    setActiveIdx(swiper.realIndex);
+    setTitleKey((k) => k + 1);
+  }, []);
+
+  /* ── Entrance choreography (GSAP) ──────────────────────────────────── */
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-      tl.from(eyebrowRef.current, { y: 14, opacity: 0, duration: 0.55 })
-        .from(titleRef.current, { y: 36, opacity: 0, duration: 0.85 }, "-=0.3")
-        .from(subtitleRef.current, { y: 22, opacity: 0, duration: 0.65 }, "-=0.45")
-        .from(stripRef.current, { y: 24, opacity: 0, duration: 0.7 }, "-=0.35")
-        .from(badgeRef.current, { scale: 0.6, opacity: 0, rotate: -20, duration: 0.8, ease: "elastic.out(1,0.6)" }, "-=0.5");
+
+      /* Top bar slides down */
+      tl.from(topBarRef.current, { y: -28, opacity: 0, duration: 0.7 }, 0.1)
+
+      /* Corner accents draw in */
+        .from(cornersRef.current, {
+          scale: 0, opacity: 0, duration: 0.5, stagger: 0.12, ease: "back.out(2)",
+        }, 0.3)
+
+      /* Bottom booking strip slides up */
+        .from(bottomRef.current, { y: 28, opacity: 0, duration: 0.65 }, 0.7);
     }, sectionRef);
+
     return () => ctx.revert();
   }, []);
 
-  /* Animate slide meta (title + desc + icon) on slide change */
-  const animateMeta = useCallback(() => {
-    if (!slideMetaRef.current) return;
-    gsap.fromTo(
-      slideMetaRef.current.querySelectorAll(".meta-line"),
-      { y: 18, opacity: 0, filter: "blur(6px)" },
-      { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.7, stagger: 0.08, ease: "power3.out" }
+  /* ── Badge: Framer handles its own entrance; GSAP scroll hint ──────── */
+  useEffect(() => {
+    const hint = document.querySelector(".hero-scroll-hint");
+    if (!hint) return;
+    gsap.fromTo(hint,
+      { opacity: 0, y: -10 },
+      { opacity: 1, y: 0, duration: 0.6, delay: 1.6, ease: "power3.out" }
     );
   }, []);
-
-  useEffect(() => {
-    animateMeta();
-  }, [activeIdx, animateMeta]);
-
-  const ActiveIcon = slides[activeIdx]?.Icon;
 
   return (
     <section
       ref={sectionRef}
-      className="relative w-full overflow-hidden bg-[#0e0c0a] text-white"
-      style={{ height: "min(100svh, 900px)", minHeight: "640px" }}
+      className="relative w-full overflow-hidden"
+      style={{
+        height: "min(100svh, 920px)",
+        minHeight: 640,
+        background: "#0a0804",
+        fontFamily: "'Montserrat', sans-serif",
+      }}
     >
-      {/* ════════ Fullscreen cinematic slider ════════ */}
-      <Swiper
-        modules={[Autoplay, EffectFade, Pagination, Parallax, Keyboard]}
-        effect="fade"
-        fadeEffect={{ crossFade: true }}
-        speed={1100}
-        loop
-        autoplay={{ delay: 5400, disableOnInteraction: false, pauseOnMouseEnter: true }}
-        keyboard={{ enabled: true }}
-        parallax
-        pagination={{
-          el: ".hero-pagination",
-          clickable: true,
-          bulletClass: "hero-bullet",
-          bulletActiveClass: "hero-bullet-active",
-          renderBullet: (i, cls) => `<button class="${cls}" aria-label="Slide ${i + 1}"></button>`,
-        }}
-        onSlideChange={(s) => setActiveIdx(s.realIndex)}
-        className="absolute inset-0 w-full h-full"
-      >
-        {slides.map((s, i) => (
-          <SwiperSlide key={s.key + i} className="!w-full !h-full">
-            {({ isActive }) => (
-              <div className="relative w-full h-full overflow-hidden">
-                {/* Ken-Burns animated background image */}
-                <img
-                  src={s.image}
-                  alt={s.title}
-                  className={`absolute inset-0 w-full h-full object-cover will-change-transform ${
-                    isActive ? "hero-kenburns" : ""
-                  }`}
-                  draggable={false}
-                  loading={i === 0 ? "eager" : "lazy"}
-                />
-                {/* Cinematic dual gradient overlay */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_40%,rgba(0,0,0,0.15)_0%,rgba(0,0,0,0.55)_55%,rgba(0,0,0,0.85)_100%)]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0e0c0a] via-[#0e0c0a]/35 to-transparent" />
-                {/* Vignette */}
-                <div className="absolute inset-0 [box-shadow:inset_0_0_220px_60px_rgba(0,0,0,0.55)] pointer-events-none" />
-              </div>
-            )}
-          </SwiperSlide>
+      {/* ── Google Fonts (add to your <head> or _document if using Next.js) ─ */}
+      {/* <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" /> */}
+
+      {/* ════════════ MOSAIC BACKGROUND ══════════════════════════════════ */}
+      <div className="absolute inset-0 grid" style={{ gridTemplateColumns: "1fr 320px", gridTemplateRows: "1fr 1fr", gap: 2 }}>
+
+        {/* Main slide image */}
+        <div className="row-span-2 relative overflow-hidden" ref={mainImgRef}>
+          <Swiper
+            modules={[Autoplay, EffectFade, Keyboard]}
+            effect="fade"
+            fadeEffect={{ crossFade: true }}
+            speed={1100}
+            loop
+            autoplay={{ delay: 5400, disableOnInteraction: false, pauseOnMouseEnter: true }}
+            keyboard={{ enabled: true }}
+            onSlideChange={handleSlideChange}
+            className="absolute inset-0 w-full h-full"
+          >
+            {slides.map((s, i) => (
+              <SwiperSlide key={s.key + i} className="!w-full !h-full">
+                {({ isActive }) => (
+                  <img
+                    src={s.image}
+                    alt={s.title}
+                    className={`absolute inset-0 w-full h-full object-cover ${isActive ? "hero-kenburns" : ""}`}
+                    style={{ filter: "contrast(1.2) brightness(1.0) saturate(1.05)" }}
+                    draggable={false}
+                    loading={i === 0 ? "eager" : "lazy"}
+                  />
+                )}
+              </SwiperSlide>
+            ))}
+          </Swiper>
+          {/* Subtle left-to-right gradient for text readability */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "linear-gradient(105deg, rgba(10,8,4,0.40) 0%, rgba(10,8,4,0.08) 55%, rgba(10,8,4,0.20) 100%)", zIndex: 2 }}
+          />
+          {/* Subtle bottom fade for booking strip */}
+          <div
+            className="absolute inset-x-0 bottom-0 pointer-events-none"
+            style={{ height: "40%", background: "linear-gradient(to top, rgba(10,8,4,0.30) 0%, transparent 100%)", zIndex: 3 }}
+          />
+        </div>
+
+        {/* Side vignettes */}
+        {SIDE_IMAGES.map((img, i) => (
+          <div key={img.label} className="relative overflow-hidden">
+            <img
+              src={img.src}
+              alt={img.label}
+              className="absolute inset-0 w-full h-full object-cover hero-kenburns-side"
+              style={{ filter: "contrast(1.15) brightness(1.0) saturate(1.0)", animationDelay: `${i * 0.4}s` }}
+              draggable={false}
+              loading="lazy"
+            />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 40%, rgba(10,8,4,0.25) 100%)" }} />
+            {/* Label */}
+            <span
+              className="absolute bottom-3 right-3 text-white/40 font-montserrat uppercase tracking-[0.28em]"
+              style={{ fontSize: 8, fontWeight: 400 }}
+            >
+              {img.label}
+            </span>
+          </div>
         ))}
-      </Swiper>
+      </div>
 
-      {/* ════════ Foreground content ════════ */}
-      <div className="relative z-10 h-full w-full flex flex-col">
-        {/* Top spacer to clear fixed header (header is ~96px) */}
-        <div className="h-[100px] md:h-[120px] shrink-0" />
-
-        {/* Main centered content */}
-        <div className="flex-1 flex items-center justify-center px-5 sm:px-8">
-          <div className="w-full max-w-[1200px] grid lg:grid-cols-12 gap-10 items-center">
-            {/* LEFT: Text block */}
-            <div className="lg:col-span-8 text-center lg:text-left">
-              {/* Eyebrow */}
-              <div
-                ref={eyebrowRef}
-                className="inline-flex items-center gap-3 mb-5 mx-auto lg:mx-0"
-              >
-                <span className="h-px w-8 bg-brand-action" />
-                <span className="font-montserrat uppercase tracking-[0.4em] text-[0.62rem] sm:text-[0.7rem] text-white/85 font-medium">
-                  {t("heroEyebrow")}
-                </span>
-                <span className="h-px w-8 bg-brand-action lg:hidden" />
-              </div>
-
-              {/* Main headline */}
-              <h1
-                ref={titleRef}
-                className="font-montserrat font-extrabold uppercase leading-[1.08] tracking-[0.01em] text-white text-[clamp(1.55rem,4.6vw,3.6rem)] [text-shadow:0_4px_30px_rgba(0,0,0,0.45)]"
-              >
-                {t("heroTitle")}
-              </h1>
-
-              {/* Subtitle */}
-              <p
-                ref={subtitleRef}
-                className="mt-5 max-w-2xl mx-auto lg:mx-0 text-white font-montserrat text-[0.92rem] sm:text-base md:text-[1.05rem] leading-[1.7]"
-              >
-                {t("heroSubtitle")}
-              </p>
-
-              {/* Active slide meta (place × activity) */}
-              <div
-                ref={slideMetaRef}
-                className="mt-7 flex items-center justify-center lg:justify-start gap-4 flex-wrap"
-              >
-                <div className="meta-line inline-flex items-center gap-2.5 px-3.5 py-2 bg-white/10 backdrop-blur-md border border-white/20">
-                  <MapPin className="w-3.5 h-3.5 text-brand-action" />
-                  <span className="font-montserrat uppercase tracking-[0.22em] text-[0.7rem] text-white/95 font-semibold">
-                    {slides[activeIdx]?.place}
-                  </span>
-                </div>
-                <div className="meta-line inline-flex items-center gap-3 px-4 py-2 bg-brand-action/95 border border-brand-action shadow-[0_10px_30px_-10px_rgba(191,103,62,0.7)]">
-                  {ActiveIcon && <ActiveIcon className="w-6 h-4 text-white" />}
-                  <span className="font-montserrat uppercase tracking-[0.22em] text-[0.7rem] text-white font-semibold">
-                    {slides[activeIdx]?.title}
-                  </span>
-                </div>
-                <span className="meta-line hidden md:block font-montserrat text-[0.75rem] text-white/65 italic">
-                  {slides[activeIdx]?.desc}
-                </span>
-              </div>
-
-              {/* Booking strip — glassmorphism panel */}
-              <div ref={stripRef} className="mt-8">
-                <div className="relative">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-brand-action/30 via-white/5 to-brand-action/30 blur-xl opacity-50 pointer-events-none" />
-                  <div className="relative bg-white/95 backdrop-blur-xl border border-white/40 p-3 sm:p-4 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.5)]">
-                    <BookingStrip
-                      date={date}
-                      onDateChange={onDateChange}
-                      isMobile={false}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT: Round badge (desktop) */}
-            <div className="hidden lg:flex lg:col-span-4 items-center justify-center">
-              <div ref={badgeRef} className="relative">
-                <div className="absolute -inset-4 bg-brand-action/25 blur-3xl rounded-full pointer-events-none" />
-                <div className="relative">
-                  <RoundBadge t={t} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom controls bar */}
-        <div className="shrink-0 pb-6 sm:pb-8 px-5 sm:px-8">
-          <div className="max-w-[1200px] mx-auto flex items-end justify-between gap-6">
-            {/* Pagination dots */}
-            <div className="hero-pagination flex items-center gap-3" />
-
-            {/* Slide counter */}
-            <div className="hidden md:flex items-center gap-4 text-white/75 font-montserrat">
-              <span className="text-[0.7rem] tracking-[0.3em] text-brand-action font-semibold">
-                {String(activeIdx + 1).padStart(2, "0")}
-              </span>
-              <span className="h-px w-12 bg-white/30" />
-              <span className="text-[0.7rem] tracking-[0.3em] text-white/55">
-                {String(slides.length).padStart(2, "0")}
-              </span>
-            </div>
-
-            {/* Mobile badge — small floating version */}
-            <div className="lg:hidden">
-              <RoundBadge t={t} size="sm" />
-            </div>
-          </div>
-        </div>
-
-        {/* Scroll hint */}
+      {/* ════════════ GOLDEN CORNER ACCENTS ══════════════════════════════ */}
+      {[
+        { style: { top: 0, left: 0, borderTop: "1px solid rgba(196,128,74,0.45)", borderLeft: "1px solid rgba(196,128,74,0.45)" } },
+        { style: { bottom: 0, right: 0, borderBottom: "1px solid rgba(196,128,74,0.2)", borderRight: "1px solid rgba(196,128,74,0.2)" } },
+      ].map((c, i) => (
         <div
-          className="absolute left-1/2 -translate-x-1/2 bottom-2 hidden sm:flex flex-col items-center gap-1 text-white/55 pointer-events-none hero-scroll-hint"
+          key={i}
+          ref={(el) => (cornersRef.current[i] = el)}
+          className="absolute pointer-events-none"
+          style={{ width: 52, height: 52, zIndex: 10, ...c.style }}
+        />
+      ))}
+
+      {/* ════════════ CONTENT LAYER ══════════════════════════════════════ */}
+      <div className="relative z-10 h-full flex flex-col" style={{ padding: "0 32px" }}>
+
+        {/* ── Top bar ── */}
+        <div
+          ref={topBarRef}
+          className="flex items-center justify-between"
+          style={{ paddingTop: 24, paddingBottom: 0 }}
         >
-          <span className="font-montserrat uppercase tracking-[0.32em] text-[0.55rem]">
-            {t("scrollToDiscover")}
-          </span>
-          <ChevronDown className="w-3.5 h-3.5 animate-bounce" />
+          {/* Logo / Brand */}
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 17, letterSpacing: "0.28em", color: "#f5ede0", textTransform: "uppercase" }}>
+            AMH <span style={{ color: "#c4804a" }}>·</span> Voyages
+          </div>
+
+          {/* Nav */}
+          <nav className="hidden md:flex items-center gap-6">
+            {["Séjours", "Circuits", "Excursions"].map((label) => (
+              <button
+                key={label}
+                className="transition-colors duration-300"
+                style={{ fontSize: 10, letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(245,237,224,0.55)", background: "none", border: "none", cursor: "pointer" }}
+                onMouseEnter={(e) => (e.target.style.color = "#f5ede0")}
+                onMouseLeave={(e) => (e.target.style.color = "rgba(245,237,224,0.55)")}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              style={{
+                fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase",
+                color: "#c4804a", border: "0.5px solid rgba(196,128,74,0.5)",
+                padding: "7px 18px", background: "none", cursor: "pointer",
+                transition: "all 0.3s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(196,128,74,0.1)"; e.currentTarget.style.borderColor = "#c4804a"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "rgba(196,128,74,0.5)"; }}
+            >
+              Contactez-nous
+            </button>
+          </nav>
+        </div>
+
+        {/* ── Headline (Framer AnimatePresence) ── */}
+        <div className="flex-1 flex items-center" style={{ maxWidth: 560 }}>
+          <div>
+            {/* Eyebrow — brand-action pill */}
+            <motion.div
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              style={{ marginBottom: 16 }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  background: "#bf673e",
+                  color: "#fff",
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 9,
+                  letterSpacing: "0.38em",
+                  textTransform: "uppercase",
+                  padding: "4px 14px",
+                  lineHeight: 1.4,
+                }}
+              >
+                Royaume du Maroc
+              </span>
+            </motion.div>
+
+            <AnimatePresence mode="wait">
+              <motion.h1
+                key={`title-${titleKey}`}
+                variants={headlineVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 300,
+                  fontSize: "clamp(42px, 5.5vw, 64px)",
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.01em",
+                  color: "#f5ede0",
+                  margin: 0,
+                }}
+              >
+                {current?.title}
+              </motion.h1>
+            </AnimatePresence>
+
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={`desc-${titleKey}`}
+                variants={descVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                style={{
+                  display: "inline-block",
+                  background: "#f5f1e8",
+                  color: "#1d1d1b",
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 500,
+                  fontSize: 10.5,
+                  letterSpacing: "0.04em",
+                  lineHeight: 1.6,
+                  maxWidth: "44ch",
+                  marginTop: 14,
+                  marginBottom: 0,
+                  padding: "5px 16px",
+                }}
+              >
+                {current?.desc}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* ── Bottom: pagination + booking strip ── */}
+        <div ref={bottomRef} style={{ paddingBottom: 22 }}>
+
+          {/* Slide indicators + counter */}
+          <div className="flex items-center gap-2" style={{ marginBottom: 14 }}>
+            {slides.map((s, i) => (
+              <motion.div
+                key={s.key}
+                animate={{ width: i === activeIdx ? 36 : 18, background: i === activeIdx ? "#c4804a" : "rgba(245,237,224,0.25)" }}
+                transition={{ duration: 0.4, ease: [0.2, 0.9, 0.25, 1] }}
+                style={{ height: 1.5, cursor: "pointer" }}
+                aria-label={`Slide ${i + 1}`}
+              />
+            ))}
+            <span style={{ marginLeft: 10, fontSize: 9, letterSpacing: "0.3em", color: "rgba(245,237,224,0.4)" }}>
+              <strong style={{ color: "#c4804a" }}>{String(activeIdx + 1).padStart(2, "0")}</strong> / {String(slides.length).padStart(2, "0")}
+            </span>
+          </div>
+
+          {/* Booking strip + badge */}
+          <div className="flex items-stretch gap-4">
+
+            {/* Glass booking bar */}
+            <div
+              className="flex-1 min-w-0 relative overflow-hidden"
+              style={{
+                background: "rgba(10,8,4,0.58)",
+                border: "0.5px solid rgba(245,237,224,0.1)",
+                backdropFilter: "blur(24px)",
+                WebkitBackdropFilter: "blur(24px)",
+              }}
+            >
+              {/* Top golden line */}
+              <div
+                className="absolute top-0 inset-x-0"
+                style={{ height: 0.5, background: "linear-gradient(90deg, transparent, rgba(196,128,74,0.7), rgba(196,128,74,0.35), transparent)" }}
+              />
+              <div className="p-3 sm:p-4">
+                <BookingStrip date={date} onDateChange={onDateChange} isMobile={false} luxuryMode />
+              </div>
+            </div>
+
+            {/* Badge */}
+            <div className="hidden lg:flex items-center shrink-0" ref={badgeRef}>
+              <BookDirectBadge t={t} />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ════════ Local CSS for Ken-Burns + pagination ════════ */}
+      {/* ════════════ RIGHT: Destination tags (vertical) ════════════════ */}
+      <motion.div
+        className="absolute right-8 hidden lg:flex flex-col gap-2"
+        style={{ top: "50%", transform: "translateY(-50%)", zIndex: 20 }}
+        initial={{ opacity: 0, x: 16 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 1, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {slides.map((s, i) => (
+          <motion.div
+            key={s.key}
+            className="flex items-center gap-2 cursor-pointer"
+            style={{
+              padding: "6px 10px 6px 8px",
+              borderLeft: i === activeIdx ? "1.5px solid #c4804a" : "1.5px solid transparent",
+              background: i === activeIdx ? "rgba(10,8,4,0.32)" : "transparent",
+              transition: "all 0.35s ease",
+            }}
+            whileHover={{ x: -2 }}
+          >
+            <div
+              style={{
+                width: 5, height: 5, borderRadius: "50%",
+                background: i === activeIdx ? "#c4804a" : "rgba(245,237,224,0.25)",
+                flexShrink: 0, transition: "background 0.3s",
+              }}
+            />
+            <span
+              style={{
+                fontSize: 9.5, letterSpacing: "0.2em", textTransform: "uppercase",
+                color: i === activeIdx ? "#f5ede0" : "rgba(245,237,224,0.42)",
+                fontWeight: 400, transition: "color 0.3s",
+              }}
+            >
+              {s.dest}
+            </span>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* ════════════ SCROLL HINT ════════════════════════════════════════ */}
+      <div
+        className="hero-scroll-hint absolute left-8 bottom-5 hidden sm:flex items-center gap-2 pointer-events-none"
+        style={{ zIndex: 20 }}
+      >
+        <div
+          style={{
+            width: 1, height: 32,
+            background: "linear-gradient(to bottom, #c4804a, transparent)",
+            animation: "hero-scroll-pulse 2.6s ease-in-out 2s infinite",
+          }}
+        />
+        <span style={{ fontSize: 8, letterSpacing: "0.32em", textTransform: "uppercase", color: "rgba(245,237,224,0.38)" }}>
+          {t("scrollToDiscover")}
+        </span>
+      </div>
+
+      {/* ════════════ GLOBAL KEYFRAMES ══════════════════════════════════ */}
       <style>{`
-        @keyframes heroKenburns {
-          0%   { transform: scale(1.08) translate3d(0,0,0); }
-          100% { transform: scale(1.18) translate3d(-1.5%, -1%, 0); }
-        }
-        .hero-kenburns { animation: heroKenburns 7s ease-out forwards; }
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
 
-        .hero-pagination { z-index: 20; }
-        .hero-bullet {
-          display: inline-block;
-          width: 28px; height: 2px;
-          background: rgba(255,255,255,0.3);
-          border: none; padding: 0; margin: 0;
-          cursor: pointer;
-          transition: all 0.4s cubic-bezier(.2,.9,.25,1);
+        /* Ken Burns — main */
+        @keyframes hero-kenburns {
+          0%   { transform: scale(1.03) translate3d(0, 0, 0); }
+          100% { transform: scale(1.09) translate3d(-0.6%, -0.5%, 0); }
         }
-        .hero-bullet:hover { background: rgba(255,255,255,0.65); }
-        .hero-bullet-active {
-          width: 56px;
-          background: #bf673e;
-          box-shadow: 0 0 16px rgba(191,103,62,0.7);
+        .hero-kenburns { animation: hero-kenburns 8s ease-out forwards; }
+
+        /* Ken Burns — side vignettes */
+        @keyframes hero-kenburns-side {
+          0%   { transform: scale(1.05); }
+          100% { transform: scale(1.11) translate3d(0.4%, 0.4%, 0); }
+        }
+        .hero-kenburns-side { animation: hero-kenburns-side 10s ease-out forwards; }
+
+        /* Badge orbit ring */
+        @keyframes hero-orbit {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
 
+        /* Badge glow pulse */
+        @keyframes hero-pulse {
+          0%, 100% { opacity: 0.5; transform: scale(0.95); }
+          50%      { opacity: 1;   transform: scale(1.05); }
+        }
+
+        /* Scroll line pulse */
+        @keyframes hero-scroll-pulse {
+          0%, 100% { opacity: 0.3; transform: scaleY(0.65); }
+          50%      { opacity: 1;   transform: scaleY(1); }
+        }
+
+        /* Respect reduced motion */
         @media (prefers-reduced-motion: reduce) {
-          .hero-kenburns { animation: none; }
+          .hero-kenburns,
+          .hero-kenburns-side { animation: none; }
         }
-
-        /* Round badge: gentle float + slow accent ring rotation */
-        @keyframes heroBadgeFloat {
-          0%, 100% { transform: translateY(0) }
-          50%      { transform: translateY(-6px) }
-        }
-        .hero-badge-float { animation: heroBadgeFloat 5.5s ease-in-out infinite; }
-
-        @keyframes heroBadgeSpin {
-          0%   { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        .hero-badge-spin { animation: heroBadgeSpin 28s linear infinite; }
-
-        @media (prefers-reduced-motion: reduce) {
-          .hero-badge-float, .hero-badge-spin { animation: none; }
-        }
-
-        @keyframes heroScrollHintIn {
-          0%   { opacity: 0; transform: translate(-50%, -10px); }
-          100% { opacity: 1; transform: translate(-50%, 0); }
-        }
-        .hero-scroll-hint { animation: heroScrollHintIn 0.6s ease-out 1.6s both; }
       `}</style>
     </section>
   );

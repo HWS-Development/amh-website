@@ -42,7 +42,7 @@ const RiadCard = ({ riad }) => {
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
 
   return (
-    <article className="group h-full flex flex-col bg-white overflow-hidden transition-all duration-500 ease-editorial hover:shadow-editorial">
+    <article className="group h-full flex flex-col bg-white overflow-hidden transition-all duration-500 ease-editorial hover:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.2),0_0_0_1px_rgba(191,103,62,0.06)]">
       {/* IMAGE — taller editorial aspect (4/3) */}
       <div className="relative overflow-hidden bg-brand-beige">
         <Link
@@ -154,10 +154,11 @@ const RiadCard = ({ riad }) => {
         <div className="mt-auto pt-5">
           <Link
             to={detailHref}
-            className="group/btn relative flex items-center justify-between w-full px-4 py-3 border border-brand-ink/15 text-brand-ink hover:border-brand-action hover:text-brand-action transition-colors duration-500 ease-editorial"
+            className="group/btn relative flex items-center justify-between w-full px-4 py-3 border border-brand-ink/15 text-brand-ink hover:border-brand-action hover:text-brand-action hover:bg-brand-action/[0.03] transition-all duration-500 ease-editorial"
           >
-            <span className="font-montserrat text-[0.68rem] font-semibold uppercase tracking-[0.28em]">
-              {t("moreDetails")}
+            <span className="relative">
+              <span className="font-montserrat text-[0.68rem] font-semibold uppercase tracking-[0.28em]">{t("moreDetails")}</span>
+              <span className="absolute left-0 -bottom-px h-px w-0 bg-brand-action transition-all duration-500 ease-editorial group-hover/btn:w-full" />
             </span>
             <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-500 ease-editorial group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
           </Link>

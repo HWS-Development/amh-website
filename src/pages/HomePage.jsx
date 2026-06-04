@@ -1,41 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { useLanguage } from '@/contexts/LanguageContext';
 import HeroSection from '@/components/HeroSection';
-import TrustBar from '@/components/TrustBar';
 import CatalogueSection from '@/components/CatalogueSection';
 import FeaturedQuartiers from '@/components/FeaturedQuartiers';
 import FeaturedDestinations from '@/components/FeaturedDestinations';
 import Experiences from '@/components/Experiences';
+import StickyBookingCta from '@/components/StickyBookingCta';
 
 const HomePage = () => {
-  const { t } = useLanguage();
-  const { date, onDateChange } = useLanguage();
-  const [showBookingStrip, setShowBookingStrip] = useState(true);
-  const heroRef = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShowBookingStrip(entry.isIntersecting);
-      },
-      { threshold: 0.1, rootMargin: "-10px 0px 0px 0px" }
-    );
-
-    const currentHeroRef = heroRef.current;
-    if (currentHeroRef) {
-      observer.observe(currentHeroRef);
-    }
-
-    return () => {
-      if (currentHeroRef) {
-        observer.unobserve(currentHeroRef);
-      }
-    };
-  }, []);
-
-  const pageTitle = "LA CENTRALE DES RIADS — Riads & Maisons d'Hôtes Classés au Maroc";
-  const pageDescription = "Réservez en direct avec les hôteliers, parmi les riads et maisons d'hôtes classés de Marrakech, Essaouira et Ouarzazate, sans intermédiaire ni commission.";
+  const pageTitle =
+    "LA CENTRALE DES RIADS — Riads & Maisons d'Hôtes Classés au Maroc";
+  const pageDescription =
+    "Réservez en direct avec les hôteliers, parmi les riads et maisons d'hôtes classés de Marrakech, Essaouira et Ouarzazate, sans intermédiaire ni commission.";
 
   return (
     <>
@@ -47,16 +22,13 @@ const HomePage = () => {
       </Helmet>
 
       <div>
-        <div ref={heroRef}>
-          <HeroSection />
-        </div>
-
+        <HeroSection />      
         <CatalogueSection />
         <FeaturedQuartiers />
         <FeaturedDestinations />
         <Experiences />
-        <TrustBar />
       </div>
+
     </>
   );
 };

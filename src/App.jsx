@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
         import RiadDetailPage from '@/pages/RiadDetailPage';
         import DestinationPage from '@/pages/DestinationPage';
         import ExperiencePage from '@/pages/ExperiencePage';
+        import ExperiencesIndexPage from '@/pages/ExperiencesIndexPage';
         import AllRiadsPage from '@/pages/AllRiadsPage';
         import AllPropertiesPage from '@/pages/AllPropertiesPage';
         import Header from '@/components/Header';
@@ -49,7 +50,7 @@ import React, { useState, useEffect } from 'react';
           }
 
           return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white grain-overlay">
               <ScrollToTop />
               <Header date={date} onDateChange={setDate} />
               <main className="bg-white">
@@ -58,6 +59,7 @@ import React, { useState, useEffect } from 'react';
                   <Route path="/riad/:id" element={<RiadDetailPage />} />
                   <Route path="/destinations" element={<DestinationsLandingPage />} />
                   <Route path="/destinations/:slug" element={<DestinationPage />} />
+                  <Route path="/experiences" element={<ExperiencesIndexPage />} />
                   <Route path="/experiences/:slug" element={<ExperiencePage />} />
                   <Route path="/quartiers-medina" element={<MedinaQuartiersPage />} />
                   <Route path="/quartiers/:slug" element={<QuartierDetailPage />} />
