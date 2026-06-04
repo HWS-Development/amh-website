@@ -66,6 +66,15 @@ const DestinationPage = () => {
   useEffect(() => {
     if (loading || !destination || !pageRef.current) return;
     gsap.from(pageRef.current, { opacity: 0, duration: 0.8 });
+    // Force ScrollTrigger to recalculate after async content (all sections) is rendered.
+    // Without this, sections rendered after initial mount can stay invisible
+    // because ScrollTrigger's positions were computed before layout shifted.
+    const refreshTimers = [
+      setTimeout(() => ScrollTrigger.refresh(), 100),
+      setTimeout(() => ScrollTrigger.refresh(), 500),
+      setTimeout(() => ScrollTrigger.refresh(), 1500),
+    ];
+    return () => refreshTimers.forEach(clearTimeout);
   }, [loading, destination]);
 
   useEffect(() => {
