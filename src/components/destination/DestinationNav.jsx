@@ -11,26 +11,34 @@ const DestinationNav = ({ destination, stickyNavRef, scrollToSection }) => {
   const navigate = useNavigate();
   const navRef = useRef(null);
 
+  const hasData = (field) => {
+    const val = destination[field];
+    if (!val) return false;
+    if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === 'object') return Object.keys(val).length > 0;
+    return true;
+  };
+
   const anchorLinks = useMemo(
     () =>
       [
-        destination.getting_here_tr?.length > 0 && {
+        hasData('getting_here') && {
           id: "getting-here",
           label: t("gettingHere") || "Getting Here",
         },
-        destination.what_to_do_tr?.length > 0 && {
+        hasData('what_to_do') && {
           id: "what-to-do",
           label: t("whatToDo") || "What to Do",
         },
-        destination.good_to_know_tr?.length > 0 && {
+        hasData('good_to_know') && {
           id: "good-to-know",
           label: t("goodToKnow") || "Good to Know",
         },
-        destination.when_to_visit_tr && {
+        hasData('when_to_visit') && {
           id: "when-to-visit",
           label: t("whenToVisit") || "When to Visit",
         },
-        destination.faq_tr?.length > 0 && {
+        hasData('faq') && {
           id: "faq",
           label: "FAQ",
         },
