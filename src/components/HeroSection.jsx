@@ -42,21 +42,21 @@ const HeroSection = () => {
   const slides = useMemo(() => [
     {
       key: "marrakech",
-      image: "/images/koutoubia.jpg",
+      image: "/images/hero_koutoubia.webp",
       experienceTitle: t("heroSliderMarrakech"),
       experienceDesc:  t("heroSliderMarrakechDesc"),
       dest: t("marrakech"),
     },
     {
       key: "ouarzazate",
-      image: "/images/ouarzazate1.jpg",
+      image: "/images/hero_ouarzazate.webp",
       experienceTitle: t("heroSliderOuarzazate"),
       experienceDesc:  t("heroSliderOuarzazateDesc"),
       dest: t("ouarzazate"),
     },
     {
       key: "essaouira",
-      image: "/images/essaouira1.jpg",
+      image: "/images/hero_essaouira.webp",
       experienceTitle: t("heroSliderEssaouira"),
       experienceDesc:  t("heroSliderEssaouiraDesc"),
       dest: t("essaouira"),
