@@ -14,6 +14,9 @@ $API_BASE_URL      = getenv('API_BASE_URL')      ?: 'https://api.centra.global/a
 $CLIENT_ID         = getenv('PARTNER_APP_CLIENT_ID');
 $CLIENT_SECRET     = getenv('PARTNER_APP_CLIENT_SECRET');
 
+// MGH Dashboard API (Laravel + MySQL) — proxied to avoid CORS
+$MGH_API_BASE_URL = 'https://mgh-dashboard.hospitalitywebservices.com/api/public';
+
 if (!$CLIENT_ID || !$CLIENT_SECRET) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Missing PARTNER_APP_CLIENT_ID or PARTNER_APP_CLIENT_SECRET']);
@@ -277,6 +280,43 @@ try {
         $token = centraLogin($API_BASE_URL, $CLIENT_ID, $CLIENT_SECRET);
         $data = centraApiCall($API_BASE_URL, $token, "/api/partner/hotels/$hotelId/content");
         echo json_encode(['success' => true, 'data' => $data]);
+        exit;
+    }
+
+    // ── Route: GET /api/mgh/public/* (proxy to Laravel MGH Dashboard, avoids CORS) ──
+    if (preg_match('#^/api/mgh/public/(.+)$#', $path, $m)) {
+        $forwardPath = $m[1];
+        $query = $_SERVER['QUERY_STRING'] ?? '';
+        $forwardUrl = rtrim($MGH_API_BASE_URL, '/') . '/' . ltrim($forwardPath, '/');
+        if ($query) $forwardUrl .= '?' . $query;
+
+        $ch = curl_init($forwardUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_FOLLOWLOCATION => true,
+        ]);
+        $raw   = curl_exec($ch);
+        $info  = curl_getinfo($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            throw new RuntimeException("MGH proxy cURL error: $error");
+        }
+
+        $status = $info['http_code'] ?? 500;
+        $ct     = $info['content_type'] ?? '';
+
+        if ($status >= 400) {
+            http_response_code($status);
+            echo json_encode(['success' => false, 'error' => "MGH API returned $status", 'body' => mb_substr($raw, 0, 500)]);
+            exit;
+        }
+
+        header('Content-Type: ' . $ct);
+        echo $raw;
         exit;
     }
 
