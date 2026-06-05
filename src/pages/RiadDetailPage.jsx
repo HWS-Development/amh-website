@@ -930,14 +930,14 @@ const RiadDetailPage = () => {
                       )}
                       {riad.website && (
                         <div className="relative group">
-                          <div className="absolute -inset-3 bg-gradient-to-r from-brand-action/15 via-brand-action/5 to-brand-ink/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700" />
+                          <div className="absolute -inset-3 bg-gradient-to-r from-brand-action/15 via-brand-action/5 to-brand-ink/5 blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700" />
                           <a
                             href={riad.website}
                             target="_blank"
                             rel="noreferrer"
-                            className="relative flex items-center gap-3 px-5 py-2.5 bg-white/80 backdrop-blur-sm border border-brand-ink/10 rounded-full shadow-sm hover:shadow-xl hover:border-brand-action/30 hover:bg-white transition-all duration-500"
+                            className="relative flex items-center gap-3 px-5 py-2.5 bg-white/80 backdrop-blur-sm border border-brand-ink/10 shadow-sm hover:shadow-xl hover:border-brand-action/30 hover:bg-white transition-all duration-500"
                           >
-                            <span ref={websiteIconRef} className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-brand-action to-brand-ink/80 text-white shadow-lg">
+                            <span ref={websiteIconRef} className="relative flex items-center justify-center w-8 h-8 bg-gradient-to-br from-brand-action to-brand-ink/80 text-white shadow-lg">
                               <Globe className="w-4 h-4" />
                             </span>
                             <span className="text-[0.7rem] font-medium text-brand-ink/70 group-hover:text-brand-ink transition-colors font-montserrat tracking-tight">
