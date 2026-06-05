@@ -27,9 +27,9 @@ const useScroll = () => {
 };
 
 const languages = [
-  { code: "fr", name: "Français", flag: "🇫🇷" },
-  { code: "en", name: "English",  flag: "🇬🇧" },
-  { code: "es", name: "Español",  flag: "🇪🇸" },
+  { code: "fr", name: "Français", flag: "/images/flags/fr.svg" },
+  { code: "en", name: "English",  flag: "/images/flags/gb.svg" },
+  { code: "es", name: "Español",  flag: "/images/flags/es.svg" },
 ];
 
 const LanguageSelector = ({ currentLanguage, changeLanguage }) => {
@@ -60,7 +60,9 @@ const LanguageSelector = ({ currentLanguage, changeLanguage }) => {
         aria-expanded={open}
         className="group flex items-center gap-2 px-3 py-2 border border-brand-ink/10 hover:border-brand-action transition-colors duration-300"
       >
-        <span className="text-base leading-none">{current.flag}</span>
+        <span className="inline-flex w-5 h-[14px] overflow-hidden rounded-[2px] ring-1 ring-black/10 shadow-sm">
+          <img src={current.flag} alt={current.code} className="w-full h-full object-cover" loading="lazy" />
+        </span>
         <span className="font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-brand-ink group-hover:text-brand-action transition-colors duration-300">
           {current.code}
         </span>
@@ -95,7 +97,9 @@ const LanguageSelector = ({ currentLanguage, changeLanguage }) => {
                   : "text-brand-ink hover:bg-brand-beige/40 hover:text-brand-action"
               }`}
             >
-              <span className="text-lg leading-none">{lang.flag}</span>
+              <span className="inline-flex w-6 h-[18px] overflow-hidden rounded-[2px] ring-1 ring-black/10 shadow-sm flex-shrink-0">
+                <img src={lang.flag} alt={lang.code} className="w-full h-full object-cover" loading="lazy" />
+              </span>
               <span className="flex-1 font-montserrat text-[0.72rem] font-semibold tracking-wide">
                 {lang.name}
               </span>
