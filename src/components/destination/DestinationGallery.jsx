@@ -22,6 +22,10 @@ const DestinationGallery = ({ slug, gallery, destinationName, sectionRef }) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
+  const resolvedGallery = (gallery && gallery.length > 0)
+    ? gallery
+    : (FALLBACK_GALLERIES[slug] || DEFAULT_FALLBACK);
+
   useEffect(() => {
     if (!resolvedGallery?.length || !gridRef.current) return;
     const ctx = gsap.context(() => {
@@ -39,10 +43,6 @@ const DestinationGallery = ({ slug, gallery, destinationName, sectionRef }) => {
     }, gridRef);
     return () => ctx.revert();
   }, [resolvedGallery]);
-
-  const resolvedGallery = (gallery && gallery.length > 0)
-    ? gallery
-    : (FALLBACK_GALLERIES[slug] || DEFAULT_FALLBACK);
 
   const openLightbox = (index) => {
     setLightboxIndex(index);
