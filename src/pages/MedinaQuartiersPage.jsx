@@ -439,7 +439,7 @@ const MedinaQuartiersPage = () => {
                     center={mapCenter}
                     zoom={activeQuartier ? 16 : 14}
                   />
-                  {filteredQuartiers.map((quartier) => (
+                  {filteredQuartiers.filter((q) => q.lat && q.lng).map((quartier) => (
                     <Marker
                       key={quartier.id}
                       position={[quartier.lat, quartier.lng]}

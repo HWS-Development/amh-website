@@ -214,6 +214,7 @@ const QuartierDetailPage = () => {
                         <aside className="lg:col-span-1">
                             <div className="sticky top-28 space-y-6">
                                 <div className="h-64 lg:h-80 w-full overflow-hidden shadow-md">
+                                    {translatedQuartier.lat && translatedQuartier.lng ? (
                                     <MapContainer center={[translatedQuartier.lat, translatedQuartier.lng]} zoom={15} scrollWheelZoom={false} className="h-full w-full">
                                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                                         <Marker position={[translatedQuartier.lat, translatedQuartier.lng]} icon={poiIcon('red')}>
@@ -225,6 +226,11 @@ const QuartierDetailPage = () => {
                                             </Marker>
                                         ))}
                                     </MapContainer>
+                                    ) : (
+                                      <div className="h-full w-full flex items-center justify-center bg-brand-beige/30 text-brand-ink/40 text-sm">
+                                        {t('mapUnavailable') || 'Map unavailable'}
+                                      </div>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                      <Button asChild className="w-full btn-action">
