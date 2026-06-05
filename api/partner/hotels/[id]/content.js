@@ -73,16 +73,12 @@ export default async function handler(req, res) {
         organizationId,
         firstImageUrl: matchedHotel.image_urls?.[0] || null,
       }) : 'not found'}`);
-      console.log(`[api/partner/hotels/${id}/content] Resolved organizationId: ${organizationId || 'not found'}`);
+      if (!matchedHotel) {
+        throw new Error(`Hotel ${id} not found in listing fallback`);
+      }
 
-      console.log(`[api/partner/hotels/${id}/content] Retrying detail fetch with fallback organizationId: ${organizationId || 'none'}`);
-      hotel = await fetchPartnerHotelById(
-        process.env.API_BASE_URL,
-        process.env.PARTNER_APP_CLIENT_ID,
-        process.env.PARTNER_APP_CLIENT_SECRET,
-        id,
-        organizationId,
-      );
+      console.log(`[api/partner/hotels/${id}/content] Returning hotel from listing data directly (skip detail endpoint to avoid cross-org 403)`);
+      hotel = matchedHotel;
     }
 
     return res.status(200).json({
