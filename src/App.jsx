@@ -32,7 +32,7 @@ import React, { useState, useEffect } from 'react';
           useEffect(() => {
             const catalogs = [
               "mgh_cities", "mgh_neighborhoods", "mgh_property_types",
-              "mgh_amenities_catalog", "mgh_services_catalog", "mgh_booking_conditions"
+              "mgh_amenities_catalog", "mgh_services_catalog"
             ];
             catalogs.forEach((table) => {
               fetchCatalog(table, currentLanguage).catch(() => {});

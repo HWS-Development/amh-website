@@ -311,20 +311,18 @@ const RiadDetailPage = () => {
     const fetchAll = async (sourceHotel) => {
       setLoading(true);
       try {
-        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr, bookingConditionsArr] = await Promise.all([
+        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr] = await Promise.all([
           fetchCatalog("mgh_cities", currentLanguage),
           fetchCatalog("mgh_neighborhoods", currentLanguage),
           fetchCatalog("mgh_property_types", currentLanguage),
           fetchCatalog("mgh_amenities_catalog", currentLanguage),
           fetchServicesCatalog(currentLanguage),
-          fetchCatalog("mgh_booking_conditions", currentLanguage).catch(() => []),
         ]);
         setCities(Object.fromEntries(citiesArr.map((c) => [c.id, c.label])));
         setNeighborhoods(Object.fromEntries(neighborhoodsArr.map((n) => [n.id, n.label])));
         setPropertyTypes(Object.fromEntries(propertyTypesArr.map((p) => [p.id, p.label])));
         setAmenitiesCatalog(Object.fromEntries(amenitiesArr.map((a) => [a.id, a.label])));
         setServicesCatalog(Object.fromEntries(servicesArr.map((s) => [s.id, s.label])));
-        setBookingConditionsCatalog(Object.fromEntries(bookingConditionsArr.map((b) => [b.id, b.label])));
         const normalizedHotel = normalizePartnerHotel(sourceHotel);
         setRiad(normalizedHotel);
         if (normalizedHotel?.latitude && normalizedHotel?.longitude) {
