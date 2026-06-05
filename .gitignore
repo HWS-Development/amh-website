@@ -30,6 +30,8 @@ dist-ssr
 graphify-out/
 
 # Database dumps (contain prod data + hashed credentials)
+*.sql
+*.csv
 scripts/mgh_dashboard_dump.sql
 scripts/mgh_dashboard_dump.sql.zip
 scripts/dump_parts/
