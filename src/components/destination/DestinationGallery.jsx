@@ -7,7 +7,15 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
+const FALLBACK_GALLERIES = {
+  marrakech: ['/images/koutoubia.jpg', '/images/hero_koutoubia.webp'],
+  essaouira: ['/images/essaouira1.jpg', '/images/hero_essaouira.webp'],
+  ouarzazate: ['/images/ouarzazate1.jpg', '/images/hero_ouarzazate.webp'],
+};
+
+const DEFAULT_FALLBACK = ['/images/hero_koutoubia.webp'];
+
+const DestinationGallery = ({ slug, gallery, destinationName, sectionRef }) => {
   const { t } = useLanguage();
   const headerRef = useRef(null);
   const gridRef = useRef(null);
@@ -15,7 +23,7 @@ const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
-    if (!gallery?.length || !gridRef.current) return;
+    if (!resolvedGallery?.length || !gridRef.current) return;
     const ctx = gsap.context(() => {
       gsap.from(gridRef.current.children, {
         y: 30,
@@ -30,9 +38,11 @@ const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
       });
     }, gridRef);
     return () => ctx.revert();
-  }, [gallery]);
+  }, [resolvedGallery]);
 
-  if (!gallery || gallery.length === 0) return null;
+  const resolvedGallery = (gallery && gallery.length > 0)
+    ? gallery
+    : (FALLBACK_GALLERIES[slug] || DEFAULT_FALLBACK);
 
   const openLightbox = (index) => {
     setLightboxIndex(index);
@@ -46,11 +56,11 @@ const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
   };
 
   const goNext = () => {
-    setLightboxIndex((i) => (i + 1) % gallery.length);
+    setLightboxIndex((i) => (i + 1) % resolvedGallery.length);
   };
 
   const goPrev = () => {
-    setLightboxIndex((i) => (i - 1 + gallery.length) % gallery.length);
+    setLightboxIndex((i) => (i - 1 + resolvedGallery.length) % resolvedGallery.length);
   };
 
   const aspectClasses = [
@@ -78,7 +88,7 @@ const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
           ref={gridRef}
           className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 auto-rows-[200px] md:auto-rows-[250px]"
         >
-          {gallery.slice(0, 6).map((url, index) => (
+          {resolvedGallery.slice(0, 6).map((url, index) => (
             <button
               key={index}
               onClick={() => openLightbox(index)}
@@ -99,13 +109,13 @@ const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
           ))}
         </div>
 
-        {gallery.length > 6 && (
+        {resolvedGallery.length > 6 && (
           <div className="mt-8 text-center">
             <button
               onClick={() => openLightbox(0)}
               className="inline-flex items-center gap-2 bg-brand-ink text-white px-6 py-3 font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.25em] hover:bg-brand-action transition-all duration-500"
             >
-              {t("viewAll") || "View all"} ({gallery.length})
+              {t("viewAll") || "View all"} ({resolvedGallery.length})
             </button>
           </div>
         )}
@@ -115,7 +125,7 @@ const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
         <div className="fixed inset-0 z-[9999] bg-brand-ink/95 flex flex-col">
           <div className="flex items-center justify-between px-6 py-4">
             <span className="font-montserrat text-xs text-white/60 tracking-wide">
-              {lightboxIndex + 1} / {gallery.length}
+              {lightboxIndex + 1} / {resolvedGallery.length}
             </span>
             <button
               onClick={closeLightbox}
@@ -134,7 +144,7 @@ const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
             </button>
 
             <OptimizedImage
-              src={gallery[lightboxIndex]}
+              src={resolvedGallery[lightboxIndex]}
               alt={`${destinationName} ${lightboxIndex + 1}`}
               className="max-w-full max-h-full object-contain"
             />

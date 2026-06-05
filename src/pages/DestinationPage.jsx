@@ -309,6 +309,7 @@ const DestinationPage = () => {
           sectionRef={(el) => (sectionsRef.current["faq"] = el)}
         />
         <DestinationGallery
+          slug={slug}
           gallery={gallery_urls}
           destinationName={name}
           sectionRef={(el) => (sectionsRef.current["gallery"] = el)}
