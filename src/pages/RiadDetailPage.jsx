@@ -35,6 +35,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/components/ui/use-toast";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
+import { optimizeImageUrl } from "@/lib/imageUtils";
 import { usePartnerHotelById, usePartnerHotels, extractCentraHotelId } from "@/lib/partnerHotelsApi";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -377,7 +378,7 @@ const RiadDetailPage = () => {
     const exitLayer = activeLayer.current === "A" ? imgLayerA : imgLayerB;
     if (!enterLayer.current || !exitLayer.current) return;
 
-    enterLayer.current.src = images[newIdx];
+    enterLayer.current.src = optimizeImageUrl(images[newIdx], { quality: 60 });
     enterLayer.current.alt = `${name} ${newIdx + 1}`;
     enterLayer.current.style.zIndex = 2;
     exitLayer.current.style.zIndex = 1;
@@ -420,7 +421,7 @@ const RiadDetailPage = () => {
   useEffect(() => {
     if (images.length === 0) return;
     if (imgLayerA.current) {
-      imgLayerA.current.src = images[0];
+      imgLayerA.current.src = optimizeImageUrl(images[0], { quality: 60 });
       imgLayerA.current.alt = `${name} 1`;
       imgLayerA.current.style.opacity = 1;
       imgLayerA.current.style.zIndex = 2;
@@ -992,12 +993,10 @@ const RiadDetailPage = () => {
                         }`}
                       >
                         <div className="aspect-[4/3] overflow-hidden bg-brand-beige/40">
-                          <img
+                          <OptimizedImage
                             src={src}
                             alt=""
                             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                            loading="lazy"
-                            decoding="async"
                           />
                         </div>
                         {photoIdx === i && (

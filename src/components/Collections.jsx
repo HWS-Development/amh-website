@@ -148,11 +148,10 @@ const Collections = () => {
                     <div key={collection.slug} className="carousel-item w-full px-4">
                       <Card className="h-full overflow-hidden rounded-none border border-[#E5E8EB] group">
                         <div className="bg-gray-200 h-40 relative">
-                          <img
+                          <OptimizedImage
                             src={collection.imageUrl}
-                            className="w-full h-full object-cover"
                             alt={collection.name}
-                            loading="lazy"
+                            className="w-full h-full object-cover"
                           />
                         </div>
                         <CardContent className="p-6 flex flex-col">

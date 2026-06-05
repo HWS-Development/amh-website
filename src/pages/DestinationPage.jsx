@@ -290,6 +290,7 @@ const DestinationPage = () => {
           sectionRef={(el) => (sectionsRef.current["getting-here"] = el)}
         />
         <DestinationWhatToDo
+          slug={slug}
           whatToDo={what_to_do}
           sectionRef={(el) => (sectionsRef.current["what-to-do"] = el)}
         />

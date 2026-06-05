@@ -8,7 +8,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const DestinationWhatToDo = ({ whatToDo, sectionRef }) => {
+const FALLBACK_IMAGES = {
+  essaouira: '/images/essaouira1.jpg',
+  ouarzazate: '/images/ouarzazate1.jpg',
+};
+
+const DestinationWhatToDo = ({ slug, whatToDo, sectionRef }) => {
   const { t } = useLanguage();
   const gridRef = useRef(null);
 
@@ -51,13 +56,11 @@ const DestinationWhatToDo = ({ whatToDo, sectionRef }) => {
               className="group bg-white border border-brand-ink/5 overflow-hidden hover:shadow-xl transition-all duration-700"
             >
               <div className="relative h-[260px] overflow-hidden">
-                {activity.image_url && (
-                  <OptimizedImage
-                    src={activity.image_url}
-                    alt={activity.title}
-                    className="w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
-                  />
-                )}
+                <OptimizedImage
+                  src={activity.image_url || FALLBACK_IMAGES[slug] || '/images/hero_koutoubia.webp'}
+                  alt={activity.title}
+                  className="w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-brand-ink/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               </div>
               <div className="p-6 md:p-7">

@@ -1,12 +1,9 @@
 /**
  * Image URL optimization utilities.
  *
- * Transforms Supabase Storage public URLs to use the render/transform
- * endpoint with quality compression. Other URLs pass through unchanged.
- *
- * Supabase transform docs:
- *   /storage/v1/object/public/...   → original (no transforms)
- *   /storage/v1/render/image/public/... ?quality=60  → optimized
+ * - Supabase Storage URLs: rewrite to render/transform endpoint + quality=60.
+ * - All other URLs: append quality=60 query param (best-effort — some CDNs
+ *   respect it, others ignore it).
  */
 
 const SUPABASE_OBJECT_PATH = '/storage/v1/object/public/';
@@ -14,9 +11,6 @@ const SUPABASE_RENDER_PATH = '/storage/v1/render/image/public/';
 
 /**
  * Return an optimized version of an image URL.
- *
- * - Supabase storage URLs: rewrite to the render endpoint + quality param.
- * - All other URLs: returned unchanged.
  *
  * @param {string} url        — original image URL
  * @param {object} [options]
@@ -28,16 +22,18 @@ const SUPABASE_RENDER_PATH = '/storage/v1/render/image/public/';
 export function optimizeImageUrl(url, { quality = 60, width, height } = {}) {
   if (!url || typeof url !== 'string') return url || '';
 
-  // Only transform Supabase storage URLs
-  if (!url.includes(SUPABASE_OBJECT_PATH)) return url;
+  // Supabase storage → render endpoint with quality+resize
+  if (url.includes(SUPABASE_OBJECT_PATH)) {
+    let optimized = url.replace(SUPABASE_OBJECT_PATH, SUPABASE_RENDER_PATH);
+    const params = new URLSearchParams();
+    params.set('quality', String(quality));
+    if (width) params.set('width', String(width));
+    if (height) params.set('height', String(height));
+    const separator = optimized.includes('?') ? '&' : '?';
+    return `${optimized}${separator}${params.toString()}`;
+  }
 
-  let optimized = url.replace(SUPABASE_OBJECT_PATH, SUPABASE_RENDER_PATH);
-
-  const params = new URLSearchParams();
-  params.set('quality', String(quality));
-  if (width) params.set('width', String(width));
-  if (height) params.set('height', String(height));
-
-  const separator = optimized.includes('?') ? '&' : '?';
-  return `${optimized}${separator}${params.toString()}`;
+  // All other URLs: append quality param (best-effort)
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}quality=${encodeURIComponent(quality)}`;
 }
