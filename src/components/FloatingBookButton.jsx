@@ -37,7 +37,7 @@ const FloatingBookButton = () => {
       transition={{ duration: 0.7, ease: [0.34, 1.56, 0.64, 1] }}
       whileHover={reduce ? undefined : { scale: 1.08 }}
       whileTap={reduce ? undefined : { scale: 0.95 }}
-       className="fab-book-direct fixed z-[70] bottom-[60px] left-5 sm:bottom-[64px] sm:left-6 block select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#c4804a] rounded-full"
+       className="fab-book-direct fixed z-[70] bottom-[270px] left-5 md:bottom-[64px] md:left-6 block select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#c4804a] rounded-full"
       style={{ width: 96, height: 96 }}
     >
       {/* Orbiting dashed ring */}
