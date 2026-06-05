@@ -895,57 +895,57 @@ const RiadDetailPage = () => {
 
                 {/* Bottom: actions + read more */}
                 <div className="shrink-0 px-8 md:px-10 pb-10 md:pb-12 pt-4">
-                  <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-stretch gap-3">
                     {riad.simple_booking_link ? (
                       <a
                         href={riad.simple_booking_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group inline-flex items-center justify-center gap-3 bg-brand-action text-white px-7 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat w-full sm:w-auto"
+                        className="group flex-1 h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
                       >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        {t("bookNow")}
-                        <span className="inline-block transition-transform duration-500 group-hover:translate-x-1" aria-hidden>&#8594;</span>
+                        <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{t("bookNow")}</span>
+                        <span className="inline-block transition-transform duration-500 group-hover:translate-x-1 shrink-0" aria-hidden>&#8594;</span>
                       </a>
                     ) : riad.website ? (
                       <a
                         href={riad.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group inline-flex items-center justify-center gap-3 bg-brand-action text-white px-7 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat w-full sm:w-auto"
+                        className="group flex-1 h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
                       >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        {t("bookNow")}
-                        <span className="inline-block transition-transform duration-500 group-hover:translate-x-1" aria-hidden>&#8594;</span>
+                        <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{t("bookNow")}</span>
+                        <span className="inline-block transition-transform duration-500 group-hover:translate-x-1 shrink-0" aria-hidden>&#8594;</span>
                       </a>
                     ) : (
-                      <div />
+                      <div className="flex-1" />
                     )}
 
-                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                      {riad.email && (
-                        <a href={`mailto:${riad.email}`} aria-label="Email" className="w-12 h-12 border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-400 shrink-0">
-                          <Mail className="w-4 h-4" />
-                        </a>
-                      )}
-                      {riad.website && (
-                        <div className="relative group flex-1 sm:flex-initial min-w-0">
-                          <div className="absolute -inset-3 bg-gradient-to-r from-brand-action/15 via-brand-action/5 to-brand-ink/5 blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700" />
-                          <a
-                            href={riad.website}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="relative inline-flex items-center justify-center gap-3 px-7 py-4 bg-white/80 backdrop-blur-sm border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/30 hover:bg-white transition-all duration-500 font-montserrat w-full sm:w-auto"
-                          >
-                            <Globe ref={websiteIconRef} className="w-3.5 h-3.5 text-brand-action shrink-0" />
-                            <span className="truncate">
-                              {(() => { try { return new URL(riad.website).hostname.replace(/^www\./, ''); } catch { return riad.website; } })()}
-                            </span>
-                            <ExternalLink className="w-3 h-3 text-brand-ink/30 group-hover:text-brand-action transition-colors shrink-0" />
-                          </a>
-                        </div>
-                      )}
-                    </div>
+                    {riad.email && (
+                      <a
+                        href={`mailto:${riad.email}`}
+                        aria-label="Email"
+                        className="w-full sm:w-[52px] h-[52px] border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-400 shrink-0"
+                      >
+                        <Mail className="w-4 h-4" />
+                      </a>
+                    )}
+
+                    {riad.website && (
+                      <a
+                        href={riad.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex-1 h-[52px] inline-flex items-center justify-center gap-3 px-6 bg-white border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/40 hover:bg-white transition-all duration-500 font-montserrat"
+                      >
+                        <Globe ref={websiteIconRef} className="w-3.5 h-3.5 text-brand-action shrink-0" />
+                        <span className="truncate">
+                          {(() => { try { return new URL(riad.website).hostname.replace(/^www\./, ''); } catch { return riad.website; } })()}
+                        </span>
+                        <ExternalLink className="w-3 h-3 text-brand-ink/30 group-hover:text-brand-action transition-colors shrink-0" />
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
