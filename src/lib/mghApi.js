@@ -19,9 +19,14 @@ const RAW_BASE = import.meta.env.VITE_MGH_API_URL || '';
 const API_BASE = RAW_BASE.replace(/\/+$/, '').replace(/\/public$/, '');
 const USE_PROXY = Boolean(API_BASE);
 
+// Normalize to absolute URL (support relative paths for same-origin proxy)
+const API_BASE_ABS = API_BASE.startsWith('http')
+  ? API_BASE.replace(/\/+$/, '')
+  : `${window.location.origin}${API_BASE}`.replace(/\/+$/, '');
+
 // ─── Legacy proxy helper (used only when VITE_MGH_API_URL is set) ───────────
 async function request(path, { params, signal } = {}) {
-  const url = new URL(`${API_BASE}${path}`);
+  const url = new URL(`${API_BASE_ABS}${path}`);
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') {
