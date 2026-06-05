@@ -917,6 +917,17 @@ const RiadDetailPage = () => {
                         {t("bookNow")}
                         <span className="inline-block transition-transform duration-500 group-hover:translate-x-1" aria-hidden>&#8594;</span>
                       </a>
+                    ) : riad.website ? (
+                      <a
+                        href={riad.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group inline-flex items-center gap-3 bg-brand-action text-white px-7 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {t("bookNow")}
+                        <span className="inline-block transition-transform duration-500 group-hover:translate-x-1" aria-hidden>&#8594;</span>
+                      </a>
                     ) : (
                       <div />
                     )}
@@ -937,7 +948,7 @@ const RiadDetailPage = () => {
                           <Mail className="w-4 h-4" />
                         </a>
                       )}
-                      {riad.website && (
+                      {riad.simple_booking_link && riad.website && (
                         <div className="relative group">
                           <div className="absolute -inset-3 bg-gradient-to-r from-brand-action/15 via-brand-action/5 to-brand-ink/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700" />
                           <a
@@ -1173,6 +1184,22 @@ const RiadDetailPage = () => {
           )}
         </div>
       </div>
+
+      {/* Floating WhatsApp button (fixed, left side) */}
+      {riad?.phone_number && (
+        <a
+          href={`https://wa.me/${riad.phone_number.replace(/[^0-9]/g, '')}`}
+          target="_blank"
+          rel="noreferrer"
+          className="fixed left-4 bottom-4 z-50 flex items-center gap-2 bg-green-500 text-white px-4 py-3 shadow-xl hover:bg-green-600 transition-all duration-300 rounded-lg"
+          aria-label="WhatsApp"
+        >
+          <MessageCircle className="w-5 h-5" />
+          <span className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] font-montserrat hidden md:inline">
+            WhatsApp
+          </span>
+        </a>
+      )}
     </>
   );
 };

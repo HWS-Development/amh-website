@@ -246,7 +246,7 @@ const HeroSection = () => {
               {t("heroTitle")}
             </motion.h1>
 
-            {/* Fixed subtitle — one line, inside #BF673E box */}
+            {/* Fixed subtitle — no background box */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -257,7 +257,7 @@ const HeroSection = () => {
                 className="hero-subtitle"
                 style={{
                   display: "inline-block",
-                  background: "#BF673E",
+                  background: "transparent",
                   color: "#fff",
                   fontFamily: "'Montserrat', sans-serif",
                   fontWeight: 600,
@@ -267,7 +267,7 @@ const HeroSection = () => {
                   margin: 0,
                   padding: "10px 26px",
                   whiteSpace: "nowrap",
-                  boxShadow: "0 12px 36px -10px rgba(0,0,0,0.45)",
+                  textShadow: "0 2px 12px rgba(0,0,0,0.6)",
                 }}
               >
                 {t("heroSubtitle")}
@@ -347,8 +347,8 @@ const HeroSection = () => {
             <div
               className="flex-1 min-w-0 relative overflow-hidden"
               style={{
-                background: "rgba(10,8,4,0.58)",
-                border: "0.5px solid rgba(245,237,224,0.1)",
+                background: "transparent",
+                border: "0.5px solid rgba(245,237,224,0.15)",
                 backdropFilter: "blur(24px)",
                 WebkitBackdropFilter: "blur(24px)",
               }}
