@@ -101,7 +101,10 @@ function centraLogin($baseUrl, $clientId, $clientSecret) {
         throw new RuntimeException("Login succeeded but no accessToken in response");
     }
 
-    return $payload['accessToken'];
+    // Extract organization ID from login payload (app.orgId)
+    $loginOrgId = $payload['app']['orgId'] ?? $payload['app']['organizationId'] ?? null;
+
+    return ['token' => $payload['accessToken'], 'orgId' => $loginOrgId];
 }
 
 function extractCentraHotelId($imageUrls) {
@@ -191,12 +194,14 @@ try {
         $hotelId = $m[1];
         $headerOrg = $_SERVER['HTTP_X_PARTNER_ORGANIZATION_ID'] ?? null;
 
-        $token = centraLogin($API_BASE_URL, $CLIENT_ID, $CLIENT_SECRET);
+        $login = centraLogin($API_BASE_URL, $CLIENT_ID, $CLIENT_SECRET);
+        $token  = $login['token'];
+        $orgId  = $login['orgId'];
         $data = null;
         $fallbackAttempted = false;
 
         try {
-            $data = centraApiCall($API_BASE_URL, $token, "/api/partner/hotels/$hotelId/content", $headerOrg ?: null);
+            $data = centraApiCall($API_BASE_URL, $token, "/api/partner/hotels/$hotelId/content", $orgId);
         } catch (RuntimeException $err) {
             $fallbackAttempted = true;
             // Fallback: fetch listing, find hotel, return its data
@@ -225,7 +230,8 @@ try {
 
     // ── Route: GET /api/partner/hotels (listing) ──
     if ($path === '/api/partner/hotels') {
-        $token = centraLogin($API_BASE_URL, $CLIENT_ID, $CLIENT_SECRET);
+        $login = centraLogin($API_BASE_URL, $CLIENT_ID, $CLIENT_SECRET);
+        $token = $login['token'];
         $hotels = centraApiCall($API_BASE_URL, $token, '/partner/hotels/content?limit=all');
 
         // Apply server-side filters
@@ -277,7 +283,8 @@ try {
     // ── Route: GET /api/partner/hotels/:id (legacy) ──
     if (preg_match('#^/api/partner/hotels/([^/]+)$#', $path, $m)) {
         $hotelId = $m[1];
-        $token = centraLogin($API_BASE_URL, $CLIENT_ID, $CLIENT_SECRET);
+        $login = centraLogin($API_BASE_URL, $CLIENT_ID, $CLIENT_SECRET);
+        $token = $login['token'];
         $data = centraApiCall($API_BASE_URL, $token, "/api/partner/hotels/$hotelId/content");
         echo json_encode(['success' => true, 'data' => $data]);
         exit;
