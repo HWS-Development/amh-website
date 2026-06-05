@@ -287,7 +287,7 @@ export async function fetchPartnerHotelById(apiBaseUrl, clientId, clientSecret, 
   }
 
   let token = await getValidToken(apiBaseUrl, clientId, clientSecret);
-  let resolvedOrganizationId = organizationId || cachedOrganizationId;
+  let resolvedOrganizationId = organizationId;
   const debugInfo = buildHotelDetailDebugInfo(organizationId);
 
   const hotelUrl = buildPartnerUrl(apiBaseUrl, `/api/partner/hotels/${hotelId}/content`);
@@ -312,7 +312,7 @@ export async function fetchPartnerHotelById(apiBaseUrl, clientId, clientSecret, 
     console.log('[partnerClient] Got 401 — refreshing token and retrying...');
     invalidateToken();
     token = await appLogin(apiBaseUrl, clientId, clientSecret);
-    resolvedOrganizationId = organizationId || cachedOrganizationId;
+    resolvedOrganizationId = organizationId;
     const retryDebugInfo = buildHotelDetailDebugInfo(organizationId);
     console.log(`[partnerClient] Final retry x-organization-id for hotel ${hotelId}: ${resolvedOrganizationId || 'none'} (source: ${retryDebugInfo.organizationSource})`);
     console.log(`[partnerClient] Hotel detail retry headers: ${JSON.stringify({
