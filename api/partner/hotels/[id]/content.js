@@ -54,10 +54,6 @@ export default async function handler(req, res) {
         organizationId,
       );
     } catch (err) {
-      if (organizationId) {
-        throw err;
-      }
-
       fallbackAttempted = true;
       console.log(`[api/partner/hotels/${id}/content] Initial detail fetch failed, attempting organization fallback: ${err.message}`);
       const hotels = await fetchPartnerHotels(
