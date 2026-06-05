@@ -401,11 +401,13 @@ const MedinaQuartiersPage = () => {
                         <CardContent className="p-6 flex-grow flex flex-col justify-between">
                           <div>
                             <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
-                              <h3 className="h3-style !text-xl font-bold">{quartier.name}</h3>
-                              <Badge variant="secondary" className="flex items-center gap-1 flex-shrink-0">
-                                <Clock className="h-3 w-3" />
-                                {quartier.walking_minutes_from_jemaa} min
-                              </Badge>
+                              <h3 className="h3-style !text-xl font-bold min-w-0 break-words">{quartier.name}</h3>
+                              {quartier.walking_minutes_from_jemaa != null && (
+                                <Badge variant="secondary" className="flex items-center gap-1 flex-shrink-0">
+                                  <Clock className="h-3 w-3" />
+                                  {quartier.walking_minutes_from_jemaa} min
+                                </Badge>
+                              )}
                             </div>
 
                             <div className="flex flex-wrap gap-2 mb-4">
@@ -424,22 +426,22 @@ const MedinaQuartiersPage = () => {
                             <p className="text-sm text-brand-ink/80">{quartier.short_desc}</p>
                           </div>
 
-                          <div className="flex flex-col sm:flex-row gap-2 mt-4">
-                            <Button asChild className="w-full sm:w-auto">
+                          <div className="flex flex-col gap-2 mt-4 sm:flex-row sm:flex-wrap">
+                            <Button asChild className="w-full sm:w-auto sm:flex-1 h-auto min-h-10 py-2 whitespace-normal leading-tight text-center">
                               <Link to={`/quartiers/${quartier.slug}`}>
-                                <Info className="mr-2 h-4 w-4" />
-                                {t('moreDetails')}
+                                <Info className="mr-2 h-4 w-4 flex-shrink-0" />
+                                <span>{t('moreDetails')}</span>
                               </Link>
                             </Button>
-                            <Button asChild variant="outline" className="w-full sm:w-auto">
+                            <Button asChild variant="outline" className="w-full sm:w-auto sm:flex-1 h-auto min-h-10 py-2 whitespace-normal leading-tight text-center">
                               <a href={gmapsUrl(quartier)} target="_blank" rel="noreferrer">
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                {t('viewOnGoogleMaps') || 'Voir sur Google Maps'}
+                                <ExternalLink className="mr-2 h-4 w-4 flex-shrink-0" />
+                                <span>{t('viewOnGoogleMaps') || 'Voir sur Google Maps'}</span>
                               </a>
                             </Button>
-                            <Button asChild variant="secondary" className="w-full sm:w-auto">
-                              <Link to={`/all-riads?city=marrakech&quartier=${quartier.slug}`}>
-                                {t('viewGuestHousesInThisDistrict')}
+                            <Button asChild variant="secondary" className="w-full sm:w-auto sm:flex-1 h-auto min-h-10 py-2 whitespace-normal leading-tight text-center">
+                              <Link to={`/all-riads?city=${quartier.city_id || 'marrakech'}&quartier=${quartier.slug}`}>
+                                <span>{t('viewGuestHousesInThisDistrict')}</span>
                               </Link>
                             </Button>
                           </div>

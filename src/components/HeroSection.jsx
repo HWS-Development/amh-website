@@ -55,13 +55,6 @@ const HeroSection = () => {
       dest: t("ouarzazate"),
     },
     {
-      key: "agafay",
-      image: rota("Marrakech_rota1.jpg"),
-      experienceTitle: t("heroSliderAgafay"),
-      experienceDesc:  t("heroSliderAgafayDesc"),
-      dest: "Agafay",
-    },
-    {
       key: "essaouira",
       image: rota("Essaouira_rota1.jpg"),
       experienceTitle: t("heroSliderEssaouira"),
