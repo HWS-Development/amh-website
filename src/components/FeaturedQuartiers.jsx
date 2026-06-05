@@ -28,7 +28,7 @@ function QuartierCard({ quartier, index, t, currentLanguage }) {
   return (
     <div className="fq-card group [perspective:1200px] w-full">
       <Link
-        to={`/quartiers-medina#${quartier.id}`}
+        to={`/quartiers#${quartier.id}`}
         className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-action focus-visible:ring-offset-4"
         aria-label={`${name} — ${t('discoverMore') || 'Discover'}`}
       >
@@ -271,7 +271,7 @@ export default function FeaturedQuartiers() {
         <RevealOnView className="mt-16 text-center" delay={0.1}>
           <MagneticButton
             as={Link}
-            to="/quartiers-medina"
+            to="/quartiers"
             strength={14}
             className="group inline-flex items-center gap-3 border border-brand-ink/15 bg-white px-10 py-4 font-montserrat text-[0.7rem] font-semibold uppercase tracking-[0.32em] text-brand-ink hover:border-brand-action hover:text-brand-action hover:bg-brand-action/5 transition-colors duration-500 rounded-full"
           >

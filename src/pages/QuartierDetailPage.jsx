@@ -123,7 +123,7 @@ const QuartierDetailPage = () => {
 
     const breadcrumbItems = [
         { label: t('home'), href: '/' },
-        { label: t('quartiersMedina'), href: '/quartiers-medina' },
+        { label: t('quartiersMedina'), href: '/quartiers' },
         { label: translatedQuartier.name },
     ];
     
@@ -231,7 +231,7 @@ const QuartierDetailPage = () => {
                                         <Link to={`/all-riads?quartier=${slug}`}>{t('viewGuestHousesInThisDistrict')}</Link>
                                     </Button>
                                     <Button asChild variant="outline" className="w-full">
-                                        <Link to="/quartiers-medina">
+                                        <Link to="/quartiers">
                                             <ArrowLeft className="mr-2 h-4 w-4" />
                                             {t('backToAllQuartiers')}
                                         </Link>

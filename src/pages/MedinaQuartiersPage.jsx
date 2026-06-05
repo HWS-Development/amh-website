@@ -87,6 +87,17 @@ const MedinaQuartiersPage = () => {
   }, []);
 
   useEffect(() => {
+    if (loading || quartiers.length === 0 || !window.location.hash) return;
+    const target = decodeURIComponent(window.location.hash.slice(1));
+    const el = document.getElementById(target);
+    if (!el) return;
+    const timer = setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [loading, quartiers.length]);
+
+  useEffect(() => {
     if (headerRef.current) {
       gsap.from(headerRef.current.children, { opacity: 0, y: 20, duration: 0.5, stagger: 0.1 });
     }
@@ -338,6 +349,7 @@ const MedinaQuartiersPage = () => {
 
                 {filteredQuartiers.map((quartier) => (
                   <div
+                    id={quartier.id}
                     key={quartier.id}
                     ref={(el) => (quartierRefs.current[quartier.slug] = el)}
                     onMouseEnter={() => handleCardHover(quartier)}

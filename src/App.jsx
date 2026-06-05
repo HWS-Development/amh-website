@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-        import { Routes, Route } from 'react-router-dom';
+        import { Navigate, Routes, Route } from 'react-router-dom';
         import { Toaster } from '@/components/ui/toaster';
         import HomePage from '@/pages/HomePage';
         import RiadDetailPage from '@/pages/RiadDetailPage';
@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
         import Footer from '@/components/Footer';
         import ScrollToTop from '@/components/ScrollToTop';
         import BackToTopButton from '@/components/BackToTopButton';
+        import FloatingBookButton from '@/components/FloatingBookButton';
         import { useAuth } from '@/contexts/SupabaseAuthContext';
         import { QueryParamProvider } from 'use-query-params';
         import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6';
@@ -61,7 +62,8 @@ import React, { useState, useEffect } from 'react';
                   <Route path="/destinations/:slug" element={<DestinationPage />} />
                   <Route path="/experiences" element={<ExperiencesIndexPage />} />
                   <Route path="/experiences/:slug" element={<ExperiencePage />} />
-                  <Route path="/quartiers-medina" element={<MedinaQuartiersPage />} />
+                  <Route path="/quartiers" element={<MedinaQuartiersPage />} />
+                  <Route path="/quartiers-medina" element={<Navigate to="/quartiers" replace />} />
                   <Route path="/quartiers/:slug" element={<QuartierDetailPage />} />
                   <Route path="/all-riads" element={<AllRiadsPage />} />
                   <Route path="/all-properties" element={<AllPropertiesPage />} />
@@ -72,6 +74,7 @@ import React, { useState, useEffect } from 'react';
               <Footer />
               <Toaster />
               <BackToTopButton />
+              <FloatingBookButton />
             </div>
           );
         }

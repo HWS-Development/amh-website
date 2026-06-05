@@ -165,9 +165,9 @@ const Sidebar = ({ open, onClose, navLinks, riads, t, currentLanguage, changeLan
         <div className="flex items-center justify-between px-6 md:px-8 py-5 border-b border-brand-ink/5">
           <Link to="/" onClick={onClose}>
             <OptimizedImage
-              src="/images/logo_mgh.svg"
+              src="/images/CR%20svg%20brown.svg"
               alt="Centrale des Riads"
-              className="h-10 md:h-12 w-auto"
+              className="h-12 md:h-16 w-auto max-w-[72vw] object-contain"
             />
           </Link>
           <button
@@ -388,12 +388,12 @@ const Header = ({ date, onDateChange }) => {
         className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-brand-ink/5"
         style={{ transform: "translateY(0%)" }}
       >
-        <div className="content-wrapper flex items-center justify-between py-1 md:py-2">
+        <div className="content-wrapper flex items-center justify-between py-1 md:py-1">
           <Link to="/" className="flex-shrink-0">
             <OptimizedImage
-              src="/images/logo_mgh.svg"
+              src="/images/CR%20svg%20brown.svg"
               alt="Centrale des Riads"
-              className="h-10 md:h-14 lg:h-[4.5rem] w-auto"
+              className="h-12 md:h-16 lg:h-20 w-auto max-w-[62vw] md:max-w-none object-contain"
             />
           </Link>
 
