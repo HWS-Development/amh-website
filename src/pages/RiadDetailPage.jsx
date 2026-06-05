@@ -938,7 +938,7 @@ const RiadDetailPage = () => {
                           <Mail className="w-4 h-4" />
                         </a>
                       )}
-                      {riad.simple_booking_link && riad.website && (
+                      {riad.website && (
                         <div className="relative group">
                           <div className="absolute -inset-3 bg-gradient-to-r from-brand-action/15 via-brand-action/5 to-brand-ink/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700" />
                           <a
