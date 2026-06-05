@@ -901,7 +901,7 @@ const RiadDetailPage = () => {
                         href={riad.simple_booking_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group flex-1 h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
+                        className="group flex-1 min-w-0 h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
                       >
                         <Sparkles className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{t("bookNow")}</span>
@@ -912,14 +912,14 @@ const RiadDetailPage = () => {
                         href={riad.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group flex-1 h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
+                        className="group flex-1 min-w-0 h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
                       >
                         <Sparkles className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{t("bookNow")}</span>
                         <span className="inline-block transition-transform duration-500 group-hover:translate-x-1 shrink-0" aria-hidden>&#8594;</span>
                       </a>
                     ) : (
-                      <div className="flex-1" />
+                      <div className="flex-1 min-w-0" />
                     )}
 
                     {riad.email && (
@@ -937,7 +937,7 @@ const RiadDetailPage = () => {
                         href={riad.website}
                         target="_blank"
                         rel="noreferrer"
-                        className="group flex-1 h-[52px] inline-flex items-center justify-center gap-3 px-6 bg-white border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/40 hover:bg-white transition-all duration-500 font-montserrat"
+                        className="group flex-1 min-w-0 h-[52px] inline-flex items-center justify-center gap-3 px-6 bg-white border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/40 hover:bg-white transition-all duration-500 font-montserrat"
                       >
                         <Globe ref={websiteIconRef} className="w-3.5 h-3.5 text-brand-action shrink-0" />
                         <span className="truncate">
