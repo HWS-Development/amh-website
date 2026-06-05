@@ -171,7 +171,7 @@ const Sidebar = ({ open, onClose, navLinks, riads, t, currentLanguage, changeLan
             <OptimizedImage
               src="/images/CR%20svg%20brown.svg"
               alt="Centrale des Riads"
-              className="h-[45px] md:h-[61px] w-auto max-w-[72vw] object-contain"
+              className="h-[40px] md:h-[56px] w-auto max-w-[72vw] object-contain"
             />
           </Link>
           <button
@@ -397,7 +397,7 @@ const Header = ({ date, onDateChange }) => {
             <OptimizedImage
               src="/images/CR%20svg%20brown.svg"
               alt="Centrale des Riads"
-              className="h-[45px] md:h-[61px] lg:h-[77px] w-auto max-w-[62vw] md:max-w-none object-contain"
+              className="h-[40px] md:h-[56px] lg:h-[72px] w-auto max-w-[62vw] md:max-w-none object-contain"
             />
           </Link>
 
