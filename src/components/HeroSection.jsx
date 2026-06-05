@@ -342,26 +342,8 @@ const HeroSection = () => {
             </span>
           </div>
 
-          {/* Booking strip */}
-          <div className="flex items-stretch gap-4">
-            <div
-              className="flex-1 min-w-0 relative overflow-hidden"
-              style={{
-                background: "transparent",
-                border: "0.5px solid rgba(245,237,224,0.15)",
-                backdropFilter: "blur(24px)",
-                WebkitBackdropFilter: "blur(24px)",
-              }}
-            >
-              <div
-                className="absolute top-0 inset-x-0"
-                style={{ height: 0.5, background: "linear-gradient(90deg, transparent, rgba(196,128,74,0.7), rgba(196,128,74,0.35), transparent)" }}
-              />
-              <div className="p-3 sm:p-4">
-                <BookingStrip date={date} onDateChange={onDateChange} isMobile={false} luxuryMode />
-              </div>
-            </div>
-          </div>
+          {/* Booking strip — no container, raw fields + button */}
+          <BookingStrip date={date} onDateChange={onDateChange} isMobile={false} />
         </div>
       </div>
 
