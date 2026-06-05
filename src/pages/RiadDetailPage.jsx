@@ -896,9 +896,9 @@ const RiadDetailPage = () => {
                 {/* Bottom: actions + read more */}
                 <div className="shrink-0 px-8 md:px-10 pb-10 md:pb-12 pt-4">
                   <div className="flex flex-col gap-3">
-                    {riad.simple_booking_link && (
+                    {(riad.simple_booking_link || riad.website) && (
                       <a
-                        href={riad.simple_booking_link}
+                        href={riad.simple_booking_link || riad.website}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="group w-full h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
@@ -920,7 +920,7 @@ const RiadDetailPage = () => {
                       </a>
                     )}
 
-                    {riad.website && (
+                    {riad.simple_booking_link && riad.website && (
                       <a
                         href={riad.website}
                         target="_blank"
