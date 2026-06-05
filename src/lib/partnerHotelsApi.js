@@ -143,7 +143,6 @@ async function fetchFilteredHotels(filters = {}) {
 }
 
 async function fetchHotelById(id) {
-  console.log(`[partnerHotelsApi] Fetching hotel ${id} from /api/partner/hotels/${id}/content ...`);
   const cachedOrganizationId = getCachedOrganizationId(id);
   const res = await fetch(`/api/partner/hotels/${id}/content`, {
     headers: cachedOrganizationId
@@ -159,15 +158,12 @@ async function fetchHotelById(id) {
     );
   }
   const body = await res.json();
-  console.log(`[BODY BODY] Received response for hotel ${id}:`, body);
-  console.log(`[BODY BODY JSON] Hotel ${id} response JSON:\n${JSON.stringify(body, null, 2)}`);
   if (!res.ok || !body.success) {
     throw new Error(
       `Partner API route error (status ${res.status}):\n` +
       `  ${body.error || body.message || JSON.stringify(body)}`
     );
   }
-  console.log(`[partnerHotelsApi] OK — received hotel ${id}`);
   cacheHotelOrganizations([body.data]);
   return body.data;
 }
@@ -218,6 +214,19 @@ export function usePartnerHotelById(id) {
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    // Fail fast: backend Centra access can return 403/500. Don't loop —
+    // the detail page falls back to listing data.
+    retry: (failureCount, error) => {
+      const msg = String(error?.message || '');
+      // Outer HTTP status
+      if (/status\s+(401|403|404)/.test(msg)) return false;
+      // Centra-wrapped auth/access failures bubble through as 500 — don't loop.
+      if (/returned\s+(401|403|404)/i.test(msg)) return false;
+      if (/PARTNER_HOTEL_CONTENT_ACCESS_DENIED/i.test(msg)) return false;
+      if (/ACCESS_DENIED|UNAUTHORIZED|FORBIDDEN/i.test(msg)) return false;
+      return failureCount < 1;
+    },
+    retryDelay: 800,
   });
 }
 

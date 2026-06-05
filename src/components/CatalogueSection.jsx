@@ -391,7 +391,7 @@ export default function CatalogueSection() {
           <div className="mt-4 flex items-center justify-between px-1">
             <span className="text-sm font-semibold text-gray-600">
               {totalCount}{" "}
-              <span className="text-brand-action">{t("results")}</span>
+              <span className="text-brand-action">{t("propertiesAvailable")}</span>
               {activeFiltersCount > 0 && (
                 <span className="ml-2 text-xs text-brand-ink/55 font-normal">
                   · {activeFiltersCount} {activeFiltersCount > 1 ? t("filtersActivePlural") : t("filtersActive")}

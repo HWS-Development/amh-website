@@ -35,7 +35,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/components/ui/use-toast";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
-import { usePartnerHotelById } from "@/lib/partnerHotelsApi";
+import { usePartnerHotelById, usePartnerHotels, extractCentraHotelId } from "@/lib/partnerHotelsApi";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -291,8 +291,21 @@ const RiadDetailPage = () => {
 
   const { data: hotelData, error: hotelError, isLoading: hotelLoading } = usePartnerHotelById(id);
 
+  // Listing fallback — used when the detail endpoint fails (e.g. Centra 403/500).
+  const { data: hotelList, isLoading: listLoading } = usePartnerHotels();
+  const fallbackHotel = useMemo(() => {
+    if (!Array.isArray(hotelList) || !id) return null;
+    return hotelList.find(
+      (h) =>
+        h?.id === id ||
+        h?.hotel_id === id ||
+        h?.hotelId === id ||
+        extractCentraHotelId(h?.image_urls) === id
+    ) || null;
+  }, [hotelList, id]);
+
   useEffect(() => {
-    const fetchAll = async () => {
+    const fetchAll = async (sourceHotel) => {
       setLoading(true);
       try {
         const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr, bookingConditionsArr] = await Promise.all([
@@ -309,7 +322,7 @@ const RiadDetailPage = () => {
         setAmenitiesCatalog(Object.fromEntries(amenitiesArr.map((a) => [a.id, a.label])));
         setServicesCatalog(Object.fromEntries(servicesArr.map((s) => [s.id, s.label])));
         setBookingConditionsCatalog(Object.fromEntries(bookingConditionsArr.map((b) => [b.id, b.label])));
-        const normalizedHotel = normalizePartnerHotel(hotelData);
+        const normalizedHotel = normalizePartnerHotel(sourceHotel);
         setRiad(normalizedHotel);
         if (normalizedHotel?.latitude && normalizedHotel?.longitude) {
           setTimeout(() => setMapLoaded(true), 600);
@@ -320,16 +333,22 @@ const RiadDetailPage = () => {
       }
       setLoading(false);
     };
+
+    // Prefer fresh detail data; fall back to listing entry on error.
     if (hotelData) {
-      fetchAll();
-    } else if (hotelError) {
+      fetchAll(hotelData);
+    } else if (hotelError && fallbackHotel) {
+      console.warn("[RiadDetailPage] Detail fetch failed — falling back to listing data.", hotelError);
+      fetchAll(fallbackHotel);
+    } else if (hotelError && !listLoading) {
+      // Detail failed and listing has no match either.
       toast({ variant: "destructive", title: "Error", description: "Could not fetch riad details." });
       setRiad(null);
       setLoading(false);
-    } else if (hotelLoading) {
+    } else if (hotelLoading || listLoading) {
       setLoading(true);
     }
-  }, [hotelData, hotelError, hotelLoading, currentLanguage, toast]);
+  }, [hotelData, hotelError, hotelLoading, fallbackHotel, listLoading, currentLanguage, toast]);
 
   const name = riad ? getTranslated(riad.name, currentLanguage) : "";
   const description = riad ? getTranslated(riad.description, currentLanguage) : "";
@@ -670,11 +689,16 @@ const RiadDetailPage = () => {
             ref={imgLayerA}
             className="absolute inset-0 w-full h-full object-cover will-change-transform"
             alt=""
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
           />
           <img
             ref={imgLayerB}
             className="absolute inset-0 w-full h-full object-cover will-change-transform"
             alt=""
+            loading="lazy"
+            decoding="async"
             style={{ opacity: 0 }}
           />
 
@@ -860,6 +884,26 @@ const RiadDetailPage = () => {
 
                 {/* Bottom: actions + read more */}
                 <div className="shrink-0 px-8 md:px-10 pb-10 md:pb-12 pt-4">
+                  {/* Phone number — prominent display */}
+                  {riad.phone_number && (
+                    <a
+                      href={`tel:${riad.phone_number}`}
+                      className="group inline-flex items-center gap-3 mb-5 px-4 py-2.5 bg-brand-beige/60 hover:bg-brand-beige border border-brand-action/15 hover:border-brand-action/40 transition-all duration-500"
+                    >
+                      <span className="grid place-items-center w-7 h-7 rounded-full bg-brand-action/10 text-brand-action group-hover:bg-brand-action group-hover:text-white transition-colors duration-500">
+                        <Phone className="w-3.5 h-3.5" strokeWidth={2.2} />
+                      </span>
+                      <span className="flex flex-col leading-tight">
+                        <span className="font-montserrat text-[0.5rem] uppercase tracking-[0.3em] text-brand-ink/40 font-semibold">
+                          {t("callUs") || "Téléphone"}
+                        </span>
+                        <span className="font-montserrat text-[0.85rem] font-semibold text-brand-ink tracking-wide">
+                          {riad.phone_number}
+                        </span>
+                      </span>
+                    </a>
+                  )}
+
                   <div className="flex items-center justify-between gap-4">
                     {riad.simple_booking_link ? (
                       <a
@@ -917,8 +961,9 @@ const RiadDetailPage = () => {
               </div>
             </div>
 
-            {/* ── Gallery Thumb Strip ── */}
-            <div className="lg:col-span-6">
+            {/* ── Gallery Thumb Strip — width-matched to info card ── */}
+            <div className="hidden lg:block lg:col-span-1" />
+            <div className="lg:col-span-5">
               {images.length > 1 && (
                 <div data-thumb-strip>
                   <div className="flex items-center gap-3 mb-6">
@@ -941,28 +986,24 @@ const RiadDetailPage = () => {
                         className={`relative group overflow-hidden transition-all duration-500 ${
                           photoIdx === i
                             ? "ring-2 ring-brand-action ring-offset-2 ring-offset-white scale-[1.02]"
-                            : "opacity-50 hover:opacity-100 hover:scale-[1.02]"
+                            : "hover:scale-[1.02]"
                         }`}
                       >
-                        <div className="aspect-[4/3] overflow-hidden bg-[#1d1d1b]">
+                        <div className="aspect-[4/3] overflow-hidden bg-brand-beige/40">
                           <img
                             src={src}
                             alt=""
                             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                             loading="lazy"
+                            decoding="async"
                           />
                         </div>
-                        <div className={`absolute inset-0 transition-colors duration-600 ${
-                          photoIdx === i
-                            ? "bg-transparent"
-                            : "bg-gradient-to-t from-black/50 via-transparent to-transparent group-hover:from-black/20"
-                        }`} />
-                        <span className="absolute bottom-2 left-2 font-montserrat text-[0.45rem] font-bold text-white/70 drop-shadow-lg">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
                         {photoIdx === i && (
                           <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand-action shadow-sm" />
                         )}
+                        <span className="absolute bottom-2 left-2 font-montserrat text-[0.5rem] font-bold text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
                       </button>
                     ))}
                     {images.length > 6 && (
