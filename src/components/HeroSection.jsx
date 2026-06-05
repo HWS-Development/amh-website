@@ -37,6 +37,13 @@ const HeroSection = () => {
 
   const [activeIdx, setActiveIdx] = useState(0);
   const [slideKey,  setSlideKey]  = useState(0);
+  const [isMobile,  setIsMobile]  = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   /* One slide per experience — order from the brief. */
   const slides = useMemo(() => [
@@ -277,7 +284,7 @@ const HeroSection = () => {
         </div>
 
         {/* ── Bottom-left: experience + slide indicators (padded to clear FAB) ── */}
-        <div ref={bottomRef} className="hero-bottom" style={{ paddingBottom: 84 }}>
+        <div ref={bottomRef} className="hero-bottom" style={{ paddingBottom: isMobile ? 260 : 84 }}>
 
           {/* ── EXPERIENCE block (bottom-left, above progress) — desktop only ── */}
           <div className="hidden md:block" style={{ marginBottom: 10, maxWidth: 620 }}>
@@ -345,8 +352,8 @@ const HeroSection = () => {
       </div>
 
       {/* ════════════ FULL-WIDTH BOOKING STRIP (absolute bottom) ═════════ */}
-      <div className="absolute inset-x-0 bottom-0 z-20 hidden md:block">
-        <BookingStrip date={date} onDateChange={onDateChange} isMobile={false} />
+      <div className="absolute inset-x-0 bottom-0 z-20">
+        <BookingStrip date={date} onDateChange={onDateChange} isMobile={isMobile} />
       </div>
 
       {/* ════════════ SCROLL HINT ════════════════════════════════════════ */}
