@@ -162,8 +162,35 @@ const updated = sql.replace(ROW_RE, (full, id, label, createdAt, shortDesc, long
   return `${head}'${newImages}'${tail}`;
 });
 
-fs.writeFileSync(SQL_PATH, updated, "utf8");
+fs.writeFileSync(SQL_PATH, ensureUpsert(updated), "utf8");
 
 console.log(`[ok] Updated ${replaced.size} quartier rows.`);
 console.log(`     Replaced: ${[...replaced].sort().join(", ")}`);
 if (skipped.length) console.log(`     Skipped (no mapping): ${skipped.join(", ")}`);
+
+// Ensure the INSERT is idempotent by appending an ON CONFLICT (id) DO UPDATE
+// clause if not already present. Lets the dump be re-imported safely.
+function ensureUpsert(text) {
+  if (/ON CONFLICT\s*\(\s*id\s*\)/i.test(text)) return text;
+  const trimmed = text.replace(/\s+$/, "");
+  if (!trimmed.endsWith(");")) {
+    console.warn("[warn] SQL does not end with `);` — leaving ON CONFLICT off.");
+    return text;
+  }
+  return trimmed.slice(0, -2) + `)
+ON CONFLICT (id) DO UPDATE SET
+  label                      = EXCLUDED.label,
+  short_desc_tr              = COALESCE(EXCLUDED.short_desc_tr, mgh_neighborhoods.short_desc_tr),
+  long_desc_tr               = COALESCE(EXCLUDED.long_desc_tr,  mgh_neighborhoods.long_desc_tr),
+  images                     = EXCLUDED.images,
+  is_featured                = EXCLUDED.is_featured,
+  display_order              = COALESCE(EXCLUDED.display_order, mgh_neighborhoods.display_order),
+  walking_minutes_from_jemaa = COALESCE(EXCLUDED.walking_minutes_from_jemaa, mgh_neighborhoods.walking_minutes_from_jemaa),
+  category_tags              = EXCLUDED.category_tags,
+  ambiance_tags              = EXCLUDED.ambiance_tags,
+  latitude                   = COALESCE(EXCLUDED.latitude,  mgh_neighborhoods.latitude),
+  longitude                  = COALESCE(EXCLUDED.longitude, mgh_neighborhoods.longitude),
+  city_id                    = COALESCE(EXCLUDED.city_id,   mgh_neighborhoods.city_id),
+  meta                       = COALESCE(EXCLUDED.meta,      mgh_neighborhoods.meta);
+`;
+}
