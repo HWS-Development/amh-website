@@ -215,8 +215,8 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
 
   /* ═══════════════════════ DESKTOP ═══════════════════════ */
   return (
-    <div ref={stripRef}>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-stretch">
+    <div ref={stripRef} className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-brand-ink/10 items-stretch w-full">
         {/* Destination */}
         <Popover open={destOpen} onOpenChange={setDestOpen}>
           <PopoverTrigger asChild>

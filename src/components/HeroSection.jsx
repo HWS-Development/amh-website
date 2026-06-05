@@ -276,8 +276,8 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* ── Bottom: experience (left) + indicators + booking strip ── */}
-        <div ref={bottomRef} className="hero-bottom" style={{ paddingBottom: 6, marginTop: '-38px' }}>
+        {/* ── Bottom-left: experience + slide indicators (padded to clear FAB) ── */}
+        <div ref={bottomRef} className="hero-bottom" style={{ paddingBottom: 84 }}>
 
           {/* ── EXPERIENCE block (bottom-left, above progress) — desktop only ── */}
           <div className="hidden md:block" style={{ marginBottom: 10, maxWidth: 620 }}>
@@ -327,7 +327,7 @@ const HeroSection = () => {
           </div>
 
           {/* Slide indicators + counter */}
-          <div className="flex items-center gap-2" style={{ marginBottom: 14 }}>
+          <div className="flex items-center gap-2">
             {slides.map((s, i) => (
               <motion.div
                 key={s.key}
@@ -341,10 +341,12 @@ const HeroSection = () => {
               <strong style={{ color: "#c4804a" }}>{String(activeIdx + 1).padStart(2, "0")}</strong> / {String(slides.length).padStart(2, "0")}
             </span>
           </div>
-
-          {/* Booking strip — no container, raw fields + button */}
-          <BookingStrip date={date} onDateChange={onDateChange} isMobile={false} />
         </div>
+      </div>
+
+      {/* ════════════ FULL-WIDTH BOOKING STRIP (absolute bottom) ═════════ */}
+      <div className="absolute inset-x-0 bottom-0 z-20 hidden md:block">
+        <BookingStrip date={date} onDateChange={onDateChange} isMobile={false} />
       </div>
 
       {/* ════════════ SCROLL HINT ════════════════════════════════════════ */}
