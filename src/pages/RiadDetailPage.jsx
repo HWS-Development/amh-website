@@ -250,6 +250,8 @@ const normalizePartnerHotel = (hotel) => {
     extra_info: hotel.extra_info || hotel.extraInfo || null,
     phone_number: hotel.phone_number || hotel.phoneNumber || null,
     source_created_at: hotel.source_created_at || hotel.sourceCreatedAt || null,
+    latitude: hotel.latitude ?? hotel.lat ?? null,
+    longitude: hotel.longitude ?? hotel.lng ?? hotel.lon ?? null,
   };
 };
 
@@ -1086,7 +1088,7 @@ const RiadDetailPage = () => {
 
                   {/* Map */}
                   <div className="lg:col-span-8" data-map-container>
-                    {position && (
+                    {position ? (
                       <div className="relative overflow-hidden shadow-xl bg-white">
                         <span className="absolute top-4 left-4 w-5 h-5 border-t border-l border-white/40 z-20 pointer-events-none" />
                         <span className="absolute top-4 right-4 w-5 h-5 border-t border-r border-white/40 z-20 pointer-events-none" />
@@ -1135,6 +1137,35 @@ const RiadDetailPage = () => {
                               </div>
                             )}
                           </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative overflow-hidden shadow-xl bg-white">
+                        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-brand-ink/5">
+                          <div className="flex items-center gap-2.5">
+                            <MapPin className="w-4 h-4 text-brand-action" />
+                            <span className="text-sm font-semibold text-brand-ink font-montserrat tracking-wide">
+                              {name}
+                            </span>
+                          </div>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${address || ''} ${city || ''}`.trim())}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1.5 text-[0.55rem] uppercase tracking-[0.15em] text-brand-action hover:text-brand-action/70 font-semibold transition-all duration-400 group"
+                          >
+                            <Globe className="w-3 h-3" />
+                            {t("googleMaps")}
+                          </a>
+                        </div>
+                        <div className="h-[400px] md:h-[500px] relative overflow-hidden">
+                          <iframe
+                            title={name}
+                            src={`https://www.google.com/maps?q=${encodeURIComponent(`${name} ${address || ''} ${city || ''}`.trim())}&output=embed`}
+                            className="w-full h-full border-0"
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                          />
                         </div>
                       </div>
                     )}

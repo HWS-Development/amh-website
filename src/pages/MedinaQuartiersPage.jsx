@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import Breadcrumb from '@/components/Breadcrumb';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Loader2, Search, SlidersHorizontal, Clock, Info, Map as MapIcon } from 'lucide-react';
+import { Loader2, Search, SlidersHorizontal, Clock, Info, Map as MapIcon, ExternalLink } from 'lucide-react';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import gsap from 'gsap';
 
@@ -37,6 +37,14 @@ const ChangeView = ({ center, zoom }) => {
     if (center && center.length === 2) map.setView(center, zoom);
   }, [center, zoom, map]);
   return null;
+};
+
+const gmapsUrl = (q) => {
+  if (q.lat && q.lng) {
+    return `https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}`;
+  }
+  const query = encodeURIComponent(`${q.name || q.label || ''}, Marrakech, Maroc`);
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
 };
 
 const MedinaQuartiersPage = () => {
@@ -73,11 +81,13 @@ const MedinaQuartiersPage = () => {
         console.error('Error fetching quartiers:', error);
         setError(error);
       } else {
-        // Normalize: id → slug, label → name_tr for downstream compatibility
+        // Normalize: id → slug, label → name_tr, latitude/longitude → lat/lng for downstream compatibility
         setQuartiers((data || []).map((row) => ({
           ...row,
           slug: row.id,
           name_tr: row.label,
+          lat: row.lat ?? row.latitude ?? null,
+          lng: row.lng ?? row.longitude ?? null,
         })));
       }
       setLoading(false);
@@ -324,7 +334,20 @@ const MedinaQuartiersPage = () => {
                         icon={customIcon}
                         eventHandlers={{ click: () => handleMarkerClick(quartier) }}
                       >
-                        <Popup>{quartier.name}</Popup>
+                        <Popup>
+                          <div className="font-montserrat space-y-1">
+                            <strong className="block text-brand-ink">{quartier.name}</strong>
+                            <a
+                              href={gmapsUrl(quartier)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-brand-action hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              {t('viewOnGoogleMaps') || 'Voir sur Google Maps'}
+                            </a>
+                          </div>
+                        </Popup>
                       </Marker>
                     ))}
                   </MapContainer>
@@ -408,6 +431,12 @@ const MedinaQuartiersPage = () => {
                                 {t('moreDetails')}
                               </Link>
                             </Button>
+                            <Button asChild variant="outline" className="w-full sm:w-auto">
+                              <a href={gmapsUrl(quartier)} target="_blank" rel="noreferrer">
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                {t('viewOnGoogleMaps') || 'Voir sur Google Maps'}
+                              </a>
+                            </Button>
                             <Button asChild variant="secondary" className="w-full sm:w-auto">
                               <Link to={`/all-riads?city=marrakech&quartier=${quartier.slug}`}>
                                 {t('viewGuestHousesInThisDistrict')}
@@ -446,7 +475,20 @@ const MedinaQuartiersPage = () => {
                       icon={customIcon}
                       eventHandlers={{ click: () => handleMarkerClick(quartier) }}
                     >
-                      <Popup>{quartier.name}</Popup>
+                       <Popup>
+                         <div className="font-montserrat space-y-1">
+                           <strong className="block text-brand-ink">{quartier.name}</strong>
+                           <a
+                             href={gmapsUrl(quartier)}
+                             target="_blank"
+                             rel="noreferrer"
+                             className="inline-flex items-center gap-1 text-xs text-brand-action hover:underline"
+                           >
+                             <ExternalLink className="h-3 w-3" />
+                             {t('viewOnGoogleMaps') || 'Voir sur Google Maps'}
+                           </a>
+                         </div>
+                       </Popup>
                     </Marker>
                   ))}
                 </MapContainer>

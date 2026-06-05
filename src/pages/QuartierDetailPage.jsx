@@ -79,7 +79,13 @@ const QuartierDetailPage = () => {
                 console.error('Error fetching POIs:', poisError);
             }
 
-            setQuartier({ ...quartierData, slug: quartierData.id, name_tr: quartierData.label });
+            setQuartier({
+              ...quartierData,
+              slug: quartierData.id,
+              name_tr: quartierData.label,
+              lat: quartierData.lat ?? quartierData.latitude ?? null,
+              lng: quartierData.lng ?? quartierData.longitude ?? null,
+            });
             setPois(poisData || []);
             setLoading(false);
         };
@@ -218,7 +224,20 @@ const QuartierDetailPage = () => {
                                     <MapContainer center={[translatedQuartier.lat, translatedQuartier.lng]} zoom={15} scrollWheelZoom={false} className="h-full w-full">
                                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                                         <Marker position={[translatedQuartier.lat, translatedQuartier.lng]} icon={poiIcon('red')}>
-                                            <Popup>{translatedQuartier.name}</Popup>
+                                            <Popup>
+                                                <div className="font-montserrat space-y-1">
+                                                    <strong className="block text-brand-ink">{translatedQuartier.name}</strong>
+                                                    <a
+                                                        href={`https://www.google.com/maps/search/?api=1&query=${translatedQuartier.lat},${translatedQuartier.lng}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="inline-flex items-center gap-1 text-xs text-brand-action hover:underline"
+                                                    >
+                                                        <ExternalLink className="h-3 w-3" />
+                                                        {t('viewOnGoogleMaps') || 'Voir sur Google Maps'}
+                                                    </a>
+                                                </div>
+                                            </Popup>
                                         </Marker>
                                         {translatedPois.map(poi => poi.lat && poi.lng && (
                                             <Marker key={poi.id} position={[poi.lat, poi.lng]} icon={poiIcon('blue')}>
@@ -227,11 +246,29 @@ const QuartierDetailPage = () => {
                                         ))}
                                     </MapContainer>
                                     ) : (
-                                      <div className="h-full w-full flex items-center justify-center bg-brand-beige/30 text-brand-ink/40 text-sm">
-                                        {t('mapUnavailable') || 'Map unavailable'}
-                                      </div>
+                                      <iframe
+                                        title={translatedQuartier.name}
+                                        src={`https://www.google.com/maps?q=${encodeURIComponent(`${translatedQuartier.name}, Marrakech, Maroc`)}&output=embed`}
+                                        className="w-full h-full border-0"
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                      />
                                     )}
                                 </div>
+                                <Button asChild variant="outline" className="w-full">
+                                  <a
+                                    href={
+                                      translatedQuartier.lat && translatedQuartier.lng
+                                        ? `https://www.google.com/maps/search/?api=1&query=${translatedQuartier.lat},${translatedQuartier.lng}`
+                                        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${translatedQuartier.name}, Marrakech, Maroc`)}`
+                                    }
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    {t('viewOnGoogleMaps') || 'Voir sur Google Maps'}
+                                  </a>
+                                </Button>
                                 <div className="space-y-2">
                                      <Button asChild className="w-full btn-action">
                                         <Link to={`/all-riads?quartier=${slug}`}>{t('viewGuestHousesInThisDistrict')}</Link>
