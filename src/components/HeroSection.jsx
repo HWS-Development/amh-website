@@ -277,7 +277,7 @@ const HeroSection = () => {
         </div>
 
         {/* ── Bottom: experience (left) + indicators + booking strip ── */}
-        <div ref={bottomRef} style={{ paddingBottom: 6, marginTop: '-28px' }}>
+        <div ref={bottomRef} style={{ paddingBottom: 6, marginTop: '-38px' }}>
 
           {/* ── EXPERIENCE block (bottom-left, above progress) — desktop only ── */}
           <div className="hidden md:block" style={{ marginBottom: 10, maxWidth: 620 }}>
