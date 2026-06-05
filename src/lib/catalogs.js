@@ -43,7 +43,14 @@ export const fetchCatalog = async (table, lang) => {
     .from(table)
     .select(selectCols);
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === 'PGRST116' || error.code === '42P01') {
+      console.warn(`[catalogs] Table "${table}" not found — returning empty`);
+      catalogCache.set(key, []);
+      return [];
+    }
+    throw error;
+  }
 
   let result = data.map((row) => {
     let label = getTranslated(row.label, lang);

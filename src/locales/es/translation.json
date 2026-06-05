@@ -175,6 +175,7 @@
   "onlyShowBookableRiads": "Reserva tu estancia directamente online aquí",
   "area": "Zona",
   "quartier": "Barrio",
+  "quartierAlt": "Barrio {{name}}",
   "all": "Todos",
   "tryAdjustingFilters": "Intente ajustar o restablecer sus filtros.",
   "sort_default": "Predeterminado",

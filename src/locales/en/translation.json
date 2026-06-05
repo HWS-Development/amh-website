@@ -175,6 +175,7 @@
   "onlyShowBookableRiads": "Book your stay directly online here",
   "area": "Area",
   "quartier": "Neighborhood",
+  "quartierAlt": "Neighborhood of {{name}}",
   "all": "All",
   "tryAdjustingFilters": "Try adjusting or resetting your filters.",
   "sort_default": "Default",

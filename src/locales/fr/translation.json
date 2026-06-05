@@ -175,6 +175,7 @@
   "onlyShowBookableRiads": "Réservez votre séjour directement en ligne ici",
   "area": "Secteur",
   "quartier": "Quartier",
+  "quartierAlt": "Quartier {{name}}",
   "all": "Tous",
   "tryAdjustingFilters": "Essayez d'ajuster ou de réinitialiser vos filtres.",
   "sort_default": "Défaut",
