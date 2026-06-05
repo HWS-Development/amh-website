@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Twitter, Linkedin } from 'lucide-react';
+import { Facebook, Instagram } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const Footer = () => {
@@ -21,17 +21,11 @@ const Footer = () => {
 
           {/* Social Icons */}
           <div className="flex items-center gap-4">
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-brand-ink/60 hover:text-brand-action transition-colors">
+            <a href="https://web.facebook.com/moroccanguesthouses/" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-brand-ink/60 hover:text-brand-action transition-colors">
               <Facebook className="w-5 h-5" />
             </a>
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-brand-ink/60 hover:text-brand-action transition-colors">
+            <a href="https://www.instagram.com/moroccanguesthouses/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-brand-ink/60 hover:text-brand-action transition-colors">
               <Instagram className="w-5 h-5" />
-            </a>
-            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="text-brand-ink/60 hover:text-brand-action transition-colors">
-              <Twitter className="w-5 h-5" />
-            </a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-brand-ink/60 hover:text-brand-action transition-colors">
-              <Linkedin className="w-5 h-5" />
             </a>
           </div>
         </div>
