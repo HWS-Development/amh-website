@@ -158,7 +158,7 @@ const HeroSection = () => {
       ))}
 
       {/* ════════════ CONTENT LAYER ══════════════════════════════════════ */}
-      <div className="relative z-10 h-full flex flex-col" style={{ padding: "0 32px" }}>
+      <div className="relative z-10 h-full flex flex-col hero-content" style={{ padding: "0 32px" }}>
 
         {/* ── Top bar ── */}
         <div
@@ -277,7 +277,7 @@ const HeroSection = () => {
         </div>
 
         {/* ── Bottom: experience (left) + indicators + booking strip ── */}
-        <div ref={bottomRef} style={{ paddingBottom: 6, marginTop: '-38px' }}>
+        <div ref={bottomRef} className="hero-bottom" style={{ paddingBottom: 6, marginTop: '-38px' }}>
 
           {/* ── EXPERIENCE block (bottom-left, above progress) — desktop only ── */}
           <div className="hidden md:block" style={{ marginBottom: 10, maxWidth: 620 }}>
@@ -391,6 +391,12 @@ const HeroSection = () => {
         @media (max-width: 768px) {
           .hero-title    { white-space: normal !important; }
           .hero-subtitle { white-space: normal !important; }
+        }
+
+        /* Reserve left space on desktop so FloatingBookButton (96px, left-5/6)
+           doesn't overlap the experience block + booking strip. */
+        @media (min-width: 768px) {
+          .hero-bottom { padding-left: 124px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
