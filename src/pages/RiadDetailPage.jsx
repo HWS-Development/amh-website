@@ -935,15 +935,13 @@ const RiadDetailPage = () => {
                             href={riad.website}
                             target="_blank"
                             rel="noreferrer"
-                            className="relative flex items-center gap-3 px-7 py-4 bg-white/80 backdrop-blur-sm border border-brand-ink/10 shadow-sm hover:shadow-xl hover:border-brand-action/30 hover:bg-white transition-all duration-500"
+                            className="relative inline-flex items-center justify-center gap-3 px-7 py-4 bg-white/80 backdrop-blur-sm border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/30 hover:bg-white transition-all duration-500 font-montserrat w-full sm:w-auto"
                           >
-                            <span ref={websiteIconRef} className="relative flex items-center justify-center w-6 h-6 bg-gradient-to-br from-brand-action to-brand-ink/80 text-white shadow-lg shrink-0">
-                              <Globe className="w-3.5 h-3.5" />
-                            </span>
-                            <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 group-hover:text-brand-ink transition-colors font-montserrat truncate">
+                            <Globe ref={websiteIconRef} className="w-3.5 h-3.5 text-brand-action shrink-0" />
+                            <span className="truncate">
                               {(() => { try { return new URL(riad.website).hostname.replace(/^www\./, ''); } catch { return riad.website; } })()}
                             </span>
-                            <ExternalLink className="w-3 h-3 text-brand-ink/20 group-hover:text-brand-action transition-colors shrink-0" />
+                            <ExternalLink className="w-3 h-3 text-brand-ink/30 group-hover:text-brand-action transition-colors shrink-0" />
                           </a>
                         </div>
                       )}
