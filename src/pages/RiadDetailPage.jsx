@@ -37,6 +37,7 @@ import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
 import { optimizeImageUrl } from "@/lib/imageUtils";
 import { usePartnerHotelById, usePartnerHotels, extractCentraHotelId } from "@/lib/partnerHotelsApi";
+import { findRiadContact } from "@/data/riadsContactData";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -352,6 +353,7 @@ const RiadDetailPage = () => {
   }, [hotelData, hotelError, hotelLoading, fallbackHotel, listLoading, currentLanguage, toast]);
 
   const name = riad ? getTranslated(riad.name, currentLanguage) : "";
+  const contactInfo = useMemo(() => findRiadContact(name), [name]);
   const description = riad ? getTranslated(riad.description, currentLanguage) : "";
   const address = riad ? getTranslated(riad.address, currentLanguage) : "";
   const city = riad ? (cities[riad.city_id] || "") : "";
@@ -896,9 +898,42 @@ const RiadDetailPage = () => {
                 {/* Bottom: actions + read more */}
                 <div className="shrink-0 px-8 md:px-10 pb-10 md:pb-12 pt-4">
                   <div className="flex flex-col gap-3">
-                    {(riad.simple_booking_link || riad.website) && (
+                    {contactInfo?.phone && (
+                      <div className="w-full h-[52px] bg-white border border-brand-ink/10 text-brand-ink/70 flex items-center justify-center gap-3 px-6 font-montserrat">
+                        <Phone className="w-4 h-4 text-brand-action shrink-0" />
+                        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em]">{contactInfo.phone}</span>
+                      </div>
+                    )}
+
+                    {contactInfo?.email && (
                       <a
-                        href={riad.simple_booking_link || riad.website}
+                        href={`mailto:${contactInfo.email}`}
+                        aria-label="Email"
+                        className="w-full h-[52px] border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center gap-3 hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-400"
+                      >
+                        <Mail className="w-4 h-4 shrink-0" />
+                        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] font-montserrat truncate">{contactInfo.email}</span>
+                      </a>
+                    )}
+
+                    {contactInfo?.website && (
+                      <a
+                        href={contactInfo.website.startsWith('http') ? contactInfo.website : `https://${contactInfo.website}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group w-full h-[52px] inline-flex items-center justify-center gap-3 px-6 bg-white border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/40 hover:bg-white transition-all duration-500 font-montserrat"
+                      >
+                        <Globe ref={websiteIconRef} className="w-3.5 h-3.5 text-brand-action shrink-0" />
+                        <span className="truncate">
+                          {(() => { try { return new URL(contactInfo.website.startsWith('http') ? contactInfo.website : `https://${contactInfo.website}`).hostname.replace(/^www\./, ''); } catch { return contactInfo.website; } })()}
+                        </span>
+                        <ExternalLink className="w-3 h-3 text-brand-ink/30 group-hover:text-brand-action transition-colors shrink-0" />
+                      </a>
+                    )}
+
+                    {(contactInfo?.simpleBookingLink || contactInfo?.website) && (
+                      <a
+                        href={contactInfo.simpleBookingLink || contactInfo.website}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="group w-full h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
@@ -906,32 +941,6 @@ const RiadDetailPage = () => {
                         <Sparkles className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{t("bookNow")}</span>
                         <span className="inline-block transition-transform duration-500 group-hover:translate-x-1 shrink-0" aria-hidden>&#8594;</span>
-                      </a>
-                    )}
-
-                    {riad.email && (
-                      <a
-                        href={`mailto:${riad.email}`}
-                        aria-label="Email"
-                        className="w-full h-[52px] border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center gap-3 hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-400"
-                      >
-                        <Mail className="w-4 h-4 shrink-0" />
-                        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] font-montserrat truncate">{riad.email}</span>
-                      </a>
-                    )}
-
-                    {riad.simple_booking_link && riad.website && (
-                      <a
-                        href={riad.website}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group w-full h-[52px] inline-flex items-center justify-center gap-3 px-6 bg-white border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/40 hover:bg-white transition-all duration-500 font-montserrat"
-                      >
-                        <Globe ref={websiteIconRef} className="w-3.5 h-3.5 text-brand-action shrink-0" />
-                        <span className="truncate">
-                          {(() => { try { return new URL(riad.website).hostname.replace(/^www\./, ''); } catch { return riad.website; } })()}
-                        </span>
-                        <ExternalLink className="w-3 h-3 text-brand-ink/30 group-hover:text-brand-action transition-colors shrink-0" />
                       </a>
                     )}
                   </div>
@@ -1151,18 +1160,6 @@ const RiadDetailPage = () => {
         </div>
       </div>
 
-      {/* Floating WhatsApp button (fixed, right side) */}
-      {phoneNumber && (
-        <a
-          href={`https://wa.me/${phoneNumber.replace(/[^0-9]/g, '')}`}
-          target="_blank"
-          rel="noreferrer"
-          className="fixed right-6 bottom-24 z-[60] flex items-center gap-2 bg-green-500 text-white px-4 py-3 shadow-xl hover:bg-green-600 transition-all duration-300 rounded-lg"
-          aria-label="WhatsApp"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-        </a>
-      )}
     </>
   );
 };
