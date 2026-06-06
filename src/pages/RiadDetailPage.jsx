@@ -84,6 +84,11 @@ const getAmenityIcon = (label = "") => {
   return Check;
 };
 
+const normalizeExternalUrl = (url) => {
+  if (!url) return null;
+  return url.startsWith("http") ? url : `https://${url}`;
+};
+
 const GalleryModal = ({ open, images, name, startIndex, onClose }) => {
   const overlayRef = useRef(null);
   const contentRef = useRef(null);
@@ -918,14 +923,14 @@ const RiadDetailPage = () => {
 
                     {contactInfo?.website && (
                       <a
-                        href={contactInfo.website.startsWith('http') ? contactInfo.website : `https://${contactInfo.website}`}
+                        href={normalizeExternalUrl(contactInfo.website)}
                         target="_blank"
                         rel="noreferrer"
                         className="group w-full h-[52px] inline-flex items-center justify-center gap-3 px-6 bg-white border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/40 hover:bg-white transition-all duration-500 font-montserrat"
                       >
                         <Globe ref={websiteIconRef} className="w-3.5 h-3.5 text-brand-action shrink-0" />
                         <span className="truncate">
-                          {(() => { try { return new URL(contactInfo.website.startsWith('http') ? contactInfo.website : `https://${contactInfo.website}`).hostname.replace(/^www\./, ''); } catch { return contactInfo.website; } })()}
+                          {(() => { try { return new URL(normalizeExternalUrl(contactInfo.website)).hostname.replace(/^www\./, ''); } catch { return contactInfo.website; } })()}
                         </span>
                         <ExternalLink className="w-3 h-3 text-brand-ink/30 group-hover:text-brand-action transition-colors shrink-0" />
                       </a>
@@ -933,7 +938,7 @@ const RiadDetailPage = () => {
 
                     {(contactInfo?.simpleBookingLink || contactInfo?.website) && (
                       <a
-                        href={contactInfo.simpleBookingLink || contactInfo.website}
+                        href={contactInfo.simpleBookingLink || normalizeExternalUrl(contactInfo.website)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="group w-full h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
