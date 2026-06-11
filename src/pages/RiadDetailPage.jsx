@@ -27,6 +27,7 @@ import {
   CigaretteOff, Snowflake, ConciergeBell, Plane, Lock,
   ChevronDown, BookOpen, ExternalLink,
 } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -37,6 +38,7 @@ import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
 import { optimizeImageUrl } from "@/lib/imageUtils";
 import { usePartnerHotelById, usePartnerHotels, extractCentraHotelId } from "@/lib/partnerHotelsApi";
+import BackToTopButton from "@/components/BackToTopButton";
 import { findRiadContact } from "@/data/riadsContactData";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -89,34 +91,20 @@ const normalizeExternalUrl = (url) => {
   return url.startsWith("http") ? url : `https://${url}`;
 };
 
-const GalleryModal = ({ open, images, name, startIndex, onClose }) => {
-  const overlayRef = useRef(null);
-  const contentRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    if (contentRef.current) {
-      gsap.fromTo(contentRef.current,
-        { opacity: 0, scale: 0.96, y: 24 },
-        { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: "power3.out" }
-      );
-    }
-  }, [open]);
-
+const GalleryModal = ({ open, images, startIndex, onClose }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-brand-ink/98 flex flex-col" ref={overlayRef}>
-      <div className="h-[72px] flex items-center justify-between px-7" ref={contentRef}>
-        <span className="text-xs font-montserrat text-white/50 uppercase tracking-[0.3em]">{name}</span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-11 h-11 flex items-center justify-center text-white/30 hover:text-white transition-all duration-500 hover:bg-white/5 rounded-full group"
-        >
-          <X className="w-4 h-4 transition-transform duration-500 group-hover:rotate-90" />
-        </button>
-      </div>
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute top-5 right-5 z-10 w-12 h-12 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+        aria-label="Close"
+      >
+        <X className="w-7 h-7" />
+      </button>
+
       <div className="flex-1 min-h-0">
         <Swiper
           modules={[Navigation, Pagination, Keyboard]}
@@ -129,13 +117,12 @@ const GalleryModal = ({ open, images, name, startIndex, onClose }) => {
         >
           {images.map((url, index) => (
             <SwiperSlide key={`${url}-${index}`}>
-              <div className="w-full h-full flex items-center justify-center p-7 md:px-24 md:pb-16">
+              <div className="w-full h-full flex items-center justify-center">
                 <OptimizedImage
                   src={url}
-                  alt={`${name} ${index + 1}`}
-                  className="max-w-full max-h-full object-contain select-none"
+                  alt={`Photo ${index + 1}`}
+                  className="w-full h-full object-contain select-none"
                   draggable={false}
-                  style={{ boxShadow: "0 24px 96px rgba(0,0,0,0.6)" }}
                 />
               </div>
             </SwiperSlide>
@@ -385,6 +372,7 @@ const RiadDetailPage = () => {
     return `+212 6 ${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,6)} ${digits.slice(6,8)}`;
   };
   const phoneNumber = riad?.phone_number || (riad ? fallbackPhone(riad.id || riad.hotel_id) : null);
+  const whatsappNumber = riad?.whatsappNumber || null;
 
   const hasMetrics = riad?.rating_avg || riad?.reviews_count || amenities.length > 0 || images.length > 1;
 
@@ -695,7 +683,6 @@ const RiadDetailPage = () => {
       <GalleryModal
         open={galleryOpen}
         images={images}
-        name={name}
         startIndex={activeImageIndex}
         onClose={() => setGalleryOpen(false)}
       />
@@ -814,7 +801,7 @@ const RiadDetailPage = () => {
             <div className="hidden lg:block lg:col-span-1" />
 
             {/* ── Info Card ── */}
-            <div className="lg:col-span-5 relative" ref={infoCardRef}>
+            <div className="lg:col-span-5 relative pt-20 md:pt-24" ref={infoCardRef}>
               <div className="bg-white border border-brand-ink/5 shadow-xl relative flex flex-col overflow-hidden">
                 <div className="absolute top-4 left-4 w-4 h-4 border-t border-l border-brand-action/20 pointer-events-none z-10" />
                 <div className="absolute top-4 right-4 w-4 h-4 border-t border-r border-brand-action/20 pointer-events-none z-10" />
@@ -955,7 +942,7 @@ const RiadDetailPage = () => {
 
             {/* ── Gallery Thumb Strip — width-matched to info card ── */}
             <div className="hidden lg:block lg:col-span-1" />
-            <div className="lg:col-span-5">
+            <div className="lg:col-span-5 pt-20 md:pt-24">
               {images.length > 1 && (
                 <div data-thumb-strip>
                   <div className="flex items-center gap-3 mb-6">
@@ -1165,6 +1152,18 @@ const RiadDetailPage = () => {
         </div>
       </div>
 
+      {whatsappNumber && (
+        <a
+          href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}`}
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-24 right-6 z-40 w-14 h-14 flex items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 hover:scale-110 active:scale-95 transition-all duration-300"
+          aria-label="WhatsApp"
+        >
+          <FaWhatsapp className="w-7 h-7" />
+        </a>
+      )}
+      <BackToTopButton />
     </>
   );
 };
