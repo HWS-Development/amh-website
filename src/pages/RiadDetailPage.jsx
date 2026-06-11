@@ -242,7 +242,12 @@ const normalizePartnerHotel = (hotel) => {
     rating_avg: hotel.rating_avg || hotel.ratingAvg || null,
     reviews_count: hotel.reviews_count ?? hotel.reviewsCount ?? null,
     extra_info: hotel.extra_info || hotel.extraInfo || null,
-    phone_number: hotel.phone_number || hotel.phoneNumber || null,
+    phone_number: hotel.phone_number || hotel.phoneNumber || hotel.phone || null,
+    email: hotel.email || null,
+    website: hotel.website || null,
+    beLink: hotel.beLink || null,
+    whatsappNumber: hotel.whatsappNumber || null,
+    simple_booking_link: hotel.simple_booking_link || hotel.simpleBookingLink || null,
     source_created_at: hotel.source_created_at || hotel.sourceCreatedAt || null,
     latitude: hotel.latitude ?? hotel.lat ?? null,
     longitude: hotel.longitude ?? hotel.lng ?? hotel.lon ?? null,
@@ -371,7 +376,10 @@ const RiadDetailPage = () => {
     const digits = String(Math.abs(hash) % 100000000).padStart(9, '0');
     return `+212 6 ${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,6)} ${digits.slice(6,8)}`;
   };
-  const phoneNumber = riad?.phone_number || (riad ? fallbackPhone(riad.id || riad.hotel_id) : null);
+  const phoneNumber = riad?.phone_number || riad?.phone || (riad ? fallbackPhone(riad.id || riad.hotel_id) : null);
+  const email = riad?.email || null;
+  const website = riad?.website || null;
+  const beLink = riad?.beLink || null;
   const whatsappNumber = riad?.whatsappNumber || null;
 
   const hasMetrics = riad?.rating_avg || riad?.reviews_count || amenities.length > 0 || images.length > 1;
@@ -890,42 +898,42 @@ const RiadDetailPage = () => {
                 {/* Bottom: actions + read more */}
                 <div className="shrink-0 px-8 md:px-10 pb-10 md:pb-12 pt-4">
                   <div className="flex flex-col gap-3">
-                    {contactInfo?.phone && (
+                    {(phoneNumber || contactInfo?.phone) && (
                       <div className="w-full h-[52px] bg-white border border-brand-ink/10 text-brand-ink/70 flex items-center justify-center gap-3 px-6 font-montserrat">
                         <Phone className="w-4 h-4 text-brand-action shrink-0" />
-                        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em]">{contactInfo.phone}</span>
+                        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em]">{phoneNumber || contactInfo?.phone}</span>
                       </div>
                     )}
 
-                    {contactInfo?.email && (
+                    {(email || contactInfo?.email) && (
                       <a
-                        href={`mailto:${contactInfo.email}`}
+                        href={`mailto:${email || contactInfo.email}`}
                         aria-label="Email"
                         className="w-full h-[52px] border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center gap-3 hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-400"
                       >
                         <Mail className="w-4 h-4 shrink-0" />
-                        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] font-montserrat truncate">{contactInfo.email}</span>
+                        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] font-montserrat truncate">{email || contactInfo.email}</span>
                       </a>
                     )}
 
-                    {contactInfo?.website && (
+                    {(website || contactInfo?.website) && (
                       <a
-                        href={normalizeExternalUrl(contactInfo.website)}
+                        href={normalizeExternalUrl(website || contactInfo.website)}
                         target="_blank"
                         rel="noreferrer"
                         className="group w-full h-[52px] inline-flex items-center justify-center gap-3 px-6 bg-white border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/40 hover:bg-white transition-all duration-500 font-montserrat"
                       >
                         <Globe ref={websiteIconRef} className="w-3.5 h-3.5 text-brand-action shrink-0" />
                         <span className="truncate">
-                          {(() => { try { return new URL(normalizeExternalUrl(contactInfo.website)).hostname.replace(/^www\./, ''); } catch { return contactInfo.website; } })()}
+                          {(() => { try { return new URL(normalizeExternalUrl(website || contactInfo.website)).hostname.replace(/^www\./, ''); } catch { return website || contactInfo.website; } })()}
                         </span>
                         <ExternalLink className="w-3 h-3 text-brand-ink/30 group-hover:text-brand-action transition-colors shrink-0" />
                       </a>
                     )}
 
-                    {(contactInfo?.simpleBookingLink || contactInfo?.website) && (
+                    {(beLink || contactInfo?.simpleBookingLink || contactInfo?.website || website) && (
                       <a
-                        href={contactInfo.simpleBookingLink || normalizeExternalUrl(contactInfo.website)}
+                        href={beLink || contactInfo?.simpleBookingLink || normalizeExternalUrl(website || contactInfo?.website)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="group w-full h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
