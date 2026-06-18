@@ -17,7 +17,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useQueryParams, StringParam, NumberParam } from "use-query-params";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
-import { extractCentraHotelId, extractCentraOrganizationId, usePartnerHotels } from "@/lib/partnerHotelsApi";
+import { extractCentraHotelId, extractCentraOrganizationId, usePartnerHotels, idToLabel } from "@/lib/partnerHotelsApi";
 import gsap from "gsap";
 
 const ITEMS_PER_PAGE = 12;
@@ -37,11 +37,22 @@ const AllRiadsPage = () => {
 
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const listStartRef = useRef(null);
   const hasPaginatedRef = useRef(false);
   const gridRef = useRef(null);
   const reduce = useReducedMotion();
+
+  // Stable random seed per session — drives the random display order so the
+  // list is shuffled once per visit but not on every re-render.
+  const shuffleSeedRef = useRef(Math.floor(Math.random() * 1e9));
+
+  // Debounce search input (250ms) — avoids re-filtering on every keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 250);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const [filters, setFilters] = useState({
     city_id: null,
@@ -65,15 +76,12 @@ const AllRiadsPage = () => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr] =
+        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr] =
           await Promise.all([
             fetchCatalog("mgh_cities", currentLanguage),
             fetchCatalog("mgh_neighborhoods", currentLanguage),
             fetchCatalog("mgh_property_types", currentLanguage),
             fetchCatalog("mgh_amenities_catalog", currentLanguage),
-            fetchCatalog("mgh_services_catalog", currentLanguage).catch(() =>
-              fetchCatalog("mgh_serivces_catalog", currentLanguage).catch(() => [])
-            ),
           ]);
 
         setCities(citiesArr);
@@ -95,27 +103,43 @@ const AllRiadsPage = () => {
     const propertyTypesMap = Object.fromEntries(propertyTypes.map((p) => [p.id, p.label]));
     const amenitiesMap = Object.fromEntries(amenities.map((a) => [a.id, a.label]));
 
-    return (hotelsData || []).map((r) => ({
+    // Deterministic pseudo-random hash (seed + id) so the order is stable
+    // across re-renders within a session but random across sessions.
+    const seed = shuffleSeedRef.current;
+    const hash = (str) => {
+      let h = seed >>> 0;
+      const s = String(str);
+      for (let i = 0; i < s.length; i++) {
+        h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+      }
+      return h;
+    };
+
+    const mapped = (hotelsData || []).map((r) => ({
       id: extractCentraHotelId(r.image_urls || r.imageUrls) || r.id,
       organizationId: extractCentraOrganizationId(r.image_urls || r.imageUrls),
       name: getTranslated(r.name, currentLanguage),
       description: getTranslated(r.description, currentLanguage),
-      address: getTranslated(r.address, currentLanguage),
+      country: typeof r.country === 'string' ? r.country : null,
+      city: typeof r.city === 'string' ? r.city : (citiesMap[r.city_id || r.cityId] || ""),
+      street: typeof r.street === 'string' ? r.street : null,
       city_id: r.city_id || r.cityId || null,
       neighborhood_id: r.neighborhood_id || r.neighborhoodId || null,
       property_type_id: r.property_type_id || r.propertyTypeId || null,
-      city: citiesMap[r.city_id || r.cityId] || "",
       neighborhood: neighborhoodsMap[r.neighborhood_id || r.neighborhoodId] || "",
       propertyType: propertyTypesMap[r.property_type_id || r.propertyTypeId] || "",
       amenity_ids: r.amenity_ids || r.amenityIds || [],
-      amenities: (r.amenity_ids || r.amenityIds || []).map((id) => amenitiesMap[id]).filter(Boolean),
+      amenities: (r.amenity_ids || r.amenityIds || []).map(idToLabel),
       service_ids: r.service_ids || r.serviceIds || [],
-      services: (r.service_ids || r.serviceIds || []).map((id) => amenitiesMap[id]).filter(Boolean),
+      services: (r.service_ids || r.serviceIds || []).map(idToLabel),
       rating_avg: r.rating_avg || r.ratingAvg || null,
       reviews_count: r.reviews_count ?? r.reviewsCount ?? null,
-      imageUrl: Array.isArray(r.image_urls || r.imageUrls) && (r.image_urls || r.imageUrls).length > 0 ? (r.image_urls || r.imageUrls)[0] : null,
+      imageUrl: r.main_image_url || r.mainImageUrl || (Array.isArray(r.image_urls || r.imageUrls) && (r.image_urls || r.imageUrls).length > 0 ? (r.image_urls || r.imageUrls)[0] : null),
       simple_booking_link: r.simple_booking_link || r.simpleBookingLink || null,
     }));
+
+    // Random display order (stable per session via seed)
+    return mapped.sort((a, b) => hash(a.id) - hash(b.id));
   }, [hotelsData, cities, neighborhoods, propertyTypes, amenities, currentLanguage]);
 
 
@@ -240,7 +264,10 @@ const AllRiadsPage = () => {
       rating: ratingParam && !Number.isNaN(Number(ratingParam)) ? Number(ratingParam) : null,
     }));
 
-    if (typeof searchParam === "string") setSearch(searchParam);
+    if (typeof searchParam === "string") {
+      setSearchInput(searchParam);
+      setSearch(searchParam);
+    }
     if (page !== 1) setQuery({ page: 1 }, "push");
   }, [location.search, cities, neighborhoods, propertyTypes, page, setQuery]);
 
@@ -338,8 +365,8 @@ const AllRiadsPage = () => {
               <div className="relative flex items-center bg-white border-2 border-gray-200 hover:border-brand-action/50 focus-within:border-brand-action transition-all shadow-lg hover:shadow-xl h-14">
                 <Search className="w-5 h-5 text-gray-400 ml-4" />
                 <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   placeholder={t("searchPlaceholder")}
                   className="w-full h-full bg-transparent px-4 outline-none text-gray-800 placeholder:text-gray-400"
                 />

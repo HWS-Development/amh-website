@@ -18,7 +18,7 @@ const RiadListItem = ({ riad }) => {
   const { t } = useLanguage();
   const featureLabels = [...(riad.amenities || []), ...(riad.services || [])];
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
-  const detailHref = buildRiadDetailHref(riad.id);
+  const detailHref = buildRiadDetailHref(riad.id, riad.name);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);

@@ -61,7 +61,7 @@ const LanguageSelector = ({ currentLanguage, changeLanguage }) => {
         className="group flex items-center gap-2 px-3 py-2 border border-brand-ink/10 hover:border-brand-action transition-colors duration-300"
       >
         <span className="inline-flex w-5 h-[14px] overflow-hidden rounded-[2px] ring-1 ring-black/10 shadow-sm">
-          <img src={current.flag} alt={current.code} className="w-full h-full object-cover" loading="lazy" />
+          <img src={current.flag} alt="" aria-hidden="true" className="w-full h-full object-cover" loading="lazy" />
         </span>
         <span className="font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-brand-ink group-hover:text-brand-action transition-colors duration-300">
           {current.code}
@@ -98,7 +98,7 @@ const LanguageSelector = ({ currentLanguage, changeLanguage }) => {
               }`}
             >
               <span className="inline-flex w-6 h-[18px] overflow-hidden rounded-[2px] ring-1 ring-black/10 shadow-sm flex-shrink-0">
-                <img src={lang.flag} alt={lang.code} className="w-full h-full object-cover" loading="lazy" />
+                <img src={lang.flag} alt="" aria-hidden="true" className="w-full h-full object-cover" loading="lazy" />
               </span>
               <span className="flex-1 font-montserrat text-[0.72rem] font-semibold tracking-wide">
                 {lang.name}

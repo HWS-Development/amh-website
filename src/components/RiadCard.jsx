@@ -36,7 +36,7 @@ const RiadCard = ({ riad }) => {
   ].filter((entry) => Boolean(entry.label));
   const visibleAmenities = prioritizedAmenities.slice(0, MAX_AMENITIES);
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
-  const detailHref = buildRiadDetailHref(riad.id);
+  const detailHref = buildRiadDetailHref(riad.id, riad.name);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);

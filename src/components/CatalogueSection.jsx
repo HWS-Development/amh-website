@@ -3,7 +3,7 @@ import { Loader2, Search, Filter, X } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { extractCentraHotelId, extractCentraOrganizationId, usePartnerHotels } from "@/lib/partnerHotelsApi";
+import { extractCentraHotelId, extractCentraOrganizationId, usePartnerHotels, idToLabel } from "@/lib/partnerHotelsApi";
 import { fetchCatalog } from "@/lib/catalogs";
 import { getTranslated } from "@/lib/utils";
 import RiadCard from "@/components/RiadCard";
@@ -181,7 +181,6 @@ export default function CatalogueSection() {
           cities: Object.fromEntries(citiesArr.map((c) => [c.id, c.label])),
           neighborhoods: Object.fromEntries(neighborhoodsArr.map((n) => [n.id, n.label])),
           propertyTypes: Object.fromEntries(propertyTypesArr.map((p) => [p.id, p.label])),
-          amenities: Object.fromEntries(amenitiesArr.map((a) => [a.id, a.label])),
         });
       } catch (err) {
         console.error("CatalogueSection catalog error:", err);
@@ -202,20 +201,21 @@ export default function CatalogueSection() {
       organizationId: extractCentraOrganizationId(r.image_urls),
       name: getTranslated(r.name, currentLanguage),
       description: getTranslated(r.description, currentLanguage),
-      address: getTranslated(r.address, currentLanguage),
+      country: typeof r.country === 'string' ? r.country : null,
+      city: typeof r.city === 'string' ? r.city : (catalogs.cities[r.city_id || r.cityId] || ""),
+      street: typeof r.street === 'string' ? r.street : null,
       city_id: r.city_id || r.cityId || null,
       neighborhood_id: r.neighborhood_id || r.neighborhoodId || null,
       property_type_id: r.property_type_id || r.propertyTypeId || null,
-      city: catalogs.cities[r.city_id || r.cityId] || "",
       neighborhood: catalogs.neighborhoods[r.neighborhood_id || r.neighborhoodId] || "",
       propertyType: catalogs.propertyTypes[r.property_type_id || r.propertyTypeId] || "",
       amenity_ids: r.amenity_ids || r.amenityIds || [],
-      amenities: (r.amenity_ids || r.amenityIds || []).map((id) => catalogs.amenities[id]).filter(Boolean),
+      amenities: (r.amenity_ids || r.amenityIds || []).map(idToLabel),
       service_ids: r.service_ids || r.serviceIds || [],
-      services: (r.service_ids || r.serviceIds || []).map((id) => catalogs.amenities[id]).filter(Boolean),
+      services: (r.service_ids || r.serviceIds || []).map(idToLabel),
       rating_avg: r.rating_avg || r.ratingAvg || null,
       reviews_count: r.reviews_count ?? r.reviewsCount ?? null,
-      imageUrl: Array.isArray(r.image_urls || r.imageUrls) && (r.image_urls || r.imageUrls).length > 0 ? (r.image_urls || r.imageUrls)[0] : null,
+      imageUrl: r.main_image_url || r.mainImageUrl || (Array.isArray(r.image_urls || r.imageUrls) && (r.image_urls || r.imageUrls).length > 0 ? (r.image_urls || r.imageUrls)[0] : null),
       simple_booking_link: r.simple_booking_link || r.simpleBookingLink || null,
     }));
   }, [hotelsData, catalogs, currentLanguage]);
@@ -316,7 +316,7 @@ export default function CatalogueSection() {
       <div className="content-wrapper-wide relative">
         <SectionHeader
           eyebrow={t("catalogueEyebrow") || "Our collection"}
-          title={t("catalogueTitle") || "Riads & maisons d\u2019h\u00f4tes"}
+          title={t("catalogueTitle") || "Riads & Maisons d\u2019h\u00f4tes"}
           subtitle={t("catalogueSubtitle") || ""}
         />
 
@@ -372,7 +372,7 @@ export default function CatalogueSection() {
               )}
               {filters.amenity_ids.map((aid) => (
                 <span key={aid} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-action/10 text-brand-action text-[0.65rem] font-semibold font-montserrat uppercase tracking-[0.1em]">
-                  {catalogArrays.amenities.find((a) => a.id === aid)?.label || aid}
+                  {idToLabel(aid)}
                   <button onClick={() => setFilters((p) => ({ ...p, amenity_ids: p.amenity_ids.filter((x) => x !== aid) }))} className="ml-1 hover:text-brand-ink"><X className="w-3 h-3" /></button>
                 </span>
               ))}

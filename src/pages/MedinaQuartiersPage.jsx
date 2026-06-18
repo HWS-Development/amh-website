@@ -4,6 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/customSupabaseClient';
 import { getTranslated } from '@/lib/utils';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import TwoFingerMap from '@/components/ui/TwoFingerMap';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Button } from '@/components/ui/button';
@@ -313,7 +314,7 @@ const MedinaQuartiersPage = () => {
               {/* Mobile inline map (collapsible) */}
               {showMapMobile && (
                 <div className="lg:hidden h-[45vh] overflow-hidden mb-6 shadow-lg border">
-                  <MapContainer
+                  <TwoFingerMap
                     center={mapCenter}
                     zoom={activeQuartier ? 16 : 14}
                     scrollWheelZoom={false}
@@ -350,7 +351,7 @@ const MedinaQuartiersPage = () => {
                         </Popup>
                       </Marker>
                     ))}
-                  </MapContainer>
+                  </TwoFingerMap>
                 </div>
               )}
 
@@ -456,7 +457,7 @@ const MedinaQuartiersPage = () => {
             {/* Sticky map (right) */}
             <aside className="hidden lg:block lg:col-span-5">
               <div className="sticky top-28 h-[calc(100vh-8rem)] overflow-hidden shadow-lg border">
-                <MapContainer
+                <TwoFingerMap
                   center={mapCenter}
                   zoom={activeQuartier ? 16 : 14}
                   scrollWheelZoom={false}
@@ -493,7 +494,7 @@ const MedinaQuartiersPage = () => {
                        </Popup>
                     </Marker>
                   ))}
-                </MapContainer>
+                </TwoFingerMap>
               </div>
             </aside>
           </div>

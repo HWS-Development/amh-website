@@ -29,8 +29,27 @@ export function extractCentraOrganizationId(imageUrls = []) {
   return null;
 }
 
-export function buildRiadDetailHref(id) {
-  return `/riad/${id}`;
+export function slugifyRiadName(name = '') {
+  return String(name)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+    .toLowerCase()
+    .replace(/['\u2018\u2019\u201A]/g, '') // strip apostrophes
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+export function buildRiadDetailHref(id, name) {
+  const slug = name ? slugifyRiadName(name) : '';
+  return slug ? `/riad/${id}/${slug}` : `/riad/${id}`;
+}
+
+export function idToLabel(id) {
+  return String(id || '')
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 function readOrganizationCache() {

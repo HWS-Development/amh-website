@@ -130,7 +130,7 @@ function CityCarousel({ city, items, t, currentLanguage, cityIndex }) {
 
       <div
         ref={scrollerRef}
-        className="fq-grid grid md:grid-cols-3 gap-5 md:gap-6 flex md:!grid overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar"
+        className="fq-grid flex md:grid md:grid-cols-3 gap-5 md:gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar"
         style={{ scrollbarWidth: 'none' }}
       >
         {items.map((q, i) => (
@@ -140,7 +140,7 @@ function CityCarousel({ city, items, t, currentLanguage, cityIndex }) {
             whileInView={reduce ? undefined : { opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.7, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="fq-card-wrap shrink-0 w-[80%] sm:w-[55%] md:w-full snap-start"
+            className="fq-card-wrap shrink-0 w-[85%] sm:w-[60%] md:w-full snap-start"
           >
             <QuartierCard
               quartier={q}

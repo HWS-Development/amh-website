@@ -283,8 +283,8 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* ── Bottom-left: experience + slide indicators (padded to clear FAB) ── */}
-        <div ref={bottomRef} className="hero-bottom" style={{ paddingBottom: isMobile ? 260 : 84 }}>
+        {/* ── Bottom-left: experience + slide indicators (padded to clear FAB + booking strip) ── */}
+        <div ref={bottomRef} className="hero-bottom" style={{ paddingBottom: isMobile ? 420 : 240 }}>
 
           {/* ── EXPERIENCE block (bottom-left, above progress) — desktop only ── */}
           <div className="hidden md:block" style={{ marginBottom: 10, maxWidth: 620 }}>
@@ -351,14 +351,61 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* ════════════ FULL-WIDTH BOOKING STRIP (absolute bottom) ═════════ */}
+      {/* ════════════ FULL-WIDTH BOOKING STRIP + DISCOVER MORE ═════════ */}
       <div className="absolute inset-x-0 bottom-0 z-20">
-        <BookingStrip date={date} onDateChange={onDateChange} isMobile={isMobile} />
+        <div className="px-5 sm:px-8 md:px-14 lg:px-20 py-7 sm:py-8 md:py-10 lg:py-12 bg-gradient-to-t from-black/60 via-black/35 to-transparent backdrop-blur-[2px]">
+          <div className="max-w-7xl mx-auto">
+            <BookingStrip date={date} onDateChange={onDateChange} isMobile={isMobile} />
+
+            {/* Discover-more indicator — just below the booking bar */}
+            <a
+              href="#discover"
+              onClick={(e) => {
+                e.preventDefault();
+                const next = sectionRef.current?.nextElementSibling;
+                if (next?.scrollIntoView) next.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="hero-discover mt-6 md:mt-8 flex flex-col items-center justify-center gap-2 text-white/85 hover:text-white transition-colors group"
+              aria-label={t("discoverMore") || "Discover more"}
+            >
+              <span className="font-montserrat text-[0.6rem] sm:text-[0.68rem] md:text-[0.72rem] uppercase tracking-[0.3em] sm:tracking-[0.32em] font-semibold">
+                {t("discoverMore") || "Discover more"}
+              </span>
+              <svg
+                width="36"
+                height="20"
+                viewBox="0 0 36 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="hero-discover-zig"
+                aria-hidden
+              >
+                <polyline
+                  points="2,4 9,11 18,4 27,11 34,4"
+                  stroke="#c4804a"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <polyline
+                  points="6,12 18,18 30,12"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                  opacity="0.7"
+                />
+              </svg>
+            </a>
+          </div>
+        </div>
       </div>
 
-      {/* ════════════ SCROLL HINT ════════════════════════════════════════ */}
+      {/* ════════════ SCROLL HINT (legacy desktop side cue, kept hidden — new "Discover more" CTA below booking strip replaces it) ════ */}
       <div
-        className="hero-scroll-hint absolute left-8 bottom-5 hidden sm:flex items-center gap-2 pointer-events-none"
+        className="hero-scroll-hint absolute left-8 bottom-5 hidden items-center gap-2 pointer-events-none"
         style={{ zIndex: 20 }}
       >
         <div
@@ -395,6 +442,14 @@ const HeroSection = () => {
           0%, 100% { opacity: 0.3; transform: scaleY(0.65); }
           50%      { opacity: 1;   transform: scaleY(1); }
         }
+
+        /* Bouncing zigzag chevron for the "Discover more" CTA */
+        @keyframes hero-discover-bounce {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(6px); }
+        }
+        .hero-discover-zig { animation: hero-discover-bounce 1.8s ease-in-out infinite; }
+        .hero-discover:hover .hero-discover-zig { animation-duration: 0.9s; }
 
         /* Allow title/subtitle to wrap on small screens (avoid overflow) */
         @media (max-width: 768px) {

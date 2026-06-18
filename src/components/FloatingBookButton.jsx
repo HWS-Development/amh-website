@@ -4,12 +4,13 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 /**
  * Always-visible floating Book-Direct badge.
- * The button itself IS the rotating "Book Direct / Best Price" medallion
- * image — no additional UI, no expand. Click goes straight to SimpleBooking.
  *
- *  - Fixed bottom-right
- *  - Orbiting dashed ring + radial glow pulse + soft float
- *  - Honors prefers-reduced-motion
+ * Position: fixed at the very bottom of the viewport (same vertical level
+ * as the hero "Discover more" chevron), left-aligned. Identical on all
+ * breakpoints — only the badge size changes responsively.
+ *
+ * Click goes straight to SimpleBooking.
+ * Honors prefers-reduced-motion.
  */
 const BOOK_DIRECT_URL =
   `${import.meta.env.VITE_SIMPLEBOOKING_BASE || "https://www.simplebooking.it/portal/256"}?lang=EN&cur=EUR`;
@@ -18,13 +19,33 @@ const FloatingBookButton = () => {
   const { t } = useLanguage();
   const reduce = useReducedMotion();
   const [mounted, setMounted] = useState(false);
+  const [viewport, setViewport] = useState(() => {
+    if (typeof window === "undefined") return "desktop";
+    if (window.innerWidth < 640) return "mobile";
+    if (window.innerWidth < 1024) return "tablet";
+    return "desktop";
+  });
 
   useEffect(() => {
     const id = setTimeout(() => setMounted(true), 700);
     return () => clearTimeout(id);
   }, []);
 
+  useEffect(() => {
+    const onResize = () => {
+      const w = window.innerWidth;
+      setViewport(w < 640 ? "mobile" : w < 1024 ? "tablet" : "desktop");
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   if (!mounted) return null;
+
+  // Responsive badge size — position stays at the bottom on every breakpoint.
+  const size = viewport === "mobile" ? 64 : viewport === "tablet" ? 76 : 88;
+  const bottomPx = viewport === "mobile" ? 16 : 22;
+  const leftPx = viewport === "mobile" ? 12 : 20;
 
   return (
     <motion.a
@@ -37,8 +58,13 @@ const FloatingBookButton = () => {
       transition={{ duration: 0.7, ease: [0.34, 1.56, 0.64, 1] }}
       whileHover={reduce ? undefined : { scale: 1.08 }}
       whileTap={reduce ? undefined : { scale: 0.95 }}
-       className="fab-book-direct fixed z-[70] bottom-[270px] left-5 md:bottom-[64px] md:left-6 block select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#c4804a] rounded-full"
-      style={{ width: 96, height: 96 }}
+      className="fab-book-direct fixed z-[70] block select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#c4804a] rounded-full"
+      style={{
+        width: size,
+        height: size,
+        bottom: bottomPx,
+        left: leftPx,
+      }}
     >
       {/* Orbiting dashed ring */}
       {!reduce && (

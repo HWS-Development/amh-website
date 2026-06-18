@@ -6,6 +6,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import TwoFingerMap from "@/components/ui/TwoFingerMap";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -37,22 +38,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
 import { optimizeImageUrl } from "@/lib/imageUtils";
-import { usePartnerHotelById, usePartnerHotels, extractCentraHotelId } from "@/lib/partnerHotelsApi";
+import { usePartnerHotelById, usePartnerHotels, extractCentraHotelId, idToLabel } from "@/lib/partnerHotelsApi";
 import BackToTopButton from "@/components/BackToTopButton";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_IMAGE ||
   "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
-
-const fetchServicesCatalog = async (language) => {
-  try {
-    return await fetchCatalog("mgh_services_catalog", language);
-  } catch {
-    console.warn("mgh_services_catalog not found, trying typo fallback");
-    return fetchCatalog("mgh_serivces_catalog", language);
-  }
-};
 
 const getAmenityIcon = (label = "") => {
   const text = label.toLowerCase();
@@ -236,6 +228,7 @@ const normalizePartnerHotel = (hotel) => {
     amenity_ids: hotel.amenity_ids || hotel.amenityIds || [],
     service_ids: hotel.service_ids || hotel.serviceIds || [],
     booking_condition_ids: hotel.booking_condition_ids || hotel.bookingConditionIds || [],
+    main_image_url: hotel.main_image_url || hotel.mainImageUrl || null,
     image_urls: hotel.image_urls || hotel.imageUrls || [],
     rating_avg: hotel.rating_avg || hotel.ratingAvg || null,
     reviews_count: hotel.reviews_count ?? hotel.reviewsCount ?? null,
@@ -247,6 +240,9 @@ const normalizePartnerHotel = (hotel) => {
     whatsappNumber: hotel.whatsappNumber || null,
     simple_booking_link: hotel.simple_booking_link || hotel.simpleBookingLink || null,
     source_created_at: hotel.source_created_at || hotel.sourceCreatedAt || null,
+    country: typeof hotel.country === 'string' ? hotel.country : (typeof hotel.country === 'object' && hotel.country !== null ? getTranslated(hotel.country, 'en') : null),
+    city: typeof hotel.city === 'string' ? hotel.city : (typeof hotel.city === 'object' && hotel.city !== null ? getTranslated(hotel.city, 'en') : null),
+    street: typeof hotel.street === 'string' ? hotel.street : (typeof hotel.street === 'object' && hotel.street !== null ? getTranslated(hotel.street, 'en') : null),
     latitude: hotel.latitude ?? hotel.lat ?? null,
     longitude: hotel.longitude ?? hotel.lng ?? hotel.lon ?? null,
   };
@@ -267,9 +263,7 @@ const RiadDetailPage = () => {
   const [cities, setCities] = useState({});
   const [neighborhoods, setNeighborhoods] = useState({});
   const [propertyTypes, setPropertyTypes] = useState({});
-  const [amenitiesCatalog, setAmenitiesCatalog] = useState({});
-  const [servicesCatalog, setServicesCatalog] = useState({});
-  const [bookingConditionsCatalog, setBookingConditionsCatalog] = useState({});
+
 
   const imgLayerA = useRef(null);
   const imgLayerB = useRef(null);
@@ -307,18 +301,14 @@ const RiadDetailPage = () => {
     const fetchAll = async (sourceHotel) => {
       setLoading(true);
       try {
-        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr] = await Promise.all([
+        const [citiesArr, neighborhoodsArr, propertyTypesArr] = await Promise.all([
           fetchCatalog("mgh_cities", currentLanguage),
           fetchCatalog("mgh_neighborhoods", currentLanguage),
           fetchCatalog("mgh_property_types", currentLanguage),
-          fetchCatalog("mgh_amenities_catalog", currentLanguage),
-          fetchServicesCatalog(currentLanguage),
         ]);
         setCities(Object.fromEntries(citiesArr.map((c) => [c.id, c.label])));
         setNeighborhoods(Object.fromEntries(neighborhoodsArr.map((n) => [n.id, n.label])));
         setPropertyTypes(Object.fromEntries(propertyTypesArr.map((p) => [p.id, p.label])));
-        setAmenitiesCatalog(Object.fromEntries(amenitiesArr.map((a) => [a.id, a.label])));
-        setServicesCatalog(Object.fromEntries(servicesArr.map((s) => [s.id, s.label])));
         const normalizedHotel = normalizePartnerHotel(sourceHotel);
         setRiad(normalizedHotel);
         if (normalizedHotel?.latitude && normalizedHotel?.longitude) {
@@ -349,14 +339,24 @@ const RiadDetailPage = () => {
 
   const name = riad ? getTranslated(riad.name, currentLanguage) : "";
   const description = riad ? getTranslated(riad.description, currentLanguage) : "";
-  const address = riad ? getTranslated(riad.address, currentLanguage) : "";
-  const city = riad ? (cities[riad.city_id] || "") : "";
+  const address = riad
+    ? [riad.street, riad.city, riad.country].filter(Boolean).join(", ")
+    : "";
+  const city = riad?.city || (riad ? (cities[riad.city_id] || "") : "");
   const neighborhood = riad ? (neighborhoods[riad.neighborhood_id] || "") : "";
   const propertyType = riad ? (propertyTypes[riad.property_type_id] || "") : "";
-  const images = riad && Array.isArray(riad.image_urls) && riad.image_urls.length > 0 ? riad.image_urls : [FALLBACK_IMAGE];
-  const amenities = riad ? (riad.amenity_ids || []).map((aid) => amenitiesCatalog[aid]).filter(Boolean) : [];
-  const services = riad ? (riad.service_ids || []).map((sid) => servicesCatalog[sid]).filter(Boolean) : [];
-  const bookingConditions = riad ? (riad.booking_condition_ids || []).map((bid) => bookingConditionsCatalog[bid]).filter(Boolean) : [];
+  const images = riad
+    ? (() => {
+        const arr = [
+          ...(riad.main_image_url ? [riad.main_image_url] : []),
+          ...(Array.isArray(riad.image_urls) ? riad.image_urls.filter((url) => url !== riad.main_image_url) : []),
+        ];
+        return arr.length > 0 ? arr : [FALLBACK_IMAGE];
+      })()
+    : [FALLBACK_IMAGE];
+  const amenities = riad ? (riad.amenity_ids || []).map(idToLabel) : [];
+  const services = riad ? (riad.service_ids || []).map(idToLabel) : [];
+  const bookingConditions = riad ? (riad.booking_condition_ids || []).map(idToLabel) : [];
   const position = riad && riad.latitude && riad.longitude ? [riad.latitude, riad.longitude] : null;
   const ratingNum = riad ? (parseFloat(riad.rating_avg) || 0) : 0;
   const ratingFull = Math.round(ratingNum);
@@ -1096,7 +1096,7 @@ const RiadDetailPage = () => {
                         <div className="h-[400px] md:h-[500px] relative overflow-hidden">
                           <div className="w-full h-full" data-map-parallax>
                             {mapLoaded ? (
-                              <MapContainer center={position} zoom={15} scrollWheelZoom={false} style={{ width: "100%", height: "100%" }} zoomControl={false}>
+                              <TwoFingerMap center={position} zoom={15} scrollWheelZoom={false} style={{ width: "100%", height: "100%" }} zoomControl={false}>
                                 <TileLayer
                                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -1110,7 +1110,7 @@ const RiadDetailPage = () => {
                                     </div>
                                   </Popup>
                                 </Marker>
-                              </MapContainer>
+                              </TwoFingerMap>
                             ) : (
                               <div className="w-full h-full bg-brand-beige/30 flex items-center justify-center">
                                 <span className="text-xs text-brand-ink/30 font-montserrat tracking-[0.2em] uppercase">{t("loading")}...</span>

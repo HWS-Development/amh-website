@@ -36,7 +36,7 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowDown") { e.preventDefault(); setI(x => Math.min(x + 1, results.length - 1)); }
       if (e.key === "ArrowUp")   { e.preventDefault(); setI(x => Math.max(x - 1, 0)); }
-      if (e.key === "Enter" && results[i]) window.location.href = buildRiadDetailHref(results[i].id);
+      if (e.key === "Enter" && results[i]) window.location.href = buildRiadDetailHref(results[i].id, results[i].name);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -65,10 +65,10 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
             <li
               key={r.id}
               onMouseEnter={() => setI(idx)}
-              onClick={() => (window.location.href = buildRiadDetailHref(r.id))}
+              onClick={() => (window.location.href = buildRiadDetailHref(r.id, r.name))}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${i===idx ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
             >
-              <OptimizedImage src={r.image_urls?.[0]} alt="" className="h-14 w-20 rounded-lg object-cover" />
+              <OptimizedImage src={r.image_urls?.[0]} alt={r?.name || ""} className="h-14 w-20 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
                 {/* <div className="truncate font-semibold">{r.name}</div> */}
                 <div className="truncate font-semibold">{r?.name_tr?.[locale] || r?.name_tr?.en || r?.name_tr?.fr || r?.name || ""}</div>
