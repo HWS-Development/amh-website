@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/customSupabaseClient';
 import { getTranslated } from '@/lib/utils';
+import { getAllNeighborhoodsByCity, NEIGHBORHOOD_CITIES, normalizeNeighborhoodCityId } from '@/lib/neighborhoods';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import TwoFingerMap from '@/components/ui/TwoFingerMap';
 import 'leaflet/dist/leaflet.css';
@@ -13,10 +13,10 @@ import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Breadcrumb from '@/components/Breadcrumb';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Loader2, Search, SlidersHorizontal, Clock, Info, Map as MapIcon, ExternalLink } from 'lucide-react';
+import { Loader2, Search, SlidersHorizontal, Clock, Info, Map as MapIcon, ExternalLink, MapPin, ChevronDown } from 'lucide-react';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import gsap from 'gsap';
 
@@ -48,8 +48,17 @@ const gmapsUrl = (q) => {
   return `https://www.google.com/maps/search/?api=1&query=${query}`;
 };
 
+const CITY_MAP_CENTERS = {
+  marrakech: [31.6258, -7.9935],
+  essaouira: [31.5085, -9.7595],
+  ouarzazate: [30.9335, -6.9370],
+};
+
 const MedinaQuartiersPage = () => {
   const { t, currentLanguage } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const cityParam = searchParams.get('city') || '';
+  const selectedCity = normalizeNeighborhoodCityId(cityParam);
 
   const [quartiers, setQuartiers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,32 +79,52 @@ const MedinaQuartiersPage = () => {
   const categories = ['souks', 'monuments', 'museums', 'restaurants', 'artisans'];
   const ambiances = ['elegant', 'historic', 'authentic'];
 
+  const cityOptions = useMemo(
+    () => NEIGHBORHOOD_CITIES.map((city) => ({
+      ...city,
+      label: t(city.labelKey) || city.fallback,
+    })),
+    [t, currentLanguage]
+  );
+
+  const updateCityParam = (cityId) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (cityId) {
+      nextParams.set('city', cityId);
+    } else {
+      nextParams.delete('city');
+    }
+    setSearchParams(nextParams);
+  };
+
   useEffect(() => {
+    let isMounted = true;
+
     const fetchQuartiers = async () => {
       setLoading(true);
-      let { data, error } = await supabase
-        .from('mgh_neighborhoods')
-        .select('*')
-        .order('display_order', { ascending: true });
+      setError(null);
 
-      if (error) {
+      try {
+        const data = await getAllNeighborhoodsByCity(selectedCity);
+        if (!isMounted) return;
+        setQuartiers(data);
+      } catch (error) {
+        if (!isMounted) return;
         console.error('Error fetching quartiers:', error);
         setError(error);
-      } else {
-        // Normalize: id → slug, label → name_tr, latitude/longitude → lat/lng for downstream compatibility
-        setQuartiers((data || []).map((row) => ({
-          ...row,
-          slug: row.id,
-          name_tr: row.label,
-          lat: row.lat ?? row.latitude ?? null,
-          lng: row.lng ?? row.longitude ?? null,
-        })));
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchQuartiers();
-  }, []);
+
+    return () => { isMounted = false; };
+  }, [selectedCity]);
+
+  useEffect(() => {
+    setActiveQuartier(null);
+  }, [selectedCity]);
 
   useEffect(() => {
     if (loading || quartiers.length === 0 || !window.location.hash) return;
@@ -170,6 +199,7 @@ const MedinaQuartiersPage = () => {
     setProximity([30]);
     setSelectedCategories([]);
     setSelectedAmbiance([]);
+    updateCityParam(null);
   };
 
   const pageTitle = `${t('medinaQuartiersTitle')} · MGH`;
@@ -178,8 +208,8 @@ const MedinaQuartiersPage = () => {
     if (activeQuartier?.lat && activeQuartier?.lng) {
       return [activeQuartier.lat, activeQuartier.lng];
     }
-    return [31.6258, -7.9935];
-  }, [activeQuartier]);
+    return CITY_MAP_CENTERS[selectedCity] || CITY_MAP_CENTERS.marrakech;
+  }, [activeQuartier, selectedCity]);
 
   const breadcrumbItems = [
     { label: t('home'), href: '/' },
@@ -216,8 +246,8 @@ const MedinaQuartiersPage = () => {
         {/* Filters (sticky) */}
         <div className="sticky top-20 z-20 bg-white/80 backdrop-blur-sm py-4 shadow-sm">
           <div className="content-wrapper">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="relative md:col-span-2 lg:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="relative lg:col-span-2">
                 <Input
                   type="text"
                   placeholder={t('searchByName')}
@@ -226,6 +256,25 @@ const MedinaQuartiersPage = () => {
                   className="pl-10 h-12 w-full"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              </div>
+
+              <div className="relative">
+                <label htmlFor="quartiers-city-filter" className="sr-only">
+                  {t('filterByCity')}
+                </label>
+                <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <select
+                  id="quartiers-city-filter"
+                  value={selectedCity || ''}
+                  onChange={(e) => updateCityParam(e.target.value || null)}
+                  className="h-12 w-full appearance-none rounded-md border border-input bg-background pl-10 pr-10 text-sm text-brand-ink shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="">{t('allCities')}</option>
+                  {cityOptions.map((city) => (
+                    <option key={city.id} value={city.id}>{city.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               </div>
 
               <Popover>

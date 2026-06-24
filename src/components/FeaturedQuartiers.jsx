@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/customSupabaseClient';
 import { getTranslated } from '@/lib/utils';
-import { ArrowUpRight, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { getAllNeighborhoodsByCity, NEIGHBORHOOD_CITIES } from '@/lib/neighborhoods';
+import { ArrowUpRight, Loader2 } from 'lucide-react';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import SectionHeader from '@/components/ui/SectionHeader';
 import {
@@ -14,11 +14,7 @@ import {
   MagneticButton,
 } from '@/components/motion/primitives';
 
-const CITIES = [
-  { id: 'marrakech',  labelKey: 'cityMarrakech',  fallback: 'Marrakech'  },
-  { id: 'essaouira',  labelKey: 'cityEssaouira',  fallback: 'Essaouira'  },
-  { id: 'ouarzazate', labelKey: 'cityOuarzazate', fallback: 'Ouarzazate' },
-];
+const CITIES = NEIGHBORHOOD_CITIES;
 
 const PER_CITY = 3;
 
@@ -81,17 +77,8 @@ function QuartierCard({ quartier, index, t, currentLanguage }) {
 }
 
 function CityCarousel({ city, items, t, currentLanguage, cityIndex }) {
-  const scrollerRef = useRef(null);
   const cityLabel = t(city.labelKey) || city.fallback;
   const reduce = useReducedMotion();
-
-  const scrollBy = (dir) => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const card = el.querySelector('.fq-card');
-    const step = card ? card.getBoundingClientRect().width + 24 : el.clientWidth * 0.8;
-    el.scrollBy({ left: dir * step, behavior: 'smooth' });
-  };
 
   if (!items.length) return null;
 
@@ -104,32 +91,21 @@ function CityCarousel({ city, items, t, currentLanguage, cityIndex }) {
           </span>
           {cityLabel}
         </h3>
-        <div className="hidden md:flex items-center gap-2">
+        <div className="shrink-0">
           <MagneticButton
-            as="button"
-            type="button"
+            as={Link}
+            to={`/quartiers?city=${encodeURIComponent(city.id)}`}
             strength={10}
-            aria-label={t('previous') || 'Previous'}
-            onClick={() => scrollBy(-1)}
-            className="w-11 h-11 grid place-items-center rounded-full border border-brand-ink/15 text-brand-ink hover:border-brand-action hover:text-brand-action hover:bg-brand-action/5 transition-colors duration-300"
+            aria-label={`${t('seeMore')} - ${cityLabel}`}
+            className="group inline-flex items-center gap-2 rounded-full border border-brand-ink/15 bg-white px-5 py-3 font-montserrat text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-brand-ink hover:border-brand-action hover:text-brand-action hover:bg-brand-action/5 transition-colors duration-300"
           >
-            <ChevronLeft className="w-4 h-4" />
-          </MagneticButton>
-          <MagneticButton
-            as="button"
-            type="button"
-            strength={10}
-            aria-label={t('next') || 'Next'}
-            onClick={() => scrollBy(1)}
-            className="w-11 h-11 grid place-items-center rounded-full border border-brand-ink/15 text-brand-ink hover:border-brand-action hover:text-brand-action hover:bg-brand-action/5 transition-colors duration-300"
-          >
-            <ChevronRight className="w-4 h-4" />
+            {t('seeMore')}
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </MagneticButton>
         </div>
       </RevealOnView>
 
       <div
-        ref={scrollerRef}
         className="fq-grid flex md:grid md:grid-cols-3 gap-5 md:gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar"
         style={{ scrollbarWidth: 'none' }}
       >
@@ -166,29 +142,30 @@ export default function FeaturedQuartiers() {
     (async () => {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase
-        .from('mgh_neighborhoods')
-        .select('id, label, short_desc_tr, images, display_order, is_featured, city_id')
-        .in('city_id', CITIES.map((c) => c.id))
-        .order('is_featured', { ascending: false })
-        .order('display_order', { ascending: true, nullsFirst: false });
-
-      if (!isMounted) return;
-      if (error) {
+      try {
+        const data = await getAllNeighborhoodsByCity(CITIES.map((c) => c.id));
+        if (!isMounted) return;
+        setRows(data || []);
+      } catch (error) {
+        if (!isMounted) return;
         console.error('Error fetching featured quartiers:', error);
         setError(t('somethingWentWrong'));
-        setLoading(false);
-        return;
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setRows(data || []);
-      setLoading(false);
     })();
     return () => { isMounted = false; };
   }, [currentLanguage, t]);
 
   const byCity = useMemo(() => {
     const map = new Map(CITIES.map((c) => [c.id, []]));
-    for (const r of rows) {
+    const sortedRows = [...rows].sort((a, b) => {
+      const featuredDiff = Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured));
+      if (featuredDiff) return featuredDiff;
+      return (a.display_order ?? Number.MAX_SAFE_INTEGER) - (b.display_order ?? Number.MAX_SAFE_INTEGER);
+    });
+
+    for (const r of sortedRows) {
       const imgs = Array.isArray(r.images) ? r.images : [];
       if (!imgs.length) continue;
       const bucket = map.get(r.city_id);
