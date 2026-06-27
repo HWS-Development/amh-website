@@ -5,20 +5,8 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import TwoFingerMap from "@/components/ui/TwoFingerMap";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
 import OptimizedImage from "@/components/ui/OptimizedImage";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import {
   ArrowLeft, Star, MapPin, Check, Shield, Phone, Mail, Globe,
@@ -38,7 +26,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
 import { optimizeImageUrl } from "@/lib/imageUtils";
-import { usePartnerHotelById, usePartnerHotels, extractCentraHotelId, idToLabel } from "@/lib/partnerHotelsApi";
+import { buildRiadDetailHref, usePartnerHotelById, usePartnerHotels, extractCentraHotelId, idToLabel, slugifyRiadName } from "@/lib/partnerHotelsApi";
 import BackToTopButton from "@/components/BackToTopButton";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -80,6 +68,74 @@ const getAmenityIcon = (label = "") => {
 const normalizeExternalUrl = (url) => {
   if (!url) return null;
   return url.startsWith("http") ? url : `https://${url}`;
+};
+
+const normalizeMapText = (value = "") =>
+  String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const buildGoogleMapsPlaceQuery = ({ name, address, neighborhood, city, country, position }) => {
+  const parts = [];
+  const addPart = (value) => {
+    const text = String(value || "").trim();
+    if (!text) return;
+    const normalized = normalizeMapText(text);
+    if (parts.some((part) => normalizeMapText(part) === normalized)) return;
+    parts.push(text);
+  };
+
+  addPart(name);
+  addPart(address);
+  if (!address) {
+    addPart(neighborhood);
+    addPart(city);
+  }
+
+  if (parts.length > 0) {
+    const countryText = country || "Maroc";
+    const hasCountry = normalizeMapText(parts.join(" ")).match(/\b(maroc|morocco)\b/);
+    if (!hasCountry) addPart(countryText);
+    return parts.join(", ");
+  }
+
+  return position ? `${position[0]},${position[1]}` : "";
+};
+
+const RIAD_SLUG_LANGUAGES = ["fr", "en", "es"];
+const HOTEL_ID_PATTERN = /^HT-[A-Z0-9]+$/i;
+
+const getHotelRouteId = (hotel) =>
+  extractCentraHotelId(hotel?.image_urls || hotel?.imageUrls) ||
+  hotel?.id ||
+  hotel?.hotel_id ||
+  hotel?.hotelId ||
+  null;
+
+const getHotelNameCandidates = (hotel, currentLanguage) => {
+  const languages = [currentLanguage, ...RIAD_SLUG_LANGUAGES].filter(Boolean);
+  const sources = [hotel?.hoteName, hotel?.hotelName, hotel?.hotel_name, hotel?.name, hotel?.name_tr];
+  const names = [];
+
+  sources.forEach((source) => {
+    if (!source) return;
+    languages.forEach((language) => {
+      const translated = getTranslated(source, language);
+      if (translated) names.push(translated);
+    });
+    if (typeof source === "string") names.push(source);
+  });
+
+  return Array.from(new Set(names.map((name) => String(name).trim()).filter(Boolean)));
+};
+
+const hotelMatchesSlug = (hotel, slug, currentLanguage) => {
+  if (!slug) return false;
+  return getHotelNameCandidates(hotel, currentLanguage).some(
+    (name) => slugifyRiadName(name) === slug,
+  );
 };
 
 const GalleryModal = ({ open, images, startIndex, onClose }) => {
@@ -249,13 +305,17 @@ const normalizePartnerHotel = (hotel) => {
 };
 
 const RiadDetailPage = () => {
-  const { id } = useParams();
+  const { slug, id, legacySlug } = useParams();
+  const navigate = useNavigate();
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
 
+  const routeSlug = legacySlug || slug || id || "";
+  const normalizedRouteSlug = slugifyRiadName(routeSlug);
+  const routeHotelId = id || (HOTEL_ID_PATTERN.test(routeSlug) ? routeSlug : null);
+
   const [riad, setRiad] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [mapLoaded, setMapLoaded] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [photoIdx, setPhotoIdx] = useState(0);
@@ -282,20 +342,47 @@ const RiadDetailPage = () => {
   const heroMetaRef = useRef(null);
   const websiteIconRef = useRef(null);
 
-  const { data: hotelData, error: hotelError, isLoading: hotelLoading } = usePartnerHotelById(id);
-
   // Listing fallback — used when the detail endpoint fails (e.g. Centra 403/500).
   const { data: hotelList, isLoading: listLoading } = usePartnerHotels();
+  const matchedHotel = useMemo(() => {
+    if (!Array.isArray(hotelList)) return null;
+
+    if (routeHotelId) {
+      const byId = hotelList.find((hotel) => getHotelRouteId(hotel) === routeHotelId);
+      if (byId) return byId;
+    }
+
+    return hotelList.find((hotel) => hotelMatchesSlug(hotel, normalizedRouteSlug, currentLanguage)) || null;
+  }, [hotelList, routeHotelId, normalizedRouteSlug, currentLanguage]);
+  const resolvedHotelId = routeHotelId || getHotelRouteId(matchedHotel);
+
+  const { data: hotelData, error: hotelError, isLoading: hotelLoading } = usePartnerHotelById(resolvedHotelId);
+
   const fallbackHotel = useMemo(() => {
-    if (!Array.isArray(hotelList) || !id) return null;
+    if (matchedHotel) return matchedHotel;
+    if (!Array.isArray(hotelList) || !resolvedHotelId) return null;
     return hotelList.find(
       (h) =>
-        h?.id === id ||
-        h?.hotel_id === id ||
-        h?.hotelId === id ||
-        extractCentraHotelId(h?.image_urls) === id
+        h?.id === resolvedHotelId ||
+        h?.hotel_id === resolvedHotelId ||
+        h?.hotelId === resolvedHotelId ||
+        extractCentraHotelId(h?.image_urls) === resolvedHotelId
     ) || null;
-  }, [hotelList, id]);
+  }, [hotelList, matchedHotel, resolvedHotelId]);
+
+  useEffect(() => {
+    if (legacySlug) {
+      navigate(`/riad/${legacySlug}`, { replace: true });
+      return;
+    }
+
+    if (!routeHotelId || !matchedHotel) return;
+    const canonicalName = getHotelNameCandidates(matchedHotel, currentLanguage)[0];
+    const canonicalHref = buildRiadDetailHref(resolvedHotelId, canonicalName);
+    if (canonicalHref && canonicalHref !== `/riad/${routeSlug}`) {
+      navigate(canonicalHref, { replace: true });
+    }
+  }, [legacySlug, matchedHotel, navigate, resolvedHotelId, routeHotelId, routeSlug, currentLanguage]);
 
   useEffect(() => {
     const fetchAll = async (sourceHotel) => {
@@ -311,15 +398,25 @@ const RiadDetailPage = () => {
         setPropertyTypes(Object.fromEntries(propertyTypesArr.map((p) => [p.id, p.label])));
         const normalizedHotel = normalizePartnerHotel(sourceHotel);
         setRiad(normalizedHotel);
-        if (normalizedHotel?.latitude && normalizedHotel?.longitude) {
-          setTimeout(() => setMapLoaded(true), 600);
-        }
       } catch {
         toast({ variant: "destructive", title: "Error", description: "Could not fetch riad details." });
         setRiad(null);
       }
       setLoading(false);
     };
+
+    if (!resolvedHotelId) {
+      if (fallbackHotel && !listLoading) {
+        fetchAll(fallbackHotel);
+      } else if (listLoading) {
+        setLoading(true);
+      } else {
+        toast({ variant: "destructive", title: "Error", description: "Could not fetch riad details." });
+        setRiad(null);
+        setLoading(false);
+      }
+      return;
+    }
 
     // Prefer fresh detail data; fall back to listing entry on error.
     if (hotelData) {
@@ -335,7 +432,7 @@ const RiadDetailPage = () => {
     } else if (hotelLoading || listLoading) {
       setLoading(true);
     }
-  }, [hotelData, hotelError, hotelLoading, fallbackHotel, listLoading, currentLanguage, toast]);
+  }, [hotelData, hotelError, hotelLoading, fallbackHotel, listLoading, resolvedHotelId, currentLanguage, toast]);
 
   const name = riad ? getTranslated(riad.name, currentLanguage) : "";
   const description = riad ? getTranslated(riad.description, currentLanguage) : "";
@@ -364,6 +461,25 @@ const RiadDetailPage = () => {
   const extraInfoLines = extraInfo
     ? extraInfo.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
     : [];
+  const mapPlaceQuery = buildGoogleMapsPlaceQuery({
+    name,
+    address,
+    neighborhood,
+    city,
+    country: riad?.country,
+    position,
+  });
+  const encodedMapPlaceQuery = encodeURIComponent(mapPlaceQuery);
+  const googleMapsSearchUrl = mapPlaceQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodedMapPlaceQuery}`
+    : null;
+  const googleMapsDirectionsUrl = mapPlaceQuery
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodedMapPlaceQuery}`
+    : null;
+  const googleMapsEmbedUrl = mapPlaceQuery
+    ? `https://www.google.com/maps?q=${encodedMapPlaceQuery}&output=embed`
+    : null;
+  const displayAddress = address || [neighborhood, city].filter(Boolean).join(", ") || mapPlaceQuery;
 
   // Fallback phone number generator (deterministic from riad id)
   const fallbackPhone = (id) => {
@@ -655,14 +771,6 @@ const RiadDetailPage = () => {
     setActiveImageIndex(index);
     setGalleryOpen(true);
   };
-
-  const customIcon = useMemo(
-    () => L.divIcon({
-      html: `<div style="width:38px;height:38px;background:#bf673e;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 6px 20px rgba(0,0,0,0.3)"></div>`,
-      iconSize: [38, 38], iconAnchor: [19, 38], className: "",
-    }),
-    [],
-  );
 
   if (loading) {
     return (
@@ -1010,7 +1118,7 @@ const RiadDetailPage = () => {
           </div>
 
           {/* ═══════ Address + Map Section ═══════ */}
-          {(address || position) && (
+          {googleMapsEmbedUrl && (
             <div ref={mapSectionRef} className="mt-24 md:mt-32 relative overflow-hidden">
               {/* Full-bleed warm background layer (parallax) */}
               <div
@@ -1047,13 +1155,13 @@ const RiadDetailPage = () => {
                             {t("address") || "Address"}
                           </h3>
                           <p className="text-sm text-brand-ink/60 leading-relaxed font-montserrat">
-                            {address}
+                            {displayAddress}
                           </p>
                         </div>
 
-                        {position && (
+                        {googleMapsDirectionsUrl && (
                           <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${riad.latitude},${riad.longitude}`}
+                            href={googleMapsDirectionsUrl}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-2 text-[0.6rem] uppercase tracking-[0.2em] text-brand-action hover:text-brand-ink font-semibold transition-all duration-400 group mt-auto"
@@ -1068,22 +1176,22 @@ const RiadDetailPage = () => {
 
                   {/* Map */}
                   <div className="lg:col-span-8" data-map-container>
-                    {position ? (
-                      <div className="relative overflow-hidden shadow-xl bg-white">
-                        <span className="absolute top-4 left-4 w-5 h-5 border-t border-l border-white/40 z-20 pointer-events-none" />
-                        <span className="absolute top-4 right-4 w-5 h-5 border-t border-r border-white/40 z-20 pointer-events-none" />
-                        <span className="absolute bottom-4 left-4 w-5 h-5 border-b border-l border-white/40 z-20 pointer-events-none" />
-                        <span className="absolute bottom-4 right-4 w-5 h-5 border-b border-r border-white/40 z-20 pointer-events-none" />
+                    <div className="relative overflow-hidden shadow-xl bg-white">
+                      <span className="absolute top-4 left-4 w-5 h-5 border-t border-l border-white/40 z-20 pointer-events-none" />
+                      <span className="absolute top-4 right-4 w-5 h-5 border-t border-r border-white/40 z-20 pointer-events-none" />
+                      <span className="absolute bottom-4 left-4 w-5 h-5 border-b border-l border-white/40 z-20 pointer-events-none" />
+                      <span className="absolute bottom-4 right-4 w-5 h-5 border-b border-r border-white/40 z-20 pointer-events-none" />
 
-                        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-brand-ink/5">
-                          <div className="flex items-center gap-2.5">
-                            <MapPin className="w-4 h-4 text-brand-action" />
-                            <span className="text-sm font-semibold text-brand-ink font-montserrat tracking-wide">
-                              {name}
-                            </span>
-                          </div>
+                      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-brand-ink/5">
+                        <div className="flex items-center gap-2.5">
+                          <MapPin className="w-4 h-4 text-brand-action" />
+                          <span className="text-sm font-semibold text-brand-ink font-montserrat tracking-wide">
+                            {name}
+                          </span>
+                        </div>
+                        {googleMapsSearchUrl && (
                           <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${riad.latitude},${riad.longitude}`}
+                            href={googleMapsSearchUrl}
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center gap-1.5 text-[0.55rem] uppercase tracking-[0.15em] text-brand-action hover:text-brand-action/70 font-semibold transition-all duration-400 group"
@@ -1091,64 +1199,18 @@ const RiadDetailPage = () => {
                             <Globe className="w-3 h-3" />
                             {t("googleMaps")}
                           </a>
-                        </div>
-
-                        <div className="h-[400px] md:h-[500px] relative overflow-hidden">
-                          <div className="w-full h-full" data-map-parallax>
-                            {mapLoaded ? (
-                              <TwoFingerMap center={position} zoom={15} scrollWheelZoom={false} style={{ width: "100%", height: "100%" }} zoomControl={false}>
-                                <TileLayer
-                                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                />
-                                <Marker position={position} icon={customIcon}>
-                                  <Popup>
-                                    <div className="font-montserrat p-1">
-                                      <strong className="block mb-1 text-brand-ink text-xs">{name}</strong>
-                                      {address && <p className="text-[0.7rem] text-brand-ink/60 mb-1">{address}</p>}
-                                      {city && <p className="text-[0.7rem] text-brand-ink/40">{city}</p>}
-                                    </div>
-                                  </Popup>
-                                </Marker>
-                              </TwoFingerMap>
-                            ) : (
-                              <div className="w-full h-full bg-brand-beige/30 flex items-center justify-center">
-                                <span className="text-xs text-brand-ink/30 font-montserrat tracking-[0.2em] uppercase">{t("loading")}...</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="relative overflow-hidden shadow-xl bg-white">
-                        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-brand-ink/5">
-                          <div className="flex items-center gap-2.5">
-                            <MapPin className="w-4 h-4 text-brand-action" />
-                            <span className="text-sm font-semibold text-brand-ink font-montserrat tracking-wide">
-                              {name}
-                            </span>
-                          </div>
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${address || ''} ${city || ''}`.trim())}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1.5 text-[0.55rem] uppercase tracking-[0.15em] text-brand-action hover:text-brand-action/70 font-semibold transition-all duration-400 group"
-                          >
-                            <Globe className="w-3 h-3" />
-                            {t("googleMaps")}
-                          </a>
-                        </div>
-                        <div className="h-[400px] md:h-[500px] relative overflow-hidden">
-                          <iframe
-                            title={name}
-                            src={`https://www.google.com/maps?q=${encodeURIComponent(`${name} ${address || ''} ${city || ''}`.trim())}&output=embed`}
-                            className="w-full h-full border-0"
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                          />
-                        </div>
+                      <div className="h-[400px] md:h-[500px] relative overflow-hidden">
+                        <iframe
+                          title={name}
+                          src={googleMapsEmbedUrl}
+                          className="w-full h-full border-0"
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>

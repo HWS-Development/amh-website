@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { X, RotateCcw, Building2, MapPin, Wifi, Star } from "lucide-react";
+import { X, RotateCcw, Building2, MapPin, Wifi, Star, Sparkles } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const RATING_THRESHOLDS = [
@@ -18,6 +18,18 @@ const RATING_THRESHOLDS = [
   { value: 4.5, label: "4.5+" },
   { value: 4.0, label: "4.0+" },
 ];
+
+const normalizeFilters = (filters = {}) => ({
+  city_id: null,
+  neighborhood_id: null,
+  property_type_id: null,
+  amenity_ids: [],
+  service_ids: [],
+  rating: null,
+  ...filters,
+  amenity_ids: filters.amenity_ids || [],
+  service_ids: filters.service_ids || [],
+});
 
 const FilterSection = ({ icon: Icon, title, children }) => (
   <div className="border-b border-brand-ink/5 pb-6 mb-6 last:border-0 last:pb-0 last:mb-0">
@@ -41,16 +53,17 @@ const FilterDrawer = ({
   neighborhoods = [],
   propertyTypes = [],
   amenities = [],
+  services = [],
   onFiltersChange,
   resultCount,
   riadsMap = [],
 }) => {
   const { t } = useLanguage();
-  const [local, setLocal] = useState(filters);
+  const [local, setLocal] = useState(() => normalizeFilters(filters));
 
   // Sync from parent (open + external resets)
   useEffect(() => {
-    setLocal(filters);
+    setLocal(normalizeFilters(filters));
   }, [filters, open]);
 
   // LIVE: push every change up so chips + count + list update continuously
@@ -65,9 +78,18 @@ const FilterDrawer = ({
   const toggleAmenity = (id) => {
     updateLocal((prev) => ({
       ...prev,
-      amenity_ids: prev.amenity_ids.includes(id)
+      amenity_ids: (prev.amenity_ids || []).includes(id)
         ? prev.amenity_ids.filter((v) => v !== id)
-        : [...prev.amenity_ids, id],
+        : [...(prev.amenity_ids || []), id],
+    }));
+  };
+
+  const toggleService = (id) => {
+    updateLocal((prev) => ({
+      ...prev,
+      service_ids: (prev.service_ids || []).includes(id)
+        ? prev.service_ids.filter((v) => v !== id)
+        : [...(prev.service_ids || []), id],
     }));
   };
 
@@ -82,6 +104,7 @@ const FilterDrawer = ({
       neighborhood_id: null,
       property_type_id: null,
       amenity_ids: [],
+      service_ids: [],
       rating: null,
     };
     setLocal(r);
@@ -104,6 +127,11 @@ const FilterDrawer = ({
     if (local.amenity_ids?.length > 0) {
       list = list.filter((r) =>
         local.amenity_ids.some((aid) => (r.amenity_ids || []).includes(aid))
+      );
+    }
+    if (local.service_ids?.length > 0) {
+      list = list.filter((r) =>
+        local.service_ids.some((sid) => (r.service_ids || []).includes(sid))
       );
     }
     if (local.rating) {
@@ -262,7 +290,7 @@ const FilterDrawer = ({
               {amenities.map((a) => (
                 <label key={a.id} className="flex items-center gap-3 cursor-pointer group py-0.5">
                   <Checkbox
-                    checked={local.amenity_ids.includes(a.id)}
+                    checked={(local.amenity_ids || []).includes(a.id)}
                     onCheckedChange={() => toggleAmenity(a.id)}
                     className="border-brand-ink/20 data-[state=checked]:bg-brand-action data-[state=checked]:border-brand-action"
                   />
@@ -273,6 +301,26 @@ const FilterDrawer = ({
               ))}
             </div>
           </FilterSection>
+
+          {/* Services */}
+          {services.length > 0 && (
+            <FilterSection icon={Sparkles} title={t("services") || "Services"}>
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {services.map((service) => (
+                  <label key={service.id} className="flex items-center gap-3 cursor-pointer group py-0.5">
+                    <Checkbox
+                      checked={(local.service_ids || []).includes(service.id)}
+                      onCheckedChange={() => toggleService(service.id)}
+                      className="border-brand-ink/20 data-[state=checked]:bg-brand-action data-[state=checked]:border-brand-action"
+                    />
+                    <span className="font-montserrat text-[0.82rem] text-brand-ink/70 group-hover:text-brand-ink transition-colors">
+                      {service.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </FilterSection>
+          )}
         </div>
 
         <SheetFooter className="shrink-0 px-6 md:px-8 py-5 border-t border-brand-ink/5 bg-brand-beige/20 gap-3">

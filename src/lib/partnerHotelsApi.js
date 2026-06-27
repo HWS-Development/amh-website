@@ -42,7 +42,7 @@ export function slugifyRiadName(name = '') {
 
 export function buildRiadDetailHref(id, name) {
   const slug = name ? slugifyRiadName(name) : '';
-  return slug ? `/riad/${id}/${slug}` : `/riad/${id}`;
+  return slug ? `/riad/${slug}` : `/riad/${id}`;
 }
 
 export function idToLabel(id) {

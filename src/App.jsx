@@ -57,8 +57,8 @@ import React, { useState, useEffect } from 'react';
               <main className="bg-white">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
-                  <Route path="/riad/:id" element={<RiadDetailPage />} />
-                  <Route path="/riad/:id/:slug" element={<RiadDetailPage />} />
+                  <Route path="/riad/:slug" element={<RiadDetailPage />} />
+                  <Route path="/riad/:id/:legacySlug" element={<RiadDetailPage />} />
                   <Route path="/destinations" element={<DestinationsLandingPage />} />
                   <Route path="/destinations/:slug" element={<DestinationPage />} />
                   <Route path="/experiences" element={<ExperiencesIndexPage />} />

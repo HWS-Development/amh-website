@@ -12,12 +12,11 @@ import RiadCard from "@/components/RiadCard";
 import RiadListItem from "@/components/RiadListItem";
 import FilterDrawer from "@/components/FilterDrawer";
 import { useLocation } from "react-router-dom";
-import { supabase } from "@/lib/customSupabaseClient";
 import { useToast } from "@/components/ui/use-toast";
 import { useQueryParams, StringParam, NumberParam } from "use-query-params";
-import { getTranslated } from "@/lib/utils";
 import { fetchCatalog } from "@/lib/catalogs";
-import { extractCentraHotelId, extractCentraOrganizationId, usePartnerHotels, idToLabel } from "@/lib/partnerHotelsApi";
+import { usePartnerHotels } from "@/lib/partnerHotelsApi";
+import { getAvailableFilterOptions, mapPartnerHotelToRiad } from "@/lib/partnerHotelTransform";
 import gsap from "gsap";
 
 const ITEMS_PER_PAGE = 12;
@@ -30,6 +29,7 @@ const AllRiadsPage = () => {
   const [neighborhoods, setNeighborhoods] = useState([]);
   const [propertyTypes, setPropertyTypes] = useState([]);
   const [amenities, setAmenities] = useState([]);
+  const [services, setServices] = useState([]);
 
   const location = useLocation();
   const { t, currentLanguage } = useLanguage();
@@ -59,6 +59,7 @@ const AllRiadsPage = () => {
     neighborhood_id: null,
     property_type_id: null,
     amenity_ids: [],
+    service_ids: [],
     rating: null,
   });
 
@@ -76,18 +77,20 @@ const AllRiadsPage = () => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr] =
+        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr] =
           await Promise.all([
             fetchCatalog("mgh_cities", currentLanguage),
             fetchCatalog("mgh_neighborhoods", currentLanguage),
             fetchCatalog("mgh_property_types", currentLanguage),
             fetchCatalog("mgh_amenities_catalog", currentLanguage),
+            fetchCatalog("mgh_services_catalog", currentLanguage),
           ]);
 
         setCities(citiesArr);
         setNeighborhoods(neighborhoodsArr);
         setPropertyTypes(propertyTypesArr);
         setAmenities(amenitiesArr);
+        setServices(servicesArr);
       } catch (err) {
         console.error("[AllRiadsPage] catalog error:", err);
       }
@@ -97,11 +100,10 @@ const AllRiadsPage = () => {
 
   // Enrich hotels with catalog data
   const riadsMap = useMemo(() => {
-    if (!hotelsData || cities.length === 0) return [];
+    if (!hotelsData) return [];
     const citiesMap = Object.fromEntries(cities.map((c) => [c.id, c.label]));
     const neighborhoodsMap = Object.fromEntries(neighborhoods.map((n) => [n.id, n.label]));
     const propertyTypesMap = Object.fromEntries(propertyTypes.map((p) => [p.id, p.label]));
-    const amenitiesMap = Object.fromEntries(amenities.map((a) => [a.id, a.label]));
 
     // Deterministic pseudo-random hash (seed + id) so the order is stable
     // across re-renders within a session but random across sessions.
@@ -115,35 +117,20 @@ const AllRiadsPage = () => {
       return h;
     };
 
-    const mapped = (hotelsData || []).map((r) => ({
-      id: extractCentraHotelId(r.image_urls || r.imageUrls) || r.id,
-      organizationId: extractCentraOrganizationId(r.image_urls || r.imageUrls),
-      name: getTranslated(r.name, currentLanguage),
-      description: getTranslated(r.description, currentLanguage),
-      country: typeof r.country === 'string' ? r.country : null,
-      city: typeof r.city === 'string' ? r.city : (citiesMap[r.city_id || r.cityId] || ""),
-      street: typeof r.street === 'string' ? r.street : null,
-      city_id: r.city_id || r.cityId || null,
-      neighborhood_id: r.neighborhood_id || r.neighborhoodId || null,
-      property_type_id: r.property_type_id || r.propertyTypeId || null,
-      neighborhood: neighborhoodsMap[r.neighborhood_id || r.neighborhoodId] || "",
-      propertyType: propertyTypesMap[r.property_type_id || r.propertyTypeId] || "",
-      amenity_ids: r.amenity_ids || r.amenityIds || [],
-      amenities: (r.amenity_ids || r.amenityIds || []).map(idToLabel),
-      service_ids: r.service_ids || r.serviceIds || [],
-      services: (r.service_ids || r.serviceIds || []).map(idToLabel),
-      rating_avg: r.rating_avg || r.ratingAvg || null,
-      reviews_count: r.reviews_count ?? r.reviewsCount ?? null,
-      imageUrl: r.main_image_url || r.mainImageUrl || (Array.isArray(r.image_urls || r.imageUrls) && (r.image_urls || r.imageUrls).length > 0 ? (r.image_urls || r.imageUrls)[0] : null),
-      simple_booking_link: r.simple_booking_link || r.simpleBookingLink || null,
+    const mapped = (hotelsData || []).map((r) => mapPartnerHotelToRiad(r, currentLanguage, {
+      cities: citiesMap,
+      neighborhoods: neighborhoodsMap,
+      propertyTypes: propertyTypesMap,
     }));
 
     // Random display order (stable per session via seed)
     return mapped.sort((a, b) => hash(a.id) - hash(b.id));
-  }, [hotelsData, cities, neighborhoods, propertyTypes, amenities, currentLanguage]);
+  }, [hotelsData, cities, neighborhoods, propertyTypes, currentLanguage]);
 
-
-
+  const filterOptions = useMemo(
+    () => getAvailableFilterOptions(riadsMap, { cities, neighborhoods, propertyTypes, amenities, services }),
+    [riadsMap, cities, neighborhoods, propertyTypes, amenities, services]
+  );
   // Initial loading state
   useEffect(() => {
     if (hotelsLoading) {
@@ -155,10 +142,10 @@ const AllRiadsPage = () => {
         description: hotelsError.message || "Failed to load riads",
       });
       setLoading(false);
-    } else if (hotelsData && cities.length > 0) {
+    } else if (hotelsData) {
       setLoading(false);
     }
-  }, [hotelsData, hotelsError, hotelsLoading, cities, toast]);
+  }, [hotelsData, hotelsError, hotelsLoading, toast]);
 
   const activeFiltersCount = useMemo(() => {
     let n = 0;
@@ -167,6 +154,7 @@ const AllRiadsPage = () => {
     if (filters.property_type_id) n++;
     if (filters.rating) n++;
     if (filters.amenity_ids?.length) n += filters.amenity_ids.length;
+    if (filters.service_ids?.length) n += filters.service_ids.length;
     return n;
   }, [filters]);
 
@@ -196,6 +184,11 @@ const AllRiadsPage = () => {
     if (filters.amenity_ids?.length > 0) {
       list = list.filter((r) =>
         filters.amenity_ids.some((aid) => (r.amenity_ids || []).includes(aid))
+      );
+    }
+    if (filters.service_ids?.length > 0) {
+      list = list.filter((r) =>
+        filters.service_ids.some((sid) => (r.service_ids || []).includes(sid))
       );
     }
     if (filters.rating) {
@@ -240,11 +233,12 @@ const AllRiadsPage = () => {
     const searchParam = params.get("search");
     const ratingParam = params.get("rating");
     const amenitiesParam = params.get("amenities");
+    const servicesParam = params.get("services");
     const propertyTypeParam = params.get("property_type");
 
     if (
       !cityParam && !neighborhoodParam && !searchParam &&
-      !ratingParam && !amenitiesParam && !propertyTypeParam
+      !ratingParam && !amenitiesParam && !servicesParam && !propertyTypeParam
     ) return;
 
     const matchById = (entries, value) => {
@@ -254,10 +248,14 @@ const AllRiadsPage = () => {
 
     setFilters((prev) => ({
       ...prev,
-      city_id: matchById(cities, cityParam),
-      neighborhood_id: matchById(neighborhoods, neighborhoodParam),
-      property_type_id: matchById(propertyTypes, propertyTypeParam),
+      city_id: matchById(filterOptions.cities, cityParam),
+      neighborhood_id: matchById(filterOptions.neighborhoods, neighborhoodParam),
+      property_type_id: matchById(filterOptions.propertyTypes, propertyTypeParam),
       amenity_ids: (amenitiesParam || "")
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean),
+      service_ids: (servicesParam || "")
         .split(",")
         .map((v) => v.trim())
         .filter(Boolean),
@@ -269,7 +267,7 @@ const AllRiadsPage = () => {
       setSearch(searchParam);
     }
     if (page !== 1) setQuery({ page: 1 }, "push");
-  }, [location.search, cities, neighborhoods, propertyTypes, page, setQuery]);
+  }, [location.search, filterOptions, page, setQuery]);
 
   const handleFiltersChange = useCallback(
     (next) => {
@@ -285,6 +283,7 @@ const AllRiadsPage = () => {
       neighborhood_id: null,
       property_type_id: null,
       amenity_ids: [],
+      service_ids: [],
       rating: null,
     });
     setQuery({ page: 1 }, "push");
@@ -397,7 +396,7 @@ const AllRiadsPage = () => {
             <div className="flex flex-wrap items-center gap-2 mt-3">
               {filters.city_id && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-action/10 text-brand-action text-[0.65rem] font-semibold font-montserrat uppercase tracking-[0.1em]">
-                  {cities.find((c) => c.id === filters.city_id)?.label || filters.city_id}
+                  {filterOptions.cities.find((c) => c.id === filters.city_id)?.label || filters.city_id}
                   <button onClick={() => setFilters((p) => ({ ...p, city_id: null, neighborhood_id: null }))} className="ml-1 hover:text-brand-ink">
                     <X className="w-3 h-3" />
                   </button>
@@ -405,7 +404,7 @@ const AllRiadsPage = () => {
               )}
               {filters.property_type_id && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-action/10 text-brand-action text-[0.65rem] font-semibold font-montserrat uppercase tracking-[0.1em]">
-                  {propertyTypes.find((p) => p.id === filters.property_type_id)?.label || filters.property_type_id}
+                  {filterOptions.propertyTypes.find((p) => p.id === filters.property_type_id)?.label || filters.property_type_id}
                   <button onClick={() => setFilters((p) => ({ ...p, property_type_id: null }))} className="ml-1 hover:text-brand-ink">
                     <X className="w-3 h-3" />
                   </button>
@@ -413,8 +412,16 @@ const AllRiadsPage = () => {
               )}
               {filters.amenity_ids.map((aid) => (
                 <span key={aid} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-action/10 text-brand-action text-[0.65rem] font-semibold font-montserrat uppercase tracking-[0.1em]">
-                  {amenities.find((a) => a.id === aid)?.label || aid}
+                  {filterOptions.amenities.find((a) => a.id === aid)?.label || aid}
                   <button onClick={() => setFilters((p) => ({ ...p, amenity_ids: p.amenity_ids.filter((x) => x !== aid) }))} className="ml-1 hover:text-brand-ink">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              {(filters.service_ids || []).map((sid) => (
+                <span key={sid} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-action/10 text-brand-action text-[0.65rem] font-semibold font-montserrat uppercase tracking-[0.1em]">
+                  {filterOptions.services.find((s) => s.id === sid)?.label || sid}
+                  <button onClick={() => setFilters((p) => ({ ...p, service_ids: (p.service_ids || []).filter((x) => x !== sid) }))} className="ml-1 hover:text-brand-ink">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -524,10 +531,11 @@ const AllRiadsPage = () => {
         open={isFilterOpen}
         onOpenChange={setIsFilterOpen}
         filters={filters}
-        cities={cities}
-        neighborhoods={neighborhoods}
-        propertyTypes={propertyTypes}
-        amenities={amenities}
+        cities={filterOptions.cities}
+        neighborhoods={filterOptions.neighborhoods}
+        propertyTypes={filterOptions.propertyTypes}
+        amenities={filterOptions.amenities}
+        services={filterOptions.services}
         onFiltersChange={handleFiltersChange}
         resultCount={filtered.length}
         riadsMap={riadsMap}
