@@ -232,6 +232,17 @@ function sortOptions(options) {
   return [...options].sort((a, b) => String(a.label).localeCompare(String(b.label)));
 }
 
+function localizeAvailableOptions(availableOptions, catalogOptions = []) {
+  const localizedCatalog = normalizeCatalogOptions(catalogOptions);
+  if (availableOptions.length === 0) return localizedCatalog;
+
+  const localizedById = new Map(localizedCatalog.map((option) => [option.id, option.label]));
+  return sortOptions(availableOptions.map((option) => ({
+    ...option,
+    label: localizedById.get(String(option.id)) || option.label,
+  })));
+}
+
 function addOption(map, id, label, extra = {}) {
   const optionId = id != null ? String(id) : "";
   const optionLabel = String(label || "").trim();
@@ -281,7 +292,7 @@ export function getAvailableFilterOptions(riads = [], fallback = {}) {
     cities: derived.cities.length > 0 ? derived.cities : normalizeCatalogOptions(fallback.cities),
     neighborhoods: derived.neighborhoods.length > 0 ? derived.neighborhoods : normalizeCatalogOptions(fallback.neighborhoods),
     propertyTypes: derived.propertyTypes.length > 0 ? derived.propertyTypes : normalizeCatalogOptions(fallback.propertyTypes),
-    amenities: derived.amenities.length > 0 ? derived.amenities : normalizeCatalogOptions(fallback.amenities),
-    services: derived.services.length > 0 ? derived.services : normalizeCatalogOptions(fallback.services),
+    amenities: localizeAvailableOptions(derived.amenities, fallback.amenities),
+    services: localizeAvailableOptions(derived.services, fallback.services),
   };
 }

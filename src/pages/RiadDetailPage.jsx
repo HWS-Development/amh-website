@@ -323,6 +323,8 @@ const RiadDetailPage = () => {
   const [cities, setCities] = useState({});
   const [neighborhoods, setNeighborhoods] = useState({});
   const [propertyTypes, setPropertyTypes] = useState({});
+  const [amenityLabels, setAmenityLabels] = useState({});
+  const [serviceLabels, setServiceLabels] = useState({});
 
 
   const imgLayerA = useRef(null);
@@ -341,6 +343,7 @@ const RiadDetailPage = () => {
   const heroContentRef = useRef(null);
   const heroMetaRef = useRef(null);
   const websiteIconRef = useRef(null);
+  const trackedRiadViewRef = useRef(null);
 
   // Listing fallback — used when the detail endpoint fails (e.g. Centra 403/500).
   const { data: hotelList, isLoading: listLoading } = usePartnerHotels();
@@ -388,14 +391,18 @@ const RiadDetailPage = () => {
     const fetchAll = async (sourceHotel) => {
       setLoading(true);
       try {
-        const [citiesArr, neighborhoodsArr, propertyTypesArr] = await Promise.all([
+        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr] = await Promise.all([
           fetchCatalog("mgh_cities", currentLanguage),
           fetchCatalog("mgh_neighborhoods", currentLanguage),
           fetchCatalog("mgh_property_types", currentLanguage),
+          fetchCatalog("mgh_amenities_catalog", currentLanguage),
+          fetchCatalog("mgh_services_catalog", currentLanguage),
         ]);
         setCities(Object.fromEntries(citiesArr.map((c) => [c.id, c.label])));
         setNeighborhoods(Object.fromEntries(neighborhoodsArr.map((n) => [n.id, n.label])));
         setPropertyTypes(Object.fromEntries(propertyTypesArr.map((p) => [p.id, p.label])));
+        setAmenityLabels(Object.fromEntries(amenitiesArr.map((amenity) => [amenity.id, amenity.label])));
+        setServiceLabels(Object.fromEntries(servicesArr.map((service) => [service.id, service.label])));
         const normalizedHotel = normalizePartnerHotel(sourceHotel);
         setRiad(normalizedHotel);
       } catch {
@@ -442,6 +449,23 @@ const RiadDetailPage = () => {
   const city = riad?.city || (riad ? (cities[riad.city_id] || "") : "");
   const neighborhood = riad ? (neighborhoods[riad.neighborhood_id] || "") : "";
   const propertyType = riad ? (propertyTypes[riad.property_type_id] || "") : "";
+  const analyticsRiadId = riad ? (getHotelRouteId(riad) || resolvedHotelId) : null;
+
+  useEffect(() => {
+    if (!analyticsRiadId || !name || trackedRiadViewRef.current === analyticsRiadId) return;
+    if (typeof window.gtag !== "function") return;
+
+    trackedRiadViewRef.current = analyticsRiadId;
+    window.gtag("event", "view_item", {
+      items: [{
+        item_id: analyticsRiadId,
+        item_name: name,
+        item_category: propertyType || "Riad",
+        ...(city ? { item_category2: city } : {}),
+      }],
+    });
+  }, [analyticsRiadId, name, city, propertyType]);
+
   const images = riad
     ? (() => {
         const arr = [
@@ -451,8 +475,12 @@ const RiadDetailPage = () => {
         return arr.length > 0 ? arr : [FALLBACK_IMAGE];
       })()
     : [FALLBACK_IMAGE];
-  const amenities = riad ? (riad.amenity_ids || []).map(idToLabel) : [];
-  const services = riad ? (riad.service_ids || []).map(idToLabel) : [];
+  const amenities = riad
+    ? (riad.amenity_ids || []).map((amenityId) => amenityLabels[amenityId] || idToLabel(amenityId))
+    : [];
+  const services = riad
+    ? (riad.service_ids || []).map((serviceId) => serviceLabels[serviceId] || idToLabel(serviceId))
+    : [];
   const bookingConditions = riad ? (riad.booking_condition_ids || []).map(idToLabel) : [];
   const position = riad && riad.latitude && riad.longitude ? [riad.latitude, riad.longitude] : null;
   const ratingNum = riad ? (parseFloat(riad.rating_avg) || 0) : 0;
