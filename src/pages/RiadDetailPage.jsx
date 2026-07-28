@@ -333,9 +333,6 @@ const RiadDetailPage = () => {
   const progressBarRef = useRef(null);
   const carouselRef = useRef(null);
   const infoCardRef = useRef(null);
-  const amenitiesRef = useRef(null);
-  const servicesRef = useRef(null);
-  const bookingRef = useRef(null);
   const pageRef = useRef(null);
   const mapSectionRef = useRef(null);
   const mapParallaxRef = useRef(null);
@@ -643,51 +640,6 @@ const RiadDetailPage = () => {
         });
       }
 
-      if (amenitiesRef.current) {
-        gsap.from(amenitiesRef.current.querySelectorAll("li"), {
-          opacity: 0,
-          y: 16,
-          duration: 0.6,
-          stagger: 0.05,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: amenitiesRef.current,
-            start: "top 82%",
-            once: true,
-          },
-        });
-      }
-
-      if (servicesRef.current) {
-        gsap.from(servicesRef.current.querySelectorAll("li"), {
-          opacity: 0,
-          y: 16,
-          duration: 0.6,
-          stagger: 0.05,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: servicesRef.current,
-            start: "top 82%",
-            once: true,
-          },
-        });
-      }
-
-      if (bookingRef.current) {
-        gsap.from(bookingRef.current.querySelectorAll("li"), {
-          opacity: 0,
-          y: 12,
-          duration: 0.5,
-          stagger: 0.06,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: bookingRef.current,
-            start: "top 82%",
-            once: true,
-          },
-        });
-      }
-
       if (mapSectionRef.current) {
         const addressCard = mapSectionRef.current.querySelector("[data-address-card]");
         const mapEl = mapSectionRef.current.querySelector("[data-map-container]");
@@ -973,7 +925,7 @@ const RiadDetailPage = () => {
                     {amenities.length > 0 && (
                       <div className="mb-7">
                         <SectionEyebrow label={t("amenities")} />
-                        <ul ref={amenitiesRef} className="grid grid-cols-2 gap-x-5 gap-y-3 text-[0.8rem] text-brand-ink/70">
+                        <ul className="grid grid-cols-2 gap-x-5 gap-y-3 text-[0.8rem] text-brand-ink/70">
                           {amenities.map((a, i) => (
                             <li key={`${a}-${i}`} className="flex items-start gap-3">
                               <span className="mt-[6px] h-[4px] w-[4px] bg-brand-action shrink-0" />
@@ -987,7 +939,7 @@ const RiadDetailPage = () => {
                     {services.length > 0 && (
                       <div className="mb-7">
                         <SectionEyebrow label={t("services")} />
-                        <ul ref={servicesRef} className="grid grid-cols-2 gap-x-5 gap-y-3 text-[0.8rem] text-brand-ink/70">
+                        <ul className="grid grid-cols-2 gap-x-5 gap-y-3 text-[0.8rem] text-brand-ink/70">
                           {services.map((s, i) => (
                             <li key={`${s}-${i}`} className="flex items-start gap-3">
                               <span className="mt-[6px] h-[4px] w-[4px] bg-brand-action shrink-0" />
@@ -1015,7 +967,7 @@ const RiadDetailPage = () => {
                     {bookingConditions.length > 0 && (
                       <div className="mb-7">
                         <SectionEyebrow label={t("bookingConditions")} />
-                        <ul ref={bookingRef} className="grid grid-cols-1 gap-y-3 text-[0.8rem] text-brand-ink/70">
+                        <ul className="grid grid-cols-1 gap-y-3 text-[0.8rem] text-brand-ink/70">
                           {bookingConditions.map((bc, i) => (
                             <li key={`bc-${i}`} className="flex items-start gap-3">
                               <Shield className="w-3.5 h-3.5 text-brand-action mt-0.5 shrink-0" />
