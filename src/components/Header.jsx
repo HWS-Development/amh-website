@@ -1,16 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, NavLink as RouterNavLink, useLocation } from "react-router-dom";
-import { Menu, X, Globe, ChevronDown, Search, ArrowRight } from "lucide-react";
+import { X, ChevronDown, Search } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import BookingStrip from "@/components/BookingStrip";
-import { supabase } from "@/lib/customSupabaseClient";
 import { listExperiences, listDestinations } from "@/lib/mghApi";
 import { getTranslated } from "@/lib/utils";
-import { fetchCatalog } from "@/lib/catalogs";
-import { extractCentraHotelId, extractCentraOrganizationId, usePartnerHotels } from "@/lib/partnerHotelsApi";
-import i18n from "@/i18n";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import gsap from "gsap";
 
@@ -114,7 +108,7 @@ const LanguageSelector = ({ currentLanguage, changeLanguage }) => {
   );
 };
 
-const Sidebar = ({ open, onClose, navLinks, riads, t, currentLanguage, changeLanguage }) => {
+const Sidebar = ({ open, onClose, navLinks, t }) => {
   const overlayRef = useRef(null);
   const panelRef = useRef(null);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -247,10 +241,8 @@ const Header = ({ date, onDateChange }) => {
   const [isBookingWidgetOpen, setIsBookingWidgetOpen] = useState(false);
   const [experiences, setExperiences] = useState([]);
   const [destinations, setDestinations] = useState([]);
-  const [riads, setRiads] = useState([]);
 
   const { currentLanguage, changeLanguage, t } = useLanguage();
-  const { toast } = useToast();
   const scrollData = useScroll();
   const location = useLocation();
 
@@ -325,38 +317,6 @@ const Header = ({ date, onDateChange }) => {
     fetchNavData();
   }, [currentLanguage]);
 
-  const { data: hotelsData } = usePartnerHotels();
-
-  useEffect(() => {
-    const processHotels = async () => {
-      if (!hotelsData) return;
-      try {
-        const [citiesArr, neighborhoodsArr] = await Promise.all([
-          fetchCatalog("mgh_cities", currentLanguage),
-          fetchCatalog("mgh_neighborhoods", currentLanguage),
-        ]);
-        const citiesMap = Object.fromEntries(citiesArr.map(c => [c.id, c.label]));
-        const neighborhoodsMap = Object.fromEntries(neighborhoodsArr.map(n => [n.id, n.label]));
-
-        setRiads(
-          hotelsData.map(riad => ({
-            id: extractCentraHotelId(riad.image_urls) || riad.id,
-            organizationId: extractCentraOrganizationId(riad.image_urls),
-            name: getTranslated(riad.name, currentLanguage),
-            name_tr: riad.name,
-            city: citiesMap[riad.city_id] || "",
-            quartier: neighborhoodsMap[riad.neighborhood_id] || "",
-            image_urls: Array.isArray(riad.image_urls) ? riad.image_urls : [],
-          }))
-        );
-      } catch (error) {
-        console.error("Error processing riads:", error.message || error);
-        setRiads([]);
-      }
-    };
-    processHotels();
-  }, [hotelsData, currentLanguage]);
-
   useEffect(() => {
     const handleEsc = e => {
       if (e.key === "Escape") {
@@ -378,8 +338,8 @@ const Header = ({ date, onDateChange }) => {
   const navLinks = [
     { labelKey: "home", href: "/" },
     { labelKey: "allProperties", href: "/all-riads" },
-    { labelKey: "experiences", dropdown: experiences },
-    { labelKey: "destinations", dropdown: destinations },
+    { labelKey: "experiences", href: "/experiences", dropdown: experiences },
+    { labelKey: "destinations", href: "/destinations", dropdown: destinations },
     { labelKey: "about", href: "/about" },
   ];
 
@@ -479,10 +439,7 @@ const Header = ({ date, onDateChange }) => {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         navLinks={navLinks}
-        riads={riads}
         t={t}
-        currentLanguage={currentLanguage}
-        changeLanguage={changeLanguage}
       />
     </>
   );

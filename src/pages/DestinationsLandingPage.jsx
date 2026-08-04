@@ -6,6 +6,7 @@ import { listDestinations } from '@/lib/mghApi';
 import { Loader2, ArrowUpRight, MapPin, Sparkles, Compass } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated } from '@/lib/utils';
+import { usePartnerHotels } from '@/lib/partnerHotelsApi';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import {
   TiltCard,
@@ -21,6 +22,7 @@ const DestinationsLandingPage = () => {
   const [destinations, setDestinations] = useState([]);
   const [loading, setLoading] = useState(true);
   const { t, currentLanguage } = useLanguage();
+  const { data: partnerHotels = [] } = usePartnerHotels();
   const reduce = useReducedMotion();
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 600], [0, -80]);
@@ -125,7 +127,7 @@ const DestinationsLandingPage = () => {
             >
               {[
                 { value: destinations.length || 3, label: t('destinations') || 'Destinations' },
-                { value: 70, suffix: '+', label: t('classifiedRiads') || 'Classified riads' },
+                { value: partnerHotels.length, label: t('classifiedRiads') || 'Classified riads' },
                 { value: 100, suffix: '%', label: t('directBooking') || 'Direct booking' },
               ].map((s, i) => (
                 <div key={i}>

@@ -5,11 +5,8 @@ import AmenityIcon from "@/components/AmenityIcon";
 import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import OptimizedImage from "@/components/ui/OptimizedImage";
-import { buildRiadDetailHref } from "@/lib/partnerHotelsApi";
+import { buildPropertyDetailHref } from "@/lib/partnerHotelsApi";
 
-const FALLBACK_IMAGE =
-  import.meta.env.VITE_FALLBACK_IMAGE ||
-  "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
 const MAX_AMENITIES = 3;
 const PRIORITY_AMENITY_IDS = [
   "pool",
@@ -36,7 +33,7 @@ const RiadCard = ({ riad }) => {
   ].filter((entry) => Boolean(entry.label));
   const visibleAmenities = prioritizedAmenities.slice(0, MAX_AMENITIES);
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
-  const detailHref = buildRiadDetailHref(riad.id, riad.name);
+  const detailHref = buildPropertyDetailHref(riad.property_type_id, riad.name);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
@@ -50,11 +47,17 @@ const RiadCard = ({ riad }) => {
           aria-label={riad.name}
           className="block relative aspect-[3/4] md:aspect-[4/5]"
         >
-          <OptimizedImage
-            src={riad.imageUrl || FALLBACK_IMAGE}
-            alt={riad.name}
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-editorial group-hover:scale-[1.06]"
-          />
+          {riad.imageUrl ? (
+            <OptimizedImage
+              src={riad.imageUrl}
+              alt={riad.name}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-editorial group-hover:scale-[1.06]"
+            />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center bg-brand-beige p-12">
+              <img src="/images/logo_mgh.svg" alt="" className="h-full w-full object-contain opacity-35" />
+            </div>
+          )}
 
           {/* subtle bottom gradient for badge legibility */}
           <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/25 to-transparent pointer-events-none" />

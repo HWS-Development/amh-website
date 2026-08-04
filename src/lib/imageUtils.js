@@ -2,15 +2,12 @@
  * Image URL optimization utilities.
  *
  * Supports per-CDN rewriting + width/quality params:
- *   - Supabase Storage  → /render/image/public/ + width + quality
  *   - Cloudflare Images (imagedelivery.net) → /w=<W>,q=<Q> variant
  *   - All other URLs    → ?quality=<Q> appended (best-effort)
  *
  * The same utility is used to build single src and srcset entries.
  */
 
-const SUPABASE_OBJECT_PATH = '/storage/v1/object/public/';
-const SUPABASE_RENDER_PATH = '/storage/v1/render/image/public/';
 const CLOUDFLARE_HOST = 'imagedelivery.net';
 
 /**
@@ -25,17 +22,6 @@ const CLOUDFLARE_HOST = 'imagedelivery.net';
  */
 export function optimizeImageUrl(url, { quality = 60, width, height } = {}) {
   if (!url || typeof url !== 'string') return url || '';
-
-  // ── Supabase storage → render endpoint with quality + resize
-  if (url.includes(SUPABASE_OBJECT_PATH)) {
-    let optimized = url.replace(SUPABASE_OBJECT_PATH, SUPABASE_RENDER_PATH);
-    const params = new URLSearchParams();
-    params.set('quality', String(quality));
-    if (width) params.set('width', String(width));
-    if (height) params.set('height', String(height));
-    const separator = optimized.includes('?') ? '&' : '?';
-    return `${optimized}${separator}${params.toString()}`;
-  }
 
   // ── Cloudflare Images (imagedelivery.net/<account>/<id>/<variant>)
   // Replace the variant with a flexible one: `w=<W>,q=<Q>`.
@@ -61,5 +47,5 @@ export function optimizeImageUrl(url, { quality = 60, width, height } = {}) {
  */
 export function supportsResponsiveResize(url) {
   if (!url || typeof url !== 'string') return false;
-  return url.includes(SUPABASE_OBJECT_PATH) || url.includes(CLOUDFLARE_HOST);
+  return url.includes(CLOUDFLARE_HOST);
 }

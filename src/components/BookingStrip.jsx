@@ -7,13 +7,10 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { MapPin, CalendarDays, Users, Minus, Plus, Search as SearchIcon, BedDouble, Baby } from 'lucide-react';
-
-const destinations = [
-  { value: '', labelKey: 'allDestinations' },
-  { value: 'marrakech', labelKey: 'marrakech' },
-  { value: 'essaouira', labelKey: 'essaouira' },
-  { value: 'ouarzazate', labelKey: 'ouarzazate' },
-];
+import { usePartnerHotels } from '@/lib/partnerHotelsApi';
+import { usePartnerCatalogs } from '@/lib/partnerCatalogsApi';
+import { deriveDestinationsFromRiads, mapPartnerHotelToRiad } from '@/lib/partnerHotelTransform';
+import { useNavigate } from 'react-router-dom';
 
 /* ────────────────────────────────────────────────────────────────────
    Guests + Rooms stepper popover (Airbnb-style)
@@ -67,6 +64,7 @@ const Stepper = ({ label, hint, value, min, max, onChange, Icon }) => {
 const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, onSearch }) => {
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [destination, setDestination] = useState('');
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
@@ -74,6 +72,15 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
   const [destOpen, setDestOpen] = useState(false);
   const [guestsOpen, setGuestsOpen] = useState(false);
   const stripRef = useRef(null);
+  const { data: hotels = [] } = usePartnerHotels();
+  const { data: partnerCatalogs } = usePartnerCatalogs();
+  const destinations = useMemo(() => {
+    const riads = hotels.map((hotel) => mapPartnerHotelToRiad(hotel, currentLanguage, partnerCatalogs));
+    return [
+      { value: '', label: t('allDestinations') },
+      ...deriveDestinationsFromRiads(riads).map((city) => ({ value: city.id, label: city.name })),
+    ];
+  }, [hotels, currentLanguage, partnerCatalogs, t]);
 
   const totalPersons = adults + children;
 
@@ -99,16 +106,28 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
     ].join('%2C');
 
     const simplebookingBase = import.meta.env.VITE_SIMPLEBOOKING_BASE || 'https://www.simplebooking.it/portal/256';
-    let url = `${simplebookingBase}?lang=${currentLanguage.toUpperCase()}&cur=EUR&in=${checkin}&out=${checkout}&guests=${guestParams}&rooms=${rooms}&map=JPPSV`;
+    const url = `${simplebookingBase}?lang=${currentLanguage.toUpperCase()}&cur=EUR&in=${checkin}&out=${checkout}&guests=${guestParams}&rooms=${rooms}&map=JPPSV`;
 
     if (onSearch) onSearch();
+    if (destination) {
+      const params = new URLSearchParams({
+        city: destination,
+        checkin,
+        checkout,
+        adults: String(adults),
+        children: String(children),
+        rooms: String(rooms),
+      });
+      navigate(`/all-riads?${params.toString()}`);
+      return;
+    }
     window.open(url, '_blank');
   };
 
   const selectedDestLabel = useMemo(() => {
     const found = destinations.find((d) => d.value === destination);
-    return found ? t(found.labelKey) : t('destination');
-  }, [destination, t, currentLanguage]);
+    return found ? found.label : t('destination');
+  }, [destination, destinations, t]);
 
   // Compact "2 pers. · 1 ch." label
   const guestsRoomsLabel = t('guestsRoomsShort', { persons: totalPersons, rooms });
@@ -144,7 +163,7 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
                   destination === d.value && 'bg-brand-beige text-brand-action'
                 )}
               >
-                {t(d.labelKey)}
+                {d.label}
               </button>
             ))}
           </PopoverContent>
@@ -235,7 +254,7 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
                   destination === d.value && 'bg-brand-beige text-brand-action'
                 )}
               >
-                {t(d.labelKey)}
+                {d.label}
               </button>
             ))}
           </PopoverContent>

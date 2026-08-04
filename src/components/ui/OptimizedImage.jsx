@@ -7,7 +7,7 @@ import { optimizeImageUrl, supportsResponsiveResize } from '@/lib/imageUtils';
  *   - `decoding="async"` + `fetchpriority="auto"`
  *   - Automatic `quality=60` for every URL
  *   - Responsive `srcset` for CDNs that support resizing
- *     (Supabase Storage and Cloudflare Images)
+ *     (Cloudflare Images)
  *   - Smooth fade-in on load so partially-decoded JPEGs don't appear
  *     "piece by piece"; the image is fully revealed only once decoded.
  *

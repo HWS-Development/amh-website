@@ -9,7 +9,7 @@ import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import {
-  ArrowLeft, Star, MapPin, Check, Shield, Phone, Mail, Globe,
+  ArrowLeft, Star, MapPin, Check, Phone, Mail, Globe,
   ChevronRight, Sparkles, X, Wifi, Waves, Bath, Sun, Wind, Users,
   Utensils, Tv, Coffee, Car, Key, Thermometer, Heart, Baby,
   Accessibility, Dumbbell, ParkingCircle, BedDouble, Shirt, PawPrint,
@@ -24,15 +24,14 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/components/ui/use-toast";
 import { getTranslated } from "@/lib/utils";
-import { fetchCatalog } from "@/lib/catalogs";
 import { optimizeImageUrl } from "@/lib/imageUtils";
-import { buildRiadDetailHref, usePartnerHotelById, usePartnerHotels, extractCentraHotelId, idToLabel, slugifyRiadName } from "@/lib/partnerHotelsApi";
+import { buildPropertyDetailHref, usePartnerHotelById, usePartnerHotels, extractCentraHotelId, idToLabel, slugifyPropertyName } from "@/lib/partnerHotelsApi";
+import { usePartnerCatalogs } from "@/lib/partnerCatalogsApi";
+import { mapPartnerHotelToRiad } from "@/lib/partnerHotelTransform";
 import BackToTopButton from "@/components/BackToTopButton";
+import NotFoundPage from "@/pages/NotFoundPage";
 
 gsap.registerPlugin(ScrollTrigger);
-
-const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_IMAGE ||
-  "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
 
 const getAmenityIcon = (label = "") => {
   const text = label.toLowerCase();
@@ -105,14 +104,18 @@ const buildGoogleMapsPlaceQuery = ({ name, address, neighborhood, city, country,
 };
 
 const RIAD_SLUG_LANGUAGES = ["fr", "en", "es"];
-const HOTEL_ID_PATTERN = /^HT-[A-Z0-9]+$/i;
+const CENTRA_HOTEL_ID_PATTERN = /^HT-[A-Z0-9]+$/i;
+const HOTEL_ID_PATTERN = /^(?:HT-[A-Z0-9]+|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 
 const getHotelRouteId = (hotel) =>
-  extractCentraHotelId(hotel?.image_urls || hotel?.imageUrls) ||
   hotel?.id ||
   hotel?.hotel_id ||
   hotel?.hotelId ||
+  extractCentraHotelId(hotel?.image_urls || hotel?.imageUrls) ||
   null;
+
+const getHotelPropertyTypeId = (hotel) =>
+  hotel?.property_type_id || hotel?.propertyTypeId || null;
 
 const getHotelNameCandidates = (hotel, currentLanguage) => {
   const languages = [currentLanguage, ...RIAD_SLUG_LANGUAGES].filter(Boolean);
@@ -134,7 +137,7 @@ const getHotelNameCandidates = (hotel, currentLanguage) => {
 const hotelMatchesSlug = (hotel, slug, currentLanguage) => {
   if (!slug) return false;
   return getHotelNameCandidates(hotel, currentLanguage).some(
-    (name) => slugifyRiadName(name) === slug,
+    (name) => slugifyPropertyName(name) === slug,
   );
 };
 
@@ -271,33 +274,36 @@ const MetricItem = ({ value, suffix = "", label, icon: Icon, delay = 0, isDecima
   );
 };
 
-const normalizePartnerHotel = (hotel) => {
+const normalizePartnerHotel = (hotel, language, catalogs) => {
   if (!hotel) return null;
+  const mapped = mapPartnerHotelToRiad(hotel, language, catalogs);
 
   return {
     ...hotel,
+    ...mapped,
     hotel_id: hotel.hotel_id || hotel.hotelId || null,
     org_id: hotel.org_id || hotel.orgId || null,
-    city_id: hotel.city_id || hotel.cityId || null,
-    neighborhood_id: hotel.neighborhood_id || hotel.neighborhoodId || null,
-    property_type_id: hotel.property_type_id || hotel.propertyTypeId || null,
-    amenity_ids: hotel.amenity_ids || hotel.amenityIds || [],
-    service_ids: hotel.service_ids || hotel.serviceIds || [],
-    booking_condition_ids: hotel.booking_condition_ids || hotel.bookingConditionIds || [],
-    main_image_url: hotel.main_image_url || hotel.mainImageUrl || null,
-    image_urls: hotel.image_urls || hotel.imageUrls || [],
-    rating_avg: hotel.rating_avg || hotel.ratingAvg || null,
-    reviews_count: hotel.reviews_count ?? hotel.reviewsCount ?? null,
+    city_id: mapped.city_id,
+    neighborhood_id: mapped.neighborhood_id,
+    property_type_id: mapped.property_type_id,
+    amenity_ids: mapped.amenity_ids,
+    service_ids: mapped.service_ids,
+    main_image_url: mapped.main_image_url,
+    image_urls: mapped.image_urls,
+    rating_avg: mapped.rating_avg,
+    reviews_count: mapped.reviews_count,
     extra_info: hotel.extra_info || hotel.extraInfo || null,
-    phone_number: hotel.phone_number || hotel.phoneNumber || hotel.phone || null,
+    phone_number: mapped.phone,
     email: hotel.email || null,
     website: hotel.website || null,
-    beLink: hotel.beLink || null,
-    whatsappNumber: hotel.whatsappNumber || null,
-    simple_booking_link: hotel.simple_booking_link || hotel.simpleBookingLink || null,
+    beLink: mapped.simple_booking_link,
+    whatsappNumber: mapped.whatsapp_number,
+    simple_booking_link: mapped.simple_booking_link,
     source_created_at: hotel.source_created_at || hotel.sourceCreatedAt || null,
-    country: typeof hotel.country === 'string' ? hotel.country : (typeof hotel.country === 'object' && hotel.country !== null ? getTranslated(hotel.country, 'en') : null),
-    city: typeof hotel.city === 'string' ? hotel.city : (typeof hotel.city === 'object' && hotel.city !== null ? getTranslated(hotel.city, 'en') : null),
+    country: mapped.country,
+    city: mapped.city,
+    neighborhood: mapped.neighborhood,
+    propertyType: mapped.propertyType,
     street: typeof hotel.street === 'string' ? hotel.street : (typeof hotel.street === 'object' && hotel.street !== null ? getTranslated(hotel.street, 'en') : null),
     latitude: hotel.latitude ?? hotel.lat ?? null,
     longitude: hotel.longitude ?? hotel.lng ?? hotel.lon ?? null,
@@ -305,13 +311,13 @@ const normalizePartnerHotel = (hotel) => {
 };
 
 const RiadDetailPage = () => {
-  const { slug, id, legacySlug } = useParams();
+  const { propertyType: routePropertyType, slug, id, legacySlug } = useParams();
   const navigate = useNavigate();
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
 
   const routeSlug = legacySlug || slug || id || "";
-  const normalizedRouteSlug = slugifyRiadName(routeSlug);
+  const normalizedRouteSlug = slugifyPropertyName(routeSlug);
   const routeHotelId = id || (HOTEL_ID_PATTERN.test(routeSlug) ? routeSlug : null);
 
   const [riad, setRiad] = useState(null);
@@ -320,13 +326,6 @@ const RiadDetailPage = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [photoIdx, setPhotoIdx] = useState(0);
   
-  const [cities, setCities] = useState({});
-  const [neighborhoods, setNeighborhoods] = useState({});
-  const [propertyTypes, setPropertyTypes] = useState({});
-  const [amenityLabels, setAmenityLabels] = useState({});
-  const [serviceLabels, setServiceLabels] = useState({});
-
-
   const imgLayerA = useRef(null);
   const imgLayerB = useRef(null);
   const activeLayer = useRef("A");
@@ -348,15 +347,32 @@ const RiadDetailPage = () => {
     if (!Array.isArray(hotelList)) return null;
 
     if (routeHotelId) {
-      const byId = hotelList.find((hotel) => getHotelRouteId(hotel) === routeHotelId);
+      const byId = hotelList.find((hotel) =>
+        String(getHotelRouteId(hotel)) === String(routeHotelId) ||
+        extractCentraHotelId(hotel?.image_urls || hotel?.imageUrls) === routeHotelId
+      );
       if (byId) return byId;
     }
 
-    return hotelList.find((hotel) => hotelMatchesSlug(hotel, normalizedRouteSlug, currentLanguage)) || null;
-  }, [hotelList, routeHotelId, normalizedRouteSlug, currentLanguage]);
-  const resolvedHotelId = routeHotelId || getHotelRouteId(matchedHotel);
+    const normalizedPropertyType = slugifyPropertyName(routePropertyType);
+    const matchingType = normalizedPropertyType
+      ? hotelList.find((hotel) =>
+          slugifyPropertyName(getHotelPropertyTypeId(hotel)) === normalizedPropertyType &&
+          hotelMatchesSlug(hotel, normalizedRouteSlug, currentLanguage)
+        )
+      : null;
 
-  const { data: hotelData, error: hotelError, isLoading: hotelLoading } = usePartnerHotelById(resolvedHotelId);
+    return matchingType || hotelList.find(
+      (hotel) => hotelMatchesSlug(hotel, normalizedRouteSlug, currentLanguage)
+    ) || null;
+  }, [hotelList, routeHotelId, normalizedRouteSlug, routePropertyType, currentLanguage]);
+  const resolvedHotelId = getHotelRouteId(matchedHotel) || routeHotelId;
+  const listedCentraHotelId = extractCentraHotelId(matchedHotel?.image_urls || matchedHotel?.imageUrls);
+  const waitForHotelList = listLoading && routeHotelId && !CENTRA_HOTEL_ID_PATTERN.test(routeHotelId);
+  const detailHotelId = listedCentraHotelId || (waitForHotelList ? null : resolvedHotelId);
+
+  const { data: hotelData, error: hotelError, isLoading: hotelLoading } = usePartnerHotelById(detailHotelId);
+  const { data: partnerCatalogs } = usePartnerCatalogs();
 
   const fallbackHotel = useMemo(() => {
     if (matchedHotel) return matchedHotel;
@@ -371,47 +387,26 @@ const RiadDetailPage = () => {
   }, [hotelList, matchedHotel, resolvedHotelId]);
 
   useEffect(() => {
-    if (legacySlug) {
-      navigate(`/riad/${legacySlug}`, { replace: true });
-      return;
-    }
-
-    if (!routeHotelId || !matchedHotel) return;
-    const canonicalName = getHotelNameCandidates(matchedHotel, currentLanguage)[0];
-    const canonicalHref = buildRiadDetailHref(resolvedHotelId, canonicalName);
-    if (canonicalHref && canonicalHref !== `/riad/${routeSlug}`) {
+    if (!matchedHotel) return;
+    const canonicalName = getHotelNameCandidates(hotelData || matchedHotel, currentLanguage)[0];
+    const canonicalPropertyType = getHotelPropertyTypeId(hotelData) || getHotelPropertyTypeId(matchedHotel);
+    const canonicalHref = buildPropertyDetailHref(canonicalPropertyType, canonicalName);
+    const currentHref = legacySlug ? `/riad/${id}/${legacySlug}` : `/${routePropertyType}/${slug}`;
+    if (canonicalHref && canonicalHref !== currentHref) {
       navigate(canonicalHref, { replace: true });
     }
-  }, [legacySlug, matchedHotel, navigate, resolvedHotelId, routeHotelId, routeSlug, currentLanguage]);
+  }, [hotelData, id, legacySlug, matchedHotel, navigate, routePropertyType, slug, currentLanguage]);
 
   useEffect(() => {
-    const fetchAll = async (sourceHotel) => {
+    const applyHotel = (sourceHotel) => {
       setLoading(true);
-      try {
-        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr] = await Promise.all([
-          fetchCatalog("mgh_cities", currentLanguage),
-          fetchCatalog("mgh_neighborhoods", currentLanguage),
-          fetchCatalog("mgh_property_types", currentLanguage),
-          fetchCatalog("mgh_amenities_catalog", currentLanguage),
-          fetchCatalog("mgh_services_catalog", currentLanguage),
-        ]);
-        setCities(Object.fromEntries(citiesArr.map((c) => [c.id, c.label])));
-        setNeighborhoods(Object.fromEntries(neighborhoodsArr.map((n) => [n.id, n.label])));
-        setPropertyTypes(Object.fromEntries(propertyTypesArr.map((p) => [p.id, p.label])));
-        setAmenityLabels(Object.fromEntries(amenitiesArr.map((amenity) => [amenity.id, amenity.label])));
-        setServiceLabels(Object.fromEntries(servicesArr.map((service) => [service.id, service.label])));
-        const normalizedHotel = normalizePartnerHotel(sourceHotel);
-        setRiad(normalizedHotel);
-      } catch {
-        toast({ variant: "destructive", title: "Error", description: "Could not fetch riad details." });
-        setRiad(null);
-      }
+      setRiad(normalizePartnerHotel(sourceHotel, currentLanguage, partnerCatalogs));
       setLoading(false);
     };
 
     if (!resolvedHotelId) {
       if (fallbackHotel && !listLoading) {
-        fetchAll(fallbackHotel);
+        applyHotel(fallbackHotel);
       } else if (listLoading) {
         setLoading(true);
       } else {
@@ -424,10 +419,14 @@ const RiadDetailPage = () => {
 
     // Prefer fresh detail data; fall back to listing entry on error.
     if (hotelData) {
-      fetchAll(hotelData);
+      applyHotel(fallbackHotel ? {
+        ...fallbackHotel,
+        ...hotelData,
+        id: fallbackHotel.id || hotelData.id,
+      } : hotelData);
     } else if (hotelError && fallbackHotel) {
       console.warn("[RiadDetailPage] Detail fetch failed — falling back to listing data.", hotelError);
-      fetchAll(fallbackHotel);
+      applyHotel(fallbackHotel);
     } else if (hotelError && !listLoading) {
       // Detail failed and listing has no match either.
       toast({ variant: "destructive", title: "Error", description: "Could not fetch riad details." });
@@ -436,16 +435,16 @@ const RiadDetailPage = () => {
     } else if (hotelLoading || listLoading) {
       setLoading(true);
     }
-  }, [hotelData, hotelError, hotelLoading, fallbackHotel, listLoading, resolvedHotelId, currentLanguage, toast]);
+  }, [hotelData, hotelError, hotelLoading, fallbackHotel, listLoading, resolvedHotelId, currentLanguage, partnerCatalogs, toast]);
 
   const name = riad ? getTranslated(riad.name, currentLanguage) : "";
   const description = riad ? getTranslated(riad.description, currentLanguage) : "";
   const address = riad
-    ? [riad.street, riad.city, riad.country].filter(Boolean).join(", ")
+    ? (getTranslated(riad.address, currentLanguage) || [riad.street, riad.city, riad.country].filter(Boolean).join(", "))
     : "";
-  const city = riad?.city || (riad ? (cities[riad.city_id] || "") : "");
-  const neighborhood = riad ? (neighborhoods[riad.neighborhood_id] || "") : "";
-  const propertyType = riad ? (propertyTypes[riad.property_type_id] || "") : "";
+  const city = riad?.city || "";
+  const neighborhood = riad?.neighborhood || "";
+  const propertyType = riad?.propertyType || (riad?.property_type_id ? idToLabel(riad.property_type_id) : "");
   const analyticsRiadId = riad ? (getHotelRouteId(riad) || resolvedHotelId) : null;
 
   useEffect(() => {
@@ -463,22 +462,23 @@ const RiadDetailPage = () => {
     });
   }, [analyticsRiadId, name, city, propertyType]);
 
-  const images = riad
-    ? (() => {
-        const arr = [
-          ...(riad.main_image_url ? [riad.main_image_url] : []),
-          ...(Array.isArray(riad.image_urls) ? riad.image_urls.filter((url) => url !== riad.main_image_url) : []),
-        ];
-        return arr.length > 0 ? arr : [FALLBACK_IMAGE];
-      })()
-    : [FALLBACK_IMAGE];
+  const images = useMemo(() => {
+    if (!riad) return [];
+    const availableImages = [
+      ...(riad.main_image_url ? [riad.main_image_url] : []),
+      ...(Array.isArray(riad.image_urls) ? riad.image_urls.filter((url) => url !== riad.main_image_url) : []),
+    ];
+    return availableImages;
+  }, [riad]);
   const amenities = riad
-    ? (riad.amenity_ids || []).map((amenityId) => amenityLabels[amenityId] || idToLabel(amenityId))
+    ? (riad.amenities || (riad.amenity_ids || []).map(idToLabel))
     : [];
   const services = riad
-    ? (riad.service_ids || []).map((serviceId) => serviceLabels[serviceId] || idToLabel(serviceId))
+    ? (riad.services || (riad.service_ids || []).map(idToLabel))
     : [];
-  const bookingConditions = riad ? (riad.booking_condition_ids || []).map(idToLabel) : [];
+  const bookingConditions = riad
+    ? (riad.bookingConditions || (riad.booking_condition_ids || []).map(idToLabel))
+    : [];
   const position = riad && riad.latitude && riad.longitude ? [riad.latitude, riad.longitude] : null;
   const ratingNum = riad ? (parseFloat(riad.rating_avg) || 0) : 0;
   const ratingFull = Math.round(ratingNum);
@@ -506,15 +506,7 @@ const RiadDetailPage = () => {
     : null;
   const displayAddress = address || [neighborhood, city].filter(Boolean).join(", ") || mapPlaceQuery;
 
-  // Fallback phone number generator (deterministic from riad id)
-  const fallbackPhone = (id) => {
-    if (!id) return null;
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash) + id.charCodeAt(i);
-    const digits = String(Math.abs(hash) % 100000000).padStart(9, '0');
-    return `+212 6 ${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,6)} ${digits.slice(6,8)}`;
-  };
-  const phoneNumber = riad?.phone_number || riad?.phone || (riad ? fallbackPhone(riad.id || riad.hotel_id) : null);
+  const phoneNumber = riad?.phone_number || riad?.phone || null;
   const email = riad?.email || null;
   const website = riad?.website || null;
   const beLink = riad?.beLink || null;
@@ -718,7 +710,7 @@ const RiadDetailPage = () => {
     });
   }, [loading, riad]);
 
-  useEffect(() => { setPhotoIdx(0); }, [images.length]);
+  useEffect(() => { setPhotoIdx(0); }, [images]);
 
   useEffect(() => {
     if (images.length <= 1) return;
@@ -764,7 +756,7 @@ const RiadDetailPage = () => {
     );
   }
 
-  if (!riad) return null;
+  if (!riad) return <NotFoundPage />;
 
   return (
     <>
@@ -783,6 +775,11 @@ const RiadDetailPage = () => {
       <div ref={pageRef} className="relative bg-white font-montserrat min-h-screen overflow-hidden">
 
         <div ref={carouselRef} className="relative h-screen max-h-[700px] md:max-h-[800px] overflow-hidden bg-[#1d1d1b]">
+          {images.length === 0 && (
+            <div className="absolute inset-0 grid place-items-center bg-brand-beige p-20">
+              <img src="/images/logo_mgh.svg" alt="" className="h-48 w-48 object-contain opacity-30" />
+            </div>
+          )}
           <img
             ref={imgLayerA}
             className="absolute inset-0 w-full h-full object-cover will-change-transform"
@@ -950,6 +947,20 @@ const RiadDetailPage = () => {
                       </div>
                     )}
 
+                    {bookingConditions.length > 0 && (
+                      <div className="mb-7">
+                        <SectionEyebrow label={t("bookingConditions") || "Booking Conditions"} />
+                        <ul className="grid grid-cols-1 gap-y-3 text-[0.8rem] text-brand-ink/70">
+                          {bookingConditions.map((condition, i) => (
+                            <li key={`${condition}-${i}`} className="flex items-start gap-3">
+                              <span className="mt-[6px] h-[4px] w-[4px] bg-brand-action shrink-0" />
+                              <span>{condition}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     {extraInfoLines.length > 0 && (
                       <div className="mb-7">
                         <SectionEyebrow label={t("practicalInformation") || "Practical Information"} />
@@ -964,19 +975,6 @@ const RiadDetailPage = () => {
                       </div>
                     )}
 
-                    {bookingConditions.length > 0 && (
-                      <div className="mb-7">
-                        <SectionEyebrow label={t("bookingConditions")} />
-                        <ul className="grid grid-cols-1 gap-y-3 text-[0.8rem] text-brand-ink/70">
-                          {bookingConditions.map((bc, i) => (
-                            <li key={`bc-${i}`} className="flex items-start gap-3">
-                              <Shield className="w-3.5 h-3.5 text-brand-action mt-0.5 shrink-0" />
-                              <span>{bc}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                   </div>
                 </div>
 

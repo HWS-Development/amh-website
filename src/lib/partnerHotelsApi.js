@@ -29,7 +29,7 @@ export function extractCentraOrganizationId(imageUrls = []) {
   return null;
 }
 
-export function slugifyRiadName(name = '') {
+export function slugifyPropertyName(name = '') {
   return String(name)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // strip diacritics
@@ -40,14 +40,16 @@ export function slugifyRiadName(name = '') {
     .slice(0, 80);
 }
 
-export function buildRiadDetailHref(id, name) {
-  const slug = name ? slugifyRiadName(name) : '';
-  return slug ? `/riad/${slug}` : `/riad/${id}`;
+export function buildPropertyDetailHref(propertyType, name) {
+  const typeSlug = slugifyPropertyName(propertyType) || 'property';
+  const nameSlug = slugifyPropertyName(name);
+  return nameSlug ? `/${typeSlug}/${nameSlug}` : '/all-properties';
 }
 
 export function idToLabel(id) {
   return String(id || '')
-    .split('_')
+    .split(/[_-]+/)
+    .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
@@ -80,11 +82,14 @@ function cacheHotelOrganizations(hotels = []) {
   let changed = false;
 
   for (const hotel of Array.isArray(hotels) ? hotels : []) {
-    const hotelId = extractCentraHotelId(hotel?.image_urls) || hotel?.id;
+    const hotelIds = [hotel?.id, extractCentraHotelId(hotel?.image_urls)].filter(Boolean);
     const organizationId = extractCentraOrganizationId(hotel?.image_urls);
-    if (!hotelId || !organizationId || nextCache[hotelId] === organizationId) continue;
-    nextCache[hotelId] = organizationId;
-    changed = true;
+    if (!organizationId) continue;
+    for (const hotelId of hotelIds) {
+      if (nextCache[hotelId] === organizationId) continue;
+      nextCache[hotelId] = organizationId;
+      changed = true;
+    }
   }
 
   if (changed) {
@@ -163,7 +168,7 @@ async function fetchFilteredHotels(filters = {}) {
 
 async function fetchHotelById(id) {
   const cachedOrganizationId = getCachedOrganizationId(id);
-  const res = await fetch(`/api/partner/hotels/${id}/content`, {
+  const res = await fetch(`/api/partner/hotels/${encodeURIComponent(id)}/content`, {
     headers: cachedOrganizationId
       ? { 'x-partner-organization-id': cachedOrganizationId }
       : undefined,

@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getTranslated } from '@/lib/utils';
-import { getAllNeighborhoodsByCity, NEIGHBORHOOD_CITIES } from '@/lib/neighborhoods';
+import { usePartnerHotels } from '@/lib/partnerHotelsApi';
+import { usePartnerCatalogs } from '@/lib/partnerCatalogsApi';
+import { deriveDestinationsFromRiads, deriveNeighborhoodsFromRiads, mapPartnerHotelToRiad } from '@/lib/partnerHotelTransform';
 import { ArrowUpRight, Loader2 } from 'lucide-react';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import SectionHeader from '@/components/ui/SectionHeader';
@@ -14,17 +15,15 @@ import {
   MagneticButton,
 } from '@/components/motion/primitives';
 
-const CITIES = NEIGHBORHOOD_CITIES;
-
 const PER_CITY = 3;
 
-function QuartierCard({ quartier, index, t, currentLanguage }) {
-  const name = getTranslated(quartier.label, currentLanguage);
-  const shortDesc = getTranslated(quartier.short_desc_tr, currentLanguage);
+function QuartierCard({ quartier, index, t }) {
+  const name = quartier.name;
+  const shortDesc = quartier.shortDescription || `${quartier.hotelCount} ${t('propertiesAvailable') || 'properties'}`;
   return (
     <div className="fq-card group [perspective:1200px] w-full">
       <Link
-        to={`/quartiers#${quartier.id}`}
+        to={`/all-riads?city=${encodeURIComponent(quartier.city_id)}&quartier=${encodeURIComponent(quartier.id)}`}
         className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-action focus-visible:ring-offset-4"
         aria-label={`${name} — ${t('discoverMore') || 'Discover'}`}
       >
@@ -76,8 +75,8 @@ function QuartierCard({ quartier, index, t, currentLanguage }) {
   );
 }
 
-function CityCarousel({ city, items, t, currentLanguage, cityIndex }) {
-  const cityLabel = t(city.labelKey) || city.fallback;
+function CityCarousel({ city, items, t, cityIndex }) {
+  const cityLabel = city.name;
   const reduce = useReducedMotion();
 
   if (!items.length) return null;
@@ -122,7 +121,6 @@ function CityCarousel({ city, items, t, currentLanguage, cityIndex }) {
               quartier={q}
               index={i}
               t={t}
-              currentLanguage={currentLanguage}
             />
           </motion.div>
         ))}
@@ -133,46 +131,26 @@ function CityCarousel({ city, items, t, currentLanguage, cityIndex }) {
 
 export default function FeaturedQuartiers() {
   const { t, currentLanguage } = useLanguage();
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getAllNeighborhoodsByCity(CITIES.map((c) => c.id));
-        if (!isMounted) return;
-        setRows(data || []);
-      } catch (error) {
-        if (!isMounted) return;
-        console.error('Error fetching featured quartiers:', error);
-        setError(t('somethingWentWrong'));
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    })();
-    return () => { isMounted = false; };
-  }, [currentLanguage, t]);
+  const { data: hotels = [], isLoading: loading, error } = usePartnerHotels();
+  const { data: partnerCatalogs } = usePartnerCatalogs();
+  const riads = useMemo(
+    () => hotels.map((hotel) => mapPartnerHotelToRiad(hotel, currentLanguage, partnerCatalogs)),
+    [hotels, currentLanguage, partnerCatalogs]
+  );
+  const cities = useMemo(() => deriveDestinationsFromRiads(riads), [riads]);
+  const rows = useMemo(() => deriveNeighborhoodsFromRiads(riads), [riads]);
 
   const byCity = useMemo(() => {
-    const map = new Map(CITIES.map((c) => [c.id, []]));
-    const sortedRows = [...rows].sort((a, b) => {
-      const featuredDiff = Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured));
-      if (featuredDiff) return featuredDiff;
-      return (a.display_order ?? Number.MAX_SAFE_INTEGER) - (b.display_order ?? Number.MAX_SAFE_INTEGER);
-    });
-
-    for (const r of sortedRows) {
+    const map = new Map(cities.map((city) => [city.id, []]));
+    const orderedRows = [...rows].sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured));
+    for (const r of orderedRows) {
       const imgs = Array.isArray(r.images) ? r.images : [];
       if (!imgs.length) continue;
       const bucket = map.get(r.city_id);
       if (bucket && bucket.length < PER_CITY) bucket.push(r);
     }
     return map;
-  }, [rows]);
+  }, [cities, rows]);
 
   if (loading) {
     return (
@@ -188,7 +166,7 @@ export default function FeaturedQuartiers() {
     return (
       <section className="section-padding-tight bg-brand-beige/40">
         <div className="content-wrapper text-center">
-          <p className="text-red-700 font-medium text-sm">{error}</p>
+          <p className="text-red-700 font-medium text-sm">{t('somethingWentWrong')}</p>
           <button className="mt-3 underline text-sm" onClick={() => window.location.reload()}>
             {t('tryAgain')}
           </button>
@@ -197,7 +175,7 @@ export default function FeaturedQuartiers() {
     );
   }
 
-  const populatedCities = CITIES.filter((c) => (byCity.get(c.id) || []).length > 0);
+  const populatedCities = cities.filter((city) => (byCity.get(city.id) || []).length > 0);
 
   if (!populatedCities.length) {
     return (
@@ -239,7 +217,6 @@ export default function FeaturedQuartiers() {
               city={c}
               items={byCity.get(c.id) || []}
               t={t}
-              currentLanguage={currentLanguage}
               cityIndex={idx}
             />
           ))}

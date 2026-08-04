@@ -14,60 +14,6 @@ import {
   MagneticButton,
 } from "@/components/motion/primitives";
 
-const FALLBACK_EXPERIENCES = [
-  {
-    slug: "marrakech-caleche",
-    title_tr: {
-      fr: "Marrakech en calèche",
-      en: "Marrakech by horse-drawn carriage",
-      es: "Marrakech en calesa",
-    },
-    short_intro_tr: {
-      fr: "Découvrez les ruelles, remparts et jardins de la ville ocre au rythme tranquille d'une calèche traditionnelle.",
-      en: "Discover the lanes, ramparts and gardens of the ochre city at the gentle pace of a traditional horse-drawn carriage.",
-      es: "Descubra las callejuelas, murallas y jardines de la ciudad ocre al tranquilo ritmo de una calesa tradicional.",
-    },
-    hero_image_url: "https://upload.wikimedia.org/wikipedia/commons/3/39/Cal%C3%A8che_typique_de_Marrakech.jpg",
-    destination: "Marrakech",
-    duration_label: "1h - 2h",
-    sort_order: 10,
-  },
-  {
-    slug: "ouarzazate-kasbah-oasis",
-    title_tr: {
-      fr: "Ouarzazate, entre Kasbah et Oasis",
-      en: "Ouarzazate, between Kasbah and Oasis",
-      es: "Ouarzazate, entre Kasbah y Oasis",
-    },
-    short_intro_tr: {
-      fr: "Traversez l'Atlas pour découvrir le ksar UNESCO d'Aït Ben Haddou et les palmeraies verdoyantes du Drâa.",
-      en: "Cross the Atlas to discover the UNESCO ksar of Aït Ben Haddou and the lush Drâa palm groves.",
-      es: "Cruce el Atlas para descubrir el ksar UNESCO de Aït Ben Haddou y los palmerales del Draa.",
-    },
-    hero_image_url: "https://upload.wikimedia.org/wikipedia/commons/d/d5/Ksar_A%C3%AFt_Benhaddou%2C_Marocco_%28%D8%A3%D9%8A%D8%AA_%D8%A8%D9%86_%D8%AD%D8%AF%D9%88%D8%8C_%D8%A7%D9%84%D9%85%D8%BA%D8%B1%D8%A8%2C_%E2%B4%B0%E2%B5%A2%E2%B5%9C_%E2%B5%83%E2%B4%B0%E2%B4%B7%E2%B4%B7%E2%B5%93%29.jpg",
-    destination: "Ouarzazate",
-    duration_label: "Day trip",
-    sort_order: 20,
-  },
-  {
-    slug: "essaouira-velo",
-    title_tr: {
-      fr: "Essaouira en vélo",
-      en: "Essaouira by bike",
-      es: "Essaouira en bicicleta",
-    },
-    short_intro_tr: {
-      fr: "Longez les remparts portugais et la plage d'Essaouira à vélo, entre embruns de l'Atlantique et alizés.",
-      en: "Cycle along Essaouira's Portuguese ramparts and beach, between Atlantic spray and trade winds.",
-      es: "Recorra en bicicleta las murallas portuguesas y la playa de Essaouira, entre la brisa atlántica y los vientos alisios.",
-    },
-    hero_image_url: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Morocco_-_Essaouira_Part_2_%2831679848385%29.jpg",
-    destination: "Essaouira",
-    duration_label: "2h - 4h",
-    sort_order: 30,
-  },
-];
-
 export default function Experiences() {
   const { t, currentLanguage } = useLanguage();
   const [items, setItems] = useState([]);
@@ -87,12 +33,7 @@ export default function Experiences() {
       }
       if (cancelled) return;
 
-      const bySlug = new Map();
-      [...FALLBACK_EXPERIENCES, ...(raw || [])].forEach((x) => {
-        if (x?.slug) bySlug.set(x.slug, x);
-      });
-
-      const mapped = Array.from(bySlug.values())
+      const mapped = (raw || [])
         .map((x) => ({
           slug: x.slug,
           title: getTranslated(x.title_tr, currentLanguage),

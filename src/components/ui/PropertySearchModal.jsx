@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Fuse from "fuse.js";
 import OptimizedImage from '@/components/ui/OptimizedImage';
-import { buildRiadDetailHref } from '@/lib/partnerHotelsApi';
+import { buildPropertyDetailHref } from '@/lib/partnerHotelsApi';
+
+const getPropertyName = (property, locale) => {
+  const name = property?.name;
+  return property?.name_tr?.[locale]
+    || property?.name_tr?.en
+    || property?.name_tr?.fr
+    || (typeof name === 'object' ? name?.[locale] || name?.en || name?.fr : name)
+    || '';
+};
 
 export default function PropertySearchModal({ open, onClose, riads, locale = "fr" }) {
-  const norm = (s) => (s || "")
+  const norm = (s) => String(s || "")
   .normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
   const data = useMemo(() => riads.map(r => ({
     ...r,
-    // fallback chain + normalization for search
-    searchName: norm(r?.name_tr?.[locale] || r?.name_tr?.en || r?.name_tr?.fr || r?.name),
+    displayName: getPropertyName(r, locale),
+    searchName: norm(getPropertyName(r, locale)),
   })), [riads, locale]);
 
   const fuse = useMemo(() => new Fuse(data, {
@@ -25,7 +34,7 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
 
   const results = q.trim()
     ? fuse.search(q).map(r => r.item)
-    : riads;
+    : data;
 
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 10); }, [open]);
   useEffect(() => { setI(0); }, [q, open]);
@@ -36,7 +45,12 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowDown") { e.preventDefault(); setI(x => Math.min(x + 1, results.length - 1)); }
       if (e.key === "ArrowUp")   { e.preventDefault(); setI(x => Math.max(x - 1, 0)); }
-      if (e.key === "Enter" && results[i]) window.location.href = buildRiadDetailHref(results[i].id, results[i].name);
+      if (e.key === "Enter" && results[i]) {
+        window.location.href = buildPropertyDetailHref(
+          results[i].property_type_id || results[i].propertyTypeId,
+          results[i].displayName
+        );
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -65,13 +79,12 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
             <li
               key={r.id}
               onMouseEnter={() => setI(idx)}
-              onClick={() => (window.location.href = buildRiadDetailHref(r.id, r.name))}
+              onClick={() => (window.location.href = buildPropertyDetailHref(r.property_type_id || r.propertyTypeId, r.displayName))}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${i===idx ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
             >
-              <OptimizedImage src={r.image_urls?.[0]} alt={r?.name || ""} className="h-14 w-20 rounded-lg object-cover" />
+              <OptimizedImage src={r.image_urls?.[0]} alt={r.displayName} className="h-14 w-20 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
-                {/* <div className="truncate font-semibold">{r.name}</div> */}
-                <div className="truncate font-semibold">{r?.name_tr?.[locale] || r?.name_tr?.en || r?.name_tr?.fr || r?.name || ""}</div>
+                <div className="truncate font-semibold">{r.displayName}</div>
                 <div className="truncate text-sm text-neutral-500">{r.city} · {r.quartier}</div>
               </div>
               <span className="rounded-lg bg-black px-3 py-1.5 text-xs text-white">Ouvrir</span>

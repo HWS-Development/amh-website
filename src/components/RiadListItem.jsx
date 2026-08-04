@@ -7,10 +7,7 @@ import AmenityIcon from "@/components/AmenityIcon";
 import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import OptimizedImage from '@/components/ui/OptimizedImage';
-import { buildRiadDetailHref } from '@/lib/partnerHotelsApi';
-
-const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_IMAGE ||
-  "https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png";
+import { buildPropertyDetailHref } from '@/lib/partnerHotelsApi';
 
 const MAX_AMENITIES = 4;
 
@@ -18,7 +15,7 @@ const RiadListItem = ({ riad }) => {
   const { t } = useLanguage();
   const featureLabels = [...(riad.amenities || []), ...(riad.services || [])];
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
-  const detailHref = buildRiadDetailHref(riad.id, riad.name);
+  const detailHref = buildPropertyDetailHref(riad.property_type_id, riad.name);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
@@ -28,11 +25,17 @@ const RiadListItem = ({ riad }) => {
       {/* IMAGE */}
       <div className="relative shrink-0">
         <Link to={detailHref}>
-          <OptimizedImage
-            src={riad.imageUrl || FALLBACK_IMAGE}
-            alt={riad.name}
-            className="h-44 w-full md:h-32 md:w-52 object-cover"
-          />
+          {riad.imageUrl ? (
+            <OptimizedImage
+              src={riad.imageUrl}
+              alt={riad.name}
+              className="h-44 w-full md:h-32 md:w-52 object-cover"
+            />
+          ) : (
+            <div className="grid h-44 w-full place-items-center bg-brand-beige p-8 md:h-32 md:w-52">
+              <img src="/images/logo_mgh.svg" alt="" className="h-full w-full object-contain opacity-35" />
+            </div>
+          )}
         </Link>
 
         {hasRating && (

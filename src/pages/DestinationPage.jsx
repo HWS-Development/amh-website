@@ -48,7 +48,7 @@ const DestinationPage = () => {
           setDestination(data);
         }
       } catch (err) {
-        if (err?.name === 'AbortError') return;
+        if (abortController.signal.aborted || err?.name === 'AbortError') return;
         console.error("Error fetching destination:", err);
         setError(true);
       } finally {

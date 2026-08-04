@@ -10,14 +10,6 @@ import "swiper/css/pagination";
 import { useLanguage } from "@/contexts/LanguageContext";
 import BookingStrip from "@/components/BookingStrip";
 
-/* ─── Config ──────────────────────────────────────────────────────────── */
-const storageBase =
-  import.meta.env.VITE_SUPABASE_STORAGE_BASE ||
-  "https://dzuwwfttnigeisicqyto.supabase.co";
-
-const rota = (file) =>
-  `${storageBase}/storage/v1/object/public/amhimages/rotative/${file}`;
-
 /* ─── Framer variants ─────────────────────────────────────────────────── */
 const expVariants = {
   hidden:  { opacity: 0, y: 10, filter: "blur(4px)" },

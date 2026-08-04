@@ -14,8 +14,8 @@ import FilterDrawer from "@/components/FilterDrawer";
 import { useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { useQueryParams, StringParam, NumberParam } from "use-query-params";
-import { fetchCatalog } from "@/lib/catalogs";
 import { usePartnerHotels } from "@/lib/partnerHotelsApi";
+import { usePartnerCatalogs } from "@/lib/partnerCatalogsApi";
 import { getAvailableFilterOptions, mapPartnerHotelToRiad } from "@/lib/partnerHotelTransform";
 import gsap from "gsap";
 
@@ -25,12 +25,6 @@ const normalize = (s = "") =>
   s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
 
 const AllRiadsPage = () => {
-  const [cities, setCities] = useState([]);
-  const [neighborhoods, setNeighborhoods] = useState([]);
-  const [propertyTypes, setPropertyTypes] = useState([]);
-  const [amenities, setAmenities] = useState([]);
-  const [services, setServices] = useState([]);
-
   const location = useLocation();
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
@@ -72,39 +66,9 @@ const AllRiadsPage = () => {
   const view = query.view === "list" ? "list" : "cards";
 
   const { data: hotelsData, isLoading: hotelsLoading, error: hotelsError } = usePartnerHotels();
+  const { data: partnerCatalogs } = usePartnerCatalogs();
 
-  // Fetch catalog data once
-  useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr] =
-          await Promise.all([
-            fetchCatalog("mgh_cities", currentLanguage),
-            fetchCatalog("mgh_neighborhoods", currentLanguage),
-            fetchCatalog("mgh_property_types", currentLanguage),
-            fetchCatalog("mgh_amenities_catalog", currentLanguage),
-            fetchCatalog("mgh_services_catalog", currentLanguage),
-          ]);
-
-        setCities(citiesArr);
-        setNeighborhoods(neighborhoodsArr);
-        setPropertyTypes(propertyTypesArr);
-        setAmenities(amenitiesArr);
-        setServices(servicesArr);
-      } catch (err) {
-        console.error("[AllRiadsPage] catalog error:", err);
-      }
-    };
-    fetchAll();
-  }, [currentLanguage]);
-
-  // Enrich hotels with catalog data
   const riadsMap = useMemo(() => {
-    if (!hotelsData) return [];
-    const citiesMap = Object.fromEntries(cities.map((c) => [c.id, c.label]));
-    const neighborhoodsMap = Object.fromEntries(neighborhoods.map((n) => [n.id, n.label]));
-    const propertyTypesMap = Object.fromEntries(propertyTypes.map((p) => [p.id, p.label]));
-
     // Deterministic pseudo-random hash (seed + id) so the order is stable
     // across re-renders within a session but random across sessions.
     const seed = shuffleSeedRef.current;
@@ -117,19 +81,15 @@ const AllRiadsPage = () => {
       return h;
     };
 
-    const mapped = (hotelsData || []).map((r) => mapPartnerHotelToRiad(r, currentLanguage, {
-      cities: citiesMap,
-      neighborhoods: neighborhoodsMap,
-      propertyTypes: propertyTypesMap,
-    }));
+    const mapped = (hotelsData || []).map((hotel) => mapPartnerHotelToRiad(hotel, currentLanguage, partnerCatalogs));
 
     // Random display order (stable per session via seed)
     return mapped.sort((a, b) => hash(a.id) - hash(b.id));
-  }, [hotelsData, cities, neighborhoods, propertyTypes, currentLanguage]);
+  }, [hotelsData, currentLanguage, partnerCatalogs]);
 
   const filterOptions = useMemo(
-    () => getAvailableFilterOptions(riadsMap, { cities, neighborhoods, propertyTypes, amenities, services }),
-    [riadsMap, cities, neighborhoods, propertyTypes, amenities, services]
+    () => getAvailableFilterOptions(riadsMap),
+    [riadsMap]
   );
   // Initial loading state
   useEffect(() => {
@@ -183,12 +143,12 @@ const AllRiadsPage = () => {
     }
     if (filters.amenity_ids?.length > 0) {
       list = list.filter((r) =>
-        filters.amenity_ids.some((aid) => (r.amenity_ids || []).includes(aid))
+        filters.amenity_ids.every((aid) => (r.amenity_ids || []).includes(aid))
       );
     }
     if (filters.service_ids?.length > 0) {
       list = list.filter((r) =>
-        filters.service_ids.some((sid) => (r.service_ids || []).includes(sid))
+        filters.service_ids.every((sid) => (r.service_ids || []).includes(sid))
       );
     }
     if (filters.rating) {

@@ -4,7 +4,7 @@
  * Returns a single partner hotel by ID via the backend app credentials flow.
  * Credentials and access tokens never leave the server.
  */
-import { fetchPartnerHotelById, fetchPartnerHotels, getPartnerAuthDebugInfo } from '../../../_lib/partnerClient.js';
+import { fetchPartnerHotelById, fetchPartnerHotels } from '../../../_lib/partnerClient.js';
 
 function extractCentraHotelId(imageUrls = []) {
   const urls = Array.isArray(imageUrls) ? imageUrls : [];
@@ -43,6 +43,7 @@ export default async function handler(req, res) {
   try {
     console.log(`[api/partner/hotels/${id}/content] Request organizationId header: ${organizationId || 'none'}`);
     let hotel;
+    let upstreamHotelId = id;
     let fallbackAttempted = false;
     try {
       console.log(`[api/partner/hotels/${id}/content] Attempting detail fetch with organization source: ${organizationId ? 'request/fallback' : 'login/none'}`);
@@ -61,11 +62,14 @@ export default async function handler(req, res) {
         process.env.PARTNER_APP_CLIENT_ID,
         process.env.PARTNER_APP_CLIENT_SECRET,
       );
-      const matchedHotel = hotels.find((item) => extractCentraHotelId(item.image_urls) === id);
+      const matchedHotel = hotels.find((item) =>
+        String(item.id) === String(id) || extractCentraHotelId(item.image_urls) === id
+      );
       organizationId = matchedHotel ? extractCentraOrganizationId(matchedHotel.image_urls) : undefined;
+      const centraHotelId = matchedHotel ? extractCentraHotelId(matchedHotel.image_urls) : null;
       console.log(`[api/partner/hotels/${id}/content] Matched hotel from list: ${matchedHotel ? JSON.stringify({
         id: matchedHotel.id,
-        centraHotelId: extractCentraHotelId(matchedHotel.image_urls),
+        centraHotelId,
         organizationId,
         firstImageUrl: matchedHotel.image_urls?.[0] || null,
       }) : 'not found'}`);
@@ -73,8 +77,24 @@ export default async function handler(req, res) {
         throw new Error(`Hotel ${id} not found in listing fallback`);
       }
 
-      console.log(`[api/partner/hotels/${id}/content] Returning hotel from listing data directly (skip detail endpoint to avoid cross-org 403)`);
-      hotel = matchedHotel;
+      if (centraHotelId) {
+        try {
+          upstreamHotelId = centraHotelId;
+          console.log(`[api/partner/hotels/${id}/content] Retrying detail with Centra hotel ID ${centraHotelId}`);
+          hotel = await fetchPartnerHotelById(
+            process.env.API_BASE_URL,
+            process.env.PARTNER_APP_CLIENT_ID,
+            process.env.PARTNER_APP_CLIENT_SECRET,
+            centraHotelId,
+            organizationId,
+          );
+        } catch (retryErr) {
+          console.log(`[api/partner/hotels/${id}/content] Centra hotel ID retry failed, returning listing data: ${retryErr.message}`);
+          hotel = matchedHotel;
+        }
+      } else {
+        hotel = matchedHotel;
+      }
     }
 
     return res.status(200).json({
@@ -82,9 +102,8 @@ export default async function handler(req, res) {
       data: hotel,
       debug: {
         hotelId: id,
-        requestOrganizationId: organizationId || null,
+        upstreamHotelId,
         fallbackAttempted,
-        ...getPartnerAuthDebugInfo(organizationId),
       },
     });
   } catch (err) {
@@ -94,8 +113,6 @@ export default async function handler(req, res) {
       error: err.message || 'Internal server error',
       debug: {
         hotelId: id,
-        requestOrganizationId: organizationId || null,
-        ...getPartnerAuthDebugInfo(organizationId),
       },
     });
   }

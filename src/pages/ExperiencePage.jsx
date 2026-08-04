@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { supabase } from '@/lib/customSupabaseClient';
 import { getExperienceBySlug } from '@/lib/mghApi';
+import { usePartnerHotels } from '@/lib/partnerHotelsApi';
+import { usePartnerCatalogs } from '@/lib/partnerCatalogsApi';
+import { mapPartnerHotelToRiad } from '@/lib/partnerHotelTransform';
 import { useToast } from '@/components/ui/use-toast';
 import {
   ArrowLeft, ArrowUpRight, CheckCircle, Info, MapPin, Sun, Users, DollarSign,
@@ -47,8 +49,20 @@ const ExperiencePage = () => {
   const factsRef = useRef(null);
 
   const [experience, setExperience] = useState(null);
-  const [recommendedRiads, setRecommendedRiads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { data: partnerHotels = [] } = usePartnerHotels();
+  const { data: partnerCatalogs } = usePartnerCatalogs();
+  const recommendedRiads = useMemo(() => {
+    const relatedIds = new Set((experience?.related_riads || []).map(String));
+    if (relatedIds.size === 0) return [];
+
+    return partnerHotels
+      .map((hotel) => ({ hotel, riad: mapPartnerHotelToRiad(hotel, currentLanguage, partnerCatalogs) }))
+      .filter(({ hotel, riad }) => [hotel.id, hotel.hotel_id, hotel.hotelId, riad.id]
+        .filter(Boolean)
+        .some((id) => relatedIds.has(String(id))))
+      .map(({ riad }) => riad);
+  }, [experience, partnerHotels, currentLanguage, partnerCatalogs]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -63,36 +77,14 @@ const ExperiencePage = () => {
           return;
         }
         setExperience(data);
-        if (data.related_riads?.length > 0) fetchRecommendedRiads(data.related_riads);
       } catch (error) {
-        if (error?.name === 'AbortError') return;
+        if (abortController.signal.aborted || error?.name === 'AbortError') return;
         console.error('Error fetching experience:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not find the requested experience.' });
         navigate('/404', { replace: true });
       } finally {
         if (!abortController.signal.aborted) setLoading(false);
       }
-    };
-
-    const fetchRecommendedRiads = async (riadIds) => {
-      const { data, error } = await supabase
-        .from('mgh_properties').select('*').in('id', riadIds);
-      if (abortController.signal.aborted) return;
-      if (error) { console.error('Error fetching recommended riads:', error); return; }
-      if (!data) return;
-      setRecommendedRiads(data.map((riad) => ({
-        id: riad.id,
-        name: getTranslated(riad.name_tr, currentLanguage),
-        location: getTranslated(riad.area_tr, currentLanguage) || [riad.street, riad.city, riad.country].filter(Boolean).join(", ") || riad.address,
-        city: riad.city,
-        imageUrl: riad.image_urls?.[0] || (import.meta.env.VITE_FALLBACK_IMAGE || 'https://horizons-cdn.hostinger.com/07285d07-0a28-4c91-b6c0-d76721e9ed66/23a331b485873701c4be0dd3941a64c9.png'),
-        imageDescription: `Image of ${getTranslated(riad.name_tr, currentLanguage)}`,
-        amenities: riad.amenities || [],
-        reviews: riad.google_reviews_count,
-        rating: riad.google_rating ? parseFloat(riad.google_rating) : 4.7,
-        bookNowLink: riad.sblink,
-        category: 'Recommended',
-      })));
     };
 
     if (currentLanguage) fetchExperience();

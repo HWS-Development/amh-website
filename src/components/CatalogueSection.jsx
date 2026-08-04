@@ -4,8 +4,8 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePartnerHotels } from "@/lib/partnerHotelsApi";
+import { usePartnerCatalogs } from "@/lib/partnerCatalogsApi";
 import { getAvailableFilterOptions, mapPartnerHotelToRiad } from "@/lib/partnerHotelTransform";
-import { fetchCatalog } from "@/lib/catalogs";
 import RiadCard from "@/components/RiadCard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import FilterDrawer from "@/components/FilterDrawer";
@@ -13,8 +13,6 @@ import useEmblaCarousel from "embla-carousel-react";
 import { gsapEase, duration, stagger } from "@/lib/motion";
 
 gsap.registerPlugin(ScrollTrigger);
-
-const CITY_ORDER = ["marrakech", "essaouira", "ouarzazate"];
 
 const shuffleArray = (array) => {
   const shuffled = [...array];
@@ -149,10 +147,7 @@ const CityCarousel = ({ cityName, riads, index, totalCities }) => {
 export default function CatalogueSection() {
   const { t, currentLanguage } = useLanguage();
   const { data: hotelsData, isLoading } = usePartnerHotels();
-
-  const [catalogs, setCatalogs] = useState(null);
-  const [catalogLoading, setCatalogLoading] = useState(true);
-  const [catalogArrays, setCatalogArrays] = useState({ cities: [], neighborhoods: [], propertyTypes: [], amenities: [], services: [] });
+  const { data: partnerCatalogs } = usePartnerCatalogs();
 
   const [filters, setFilters] = useState({
     city_id: null,
@@ -166,45 +161,15 @@ export default function CatalogueSection() {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
 
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setCatalogLoading(true);
-      try {
-        const [citiesArr, neighborhoodsArr, propertyTypesArr, amenitiesArr, servicesArr] = await Promise.all([
-          fetchCatalog("mgh_cities", currentLanguage),
-          fetchCatalog("mgh_neighborhoods", currentLanguage),
-          fetchCatalog("mgh_property_types", currentLanguage),
-          fetchCatalog("mgh_amenities_catalog", currentLanguage),
-          fetchCatalog("mgh_services_catalog", currentLanguage),
-        ]);
-        if (!mounted) return;
-        setCatalogArrays({ cities: citiesArr, neighborhoods: neighborhoodsArr, propertyTypes: propertyTypesArr, amenities: amenitiesArr, services: servicesArr });
-        setCatalogs({
-          cities: Object.fromEntries(citiesArr.map((c) => [c.id, c.label])),
-          neighborhoods: Object.fromEntries(neighborhoodsArr.map((n) => [n.id, n.label])),
-          propertyTypes: Object.fromEntries(propertyTypesArr.map((p) => [p.id, p.label])),
-        });
-      } catch (err) {
-        console.error("CatalogueSection catalog error:", err);
-      }
-      if (mounted) setCatalogLoading(false);
-    };
-    load();
-    return () => { mounted = false; };
-  }, [currentLanguage]);
+  const loading = isLoading;
 
-  const loading = isLoading || catalogLoading;
-
-  // Client-side enriched riads map (same approach as AllRiadsPage)
   const riadsMap = useMemo(() => {
-    if (!hotelsData || !catalogs) return [];
-    return (hotelsData || []).map((r) => mapPartnerHotelToRiad(r, currentLanguage, catalogs));
-  }, [hotelsData, catalogs, currentLanguage]);
+    return (hotelsData || []).map((hotel) => mapPartnerHotelToRiad(hotel, currentLanguage, partnerCatalogs));
+  }, [hotelsData, currentLanguage, partnerCatalogs]);
 
   const filterOptions = useMemo(
-    () => getAvailableFilterOptions(riadsMap, catalogArrays),
-    [riadsMap, catalogArrays]
+    () => getAvailableFilterOptions(riadsMap),
+    [riadsMap]
   );
 
   const normalize = (s = "") =>
@@ -235,12 +200,12 @@ export default function CatalogueSection() {
     }
     if (filters.amenity_ids?.length > 0) {
       list = list.filter((r) =>
-        filters.amenity_ids.some((aid) => (r.amenity_ids || []).includes(aid))
+        filters.amenity_ids.every((aid) => (r.amenity_ids || []).includes(aid))
       );
     }
     if (filters.service_ids?.length > 0) {
       list = list.filter((r) =>
-        filters.service_ids.some((sid) => (r.service_ids || []).includes(sid))
+        filters.service_ids.every((sid) => (r.service_ids || []).includes(sid))
       );
     }
     if (filters.rating) {
@@ -251,21 +216,15 @@ export default function CatalogueSection() {
 
   // Group filtered results by city for carousel display
   const groupedByCity = useMemo(() => {
-    if (!catalogs) return {};
     const groups = {};
     filtered.forEach((r) => {
-      const cityLabel = (r.city || catalogs.cities[r.city_id] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      let slug = null;
-      for (const s of CITY_ORDER) {
-        if (cityLabel.includes(s)) { slug = s; break; }
-      }
-      if (!slug) return;
-      if (!groups[slug]) groups[slug] = [];
-      groups[slug].push(r);
+      if (!r.city_id) return;
+      if (!groups[r.city_id]) groups[r.city_id] = [];
+      groups[r.city_id].push(r);
     });
     Object.keys(groups).forEach((key) => { groups[key] = shuffleArray(groups[key]); });
     return groups;
-  }, [filtered, catalogs]);
+  }, [filtered]);
 
   const activeFiltersCount = useMemo(() => {
     let n = 0;
@@ -278,8 +237,8 @@ export default function CatalogueSection() {
     return n;
   }, [filters]);
 
-  const visibleCities = CITY_ORDER
-    .map((slug) => ({ slug, riads: groupedByCity[slug] || [] }))
+  const visibleCities = filterOptions.cities
+    .map((city) => ({ slug: city.id, name: city.label, riads: groupedByCity[city.id] || [] }))
     .filter((c) => c.riads.length > 0);
 
   const totalCount = filtered.length;
@@ -409,7 +368,7 @@ export default function CatalogueSection() {
           </div>
         ) : (
           visibleCities.map((c, i) => {
-            const cityName = c.riads[0]?.city || c.slug.charAt(0).toUpperCase() + c.slug.slice(1);
+            const cityName = c.name || c.riads[0]?.city;
             return (
               <CityCarousel key={c.slug} cityName={cityName} riads={c.riads} index={i} totalCities={visibleCities.length} />
             );

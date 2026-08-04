@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
         import { Navigate, Routes, Route } from 'react-router-dom';
         import { Toaster } from '@/components/ui/toaster';
         import HomePage from '@/pages/HomePage';
@@ -13,7 +13,6 @@ import React, { useState, useEffect } from 'react';
         import ScrollToTop from '@/components/ScrollToTop';
         import BackToTopButton from '@/components/BackToTopButton';
         import FloatingBookButton from '@/components/FloatingBookButton';
-        import { useAuth } from '@/contexts/SupabaseAuthContext';
         import { QueryParamProvider } from 'use-query-params';
         import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6';
         import NotFoundPage from '@/pages/NotFoundPage';
@@ -21,34 +20,9 @@ import React, { useState, useEffect } from 'react';
         import MedinaQuartiersPage from '@/pages/MedinaQuartiersPage';
         import QuartierDetailPage from '@/pages/QuartierDetailPage';
         import AboutPage from '@/pages/AboutPage';
-        import { useLanguage } from '@/contexts/LanguageContext';
-        import { fetchCatalog } from '@/lib/catalogs';
 
         const AppContent = () => {
-          const { loading } = useAuth();
           const [date, setDate] = useState({ from: undefined, to: undefined });
-          const { currentLanguage } = useLanguage();
-
-          useEffect(() => {
-            const catalogs = [
-              "mgh_cities", "mgh_neighborhoods", "mgh_property_types",
-              "mgh_amenities_catalog", "mgh_services_catalog"
-            ];
-            catalogs.forEach((table) => {
-              fetchCatalog(table, currentLanguage).catch(() => {});
-            });
-          }, [currentLanguage]);
-
-          if (loading) {
-            return (
-              <div className="min-h-screen bg-white flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-8 h-8 border-2 border-brand-beige border-t-brand-action animate-spin" />
-                  <span className="text-sm text-brand-ink/50 font-montserrat tracking-wide">Chargement...</span>
-                </div>
-              </div>
-            );
-          }
 
           return (
             <div className="min-h-screen bg-white grain-overlay">
@@ -57,7 +31,6 @@ import React, { useState, useEffect } from 'react';
               <main className="bg-white">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
-                  <Route path="/riad/:slug" element={<RiadDetailPage />} />
                   <Route path="/riad/:id/:legacySlug" element={<RiadDetailPage />} />
                   <Route path="/destinations" element={<DestinationsLandingPage />} />
                   <Route path="/destinations/:slug" element={<DestinationPage />} />
@@ -69,6 +42,7 @@ import React, { useState, useEffect } from 'react';
                   <Route path="/all-riads" element={<AllRiadsPage />} />
                   <Route path="/all-properties" element={<AllPropertiesPage />} />
                   <Route path="/about" element={<AboutPage />} />
+                  <Route path="/:propertyType/:slug" element={<RiadDetailPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </main>

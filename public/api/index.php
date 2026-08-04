@@ -1,6 +1,6 @@
 <?php
 /**
- * PHP Centra API proxy — handles /api/partner/hotels/* routes.
+ * PHP Centra API proxy — handles /api/partner/* routes.
  * Drop-in replacement for Vercel serverless functions.
  *
  * Place at: public/api/index.php  (copied to dist/api/index.php by Vite build)
@@ -13,9 +13,6 @@ header('Content-Type: application/json; charset=utf-8');
 $API_BASE_URL      = getenv('API_BASE_URL')      ?: 'https://api.centra.global/api';
 $CLIENT_ID         = getenv('PARTNER_APP_CLIENT_ID');
 $CLIENT_SECRET     = getenv('PARTNER_APP_CLIENT_SECRET');
-
-// MGH Dashboard API (Laravel + MySQL) — proxied to avoid CORS
-$MGH_API_BASE_URL = 'https://mgh-dashboard.hospitalitywebservices.com/api/public';
 
 if (!$CLIENT_ID || !$CLIENT_SECRET) {
     http_response_code(500);
@@ -189,6 +186,26 @@ $path = parse_url($uri, PHP_URL_PATH);
 $path = rtrim($path, '/');
 
 try {
+    // ── Route: GET /api/partner/catalogs ──
+    if ($path === '/api/partner/catalogs') {
+        $login = centraLogin($API_BASE_URL, $CLIENT_ID, $CLIENT_SECRET);
+        $token = $login['token'];
+        $endpoints = [
+            'amenities'        => '/hotel-content/catalogs/amenities',
+            'services'         => '/hotel-content/catalogs/services',
+            'bookingConditions' => '/hotel-content/catalogs/booking-conditions',
+            'neighborhoods'    => '/hotel-content/catalogs/neighborhoods',
+        ];
+        $catalogs = [];
+
+        foreach ($endpoints as $key => $endpoint) {
+            $catalogs[$key] = centraApiCall($API_BASE_URL, $token, $endpoint);
+        }
+
+        echo json_encode(['success' => true, 'data' => $catalogs]);
+        exit;
+    }
+
     // ── Route: GET /api/partner/hotels/{id}/content ──
     if (preg_match('#^/api/partner/hotels/([^/]+)/content$#', $path, $m)) {
         $hotelId = $m[1];
@@ -197,11 +214,13 @@ try {
         $login = centraLogin($API_BASE_URL, $CLIENT_ID, $CLIENT_SECRET);
         $token  = $login['token'];
         $orgId  = $login['orgId'];
+        $requestOrgId = $headerOrg ?: $orgId;
+        $upstreamHotelId = $hotelId;
         $data = null;
         $fallbackAttempted = false;
 
         try {
-            $data = centraApiCall($API_BASE_URL, $token, "/api/partner/hotels/$hotelId/content", $orgId);
+            $data = centraApiCall($API_BASE_URL, $token, "/api/partner/hotels/$hotelId/content", $requestOrgId);
         } catch (RuntimeException $err) {
             $fallbackAttempted = true;
             // Fallback: fetch listing, find hotel, return its data
@@ -209,7 +228,7 @@ try {
             $matched = null;
             if (is_array($hotels)) {
                 foreach ($hotels as $h) {
-                    if (extractCentraHotelId($h['image_urls'] ?? []) === $hotelId) {
+                    if ((string)($h['id'] ?? '') === (string)$hotelId || extractCentraHotelId($h['image_urls'] ?? []) === $hotelId) {
                         $matched = $h;
                         break;
                     }
@@ -218,11 +237,29 @@ try {
             if (!$matched) {
                 throw new RuntimeException("Hotel $hotelId not found in listing fallback");
             }
-            $data = normalizeHotel($matched);
+            $centraHotelId = extractCentraHotelId($matched['image_urls'] ?? []);
+            $matchedOrgId = extractCentraOrganizationId($matched['image_urls'] ?? []);
+
+            if ($centraHotelId) {
+                try {
+                    $upstreamHotelId = $centraHotelId;
+                    $data = centraApiCall(
+                        $API_BASE_URL,
+                        $token,
+                        "/api/partner/hotels/$centraHotelId/content",
+                        $matchedOrgId
+                    );
+                } catch (RuntimeException $retryErr) {
+                    $data = normalizeHotel($matched);
+                }
+            } else {
+                $data = normalizeHotel($matched);
+            }
         }
 
         echo json_encode(['success' => true, 'data' => $data, 'debug' => [
             'hotelId'           => $hotelId,
+            'upstreamHotelId'   => $upstreamHotelId,
             'fallbackAttempted' => $fallbackAttempted,
         ]]);
         exit;
@@ -287,43 +324,6 @@ try {
         $token = $login['token'];
         $data = centraApiCall($API_BASE_URL, $token, "/api/partner/hotels/$hotelId/content");
         echo json_encode(['success' => true, 'data' => $data]);
-        exit;
-    }
-
-    // ── Route: GET /api/mgh/public/* (proxy to Laravel MGH Dashboard, avoids CORS) ──
-    if (preg_match('#^/api/mgh/public/(.+)$#', $path, $m)) {
-        $forwardPath = $m[1];
-        $query = $_SERVER['QUERY_STRING'] ?? '';
-        $forwardUrl = rtrim($MGH_API_BASE_URL, '/') . '/' . ltrim($forwardPath, '/');
-        if ($query) $forwardUrl .= '?' . $query;
-
-        $ch = curl_init($forwardUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
-            CURLOPT_TIMEOUT        => 15,
-            CURLOPT_FOLLOWLOCATION => true,
-        ]);
-        $raw   = curl_exec($ch);
-        $info  = curl_getinfo($ch);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error) {
-            throw new RuntimeException("MGH proxy cURL error: $error");
-        }
-
-        $status = $info['http_code'] ?? 500;
-        $ct     = $info['content_type'] ?? '';
-
-        if ($status >= 400) {
-            http_response_code($status);
-            echo json_encode(['success' => false, 'error' => "MGH API returned $status", 'body' => mb_substr($raw, 0, 500)]);
-            exit;
-        }
-
-        header('Content-Type: ' . $ct);
-        echo $raw;
         exit;
     }
 

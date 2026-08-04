@@ -10,7 +10,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Vite dev-server middleware that serves /api/partner/hotels locally,
+ * Vite dev-server middleware that serves the partner API routes locally,
  * mirroring the Vercel serverless function. Credentials stay server-side.
  *
  * All partner-API logic is inlined here to avoid dynamic-import issues on Windows.
@@ -26,13 +26,15 @@ function partnerApiDevPlugin() {
       const buildLoginPayloadPreview = (payload) => {
         if (!payload || typeof payload !== 'object') return null;
 
-        const accessToken = typeof payload.accessToken === 'string' ? payload.accessToken : null;
-
         return {
-          ...payload,
-          accessTokenPreview: accessToken ? `${accessToken.slice(0, 12)}...` : null,
-          accessTokenPresent: Boolean(accessToken),
-          accessToken: undefined,
+          tokenType: payload.tokenType ?? null,
+          expiresIn: payload.expiresIn ?? null,
+          accessTokenPresent: Boolean(payload.accessToken),
+          app: payload.app ? {
+            id: payload.app.id ?? null,
+            name: payload.app.name ?? null,
+            orgId: payload.app.orgId ?? payload.app.organizationId ?? null,
+          } : null,
         };
       };
 
@@ -135,7 +137,7 @@ function partnerApiDevPlugin() {
 
       const appLogin = async (apiBaseUrl, clientId, clientSecret) => {
         const loginUrl = `${apiBaseUrl}/apps/login`;
-        console.log(`[partner-api] POST ${loginUrl}  (clientId: ${clientId.substring(0, 16)}...)`);
+        console.log(`[partner-api] POST ${loginUrl}`);
 
         const loginRes = await fetch(loginUrl, {
           method: 'POST',
@@ -146,7 +148,7 @@ function partnerApiDevPlugin() {
         const contentType = loginRes.headers.get('content-type') || '';
         const rawBody = await loginRes.text();
 
-        console.log(`[partner-api] Login response: status=${loginRes.status}, content-type=${contentType}, body=${rawBody}`);
+        console.log(`[partner-api] Login response: status=${loginRes.status}, content-type=${contentType}`);
 
         if (!loginRes.ok) {
           throw new Error(
@@ -176,8 +178,7 @@ function partnerApiDevPlugin() {
         }
 
         const payload = loginBody.data ?? loginBody;
-        console.log(`[partner-api] Login response JSON: ${JSON.stringify(loginBody, null, 2)}`);
-        console.log(`[partner-api] Login payload JSON: ${JSON.stringify(payload, null, 2)}`);
+        console.log(`[partner-api] Login payload: ${JSON.stringify(buildLoginPayloadPreview(payload))}`);
         const loginOrganizationFields = getLoginOrganizationFields(payload);
         if (!payload.accessToken) {
           throw new Error(
@@ -199,7 +200,7 @@ function partnerApiDevPlugin() {
       };
 
       const getValidToken = async (apiBaseUrl, clientId, clientSecret) => {
-        // if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken;
+        if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken;
         return appLogin(apiBaseUrl, clientId, clientSecret);
       };
 
@@ -289,6 +290,36 @@ function partnerApiDevPlugin() {
         return body.data;
       };
 
+      // ── Route: GET /api/partner/catalogs ──
+      server.middlewares.use(async (req, res, next) => {
+        const url = new URL(req.url || '', 'http://localhost');
+        if (url.pathname !== '/api/partner/catalogs') return next();
+        if (req.method !== 'GET') {
+          sendJson(res, 405, { success: false, error: 'Method not allowed' });
+          return;
+        }
+
+        try {
+          const { apiBaseUrl, clientId, clientSecret } = getEnv();
+          const endpoints = {
+            amenities: '/hotel-content/catalogs/amenities',
+            services: '/hotel-content/catalogs/services',
+            bookingConditions: '/hotel-content/catalogs/booking-conditions',
+            neighborhoods: '/hotel-content/catalogs/neighborhoods',
+          };
+          const data = {};
+
+          for (const [key, endpoint] of Object.entries(endpoints)) {
+            data[key] = await partnerFetch(apiBaseUrl, clientId, clientSecret, endpoint);
+          }
+
+          sendJson(res, 200, { success: true, data });
+        } catch (err) {
+          console.error(`[partner-api] ERROR (catalogs):\n${err.message}`);
+          sendJson(res, 500, { success: false, error: err.message });
+        }
+      });
+
       // ── Route: GET /api/partner/hotels[?id=:id] ──
       server.middlewares.use(async (req, res, next) => {
         const url = new URL(req.url || '', 'http://localhost');
@@ -337,44 +368,64 @@ function partnerApiDevPlugin() {
         try {
           const { apiBaseUrl, clientId, clientSecret } = getEnv();
           const endpoint = `/api/partner/hotels/${hotelId}/content`;
+          const requestOrganizationId = req.headers['x-partner-organization-id'];
           let data;
           let debug;
+          let upstreamHotelId = hotelId;
           let fallbackAttempted = false;
           try {
-            console.log(`[partner-api] Attempting detail fetch with organization source: ${cachedOrganizationId ? 'login' : 'none'}`);
-            data = await partnerFetch(apiBaseUrl, clientId, clientSecret, endpoint);
+            console.log(`[partner-api] Attempting detail fetch with organization source: ${requestOrganizationId ? 'request' : (cachedOrganizationId ? 'login' : 'none')}`);
+            data = await partnerFetch(apiBaseUrl, clientId, clientSecret, endpoint, requestOrganizationId);
             debug = {
               hotelId,
-              requestOrganizationId: null,
+              upstreamHotelId,
               fallbackAttempted,
-              ...buildHotelDetailDebugInfo(),
             };
           } catch (err) {
             fallbackAttempted = true;
             console.log(`[partner-api] Initial detail fetch failed, attempting organization fallback for ${hotelId}: ${err.message}`);
             const hotels = await partnerFetch(apiBaseUrl, clientId, clientSecret, '/partner/hotels/content?limit=all');
             const matchedHotel = Array.isArray(hotels)
-              ? hotels.find((item) => extractCentraHotelId(item.image_urls) === hotelId)
+              ? hotels.find((item) =>
+                  String(item.id) === String(hotelId) || extractCentraHotelId(item.image_urls) === hotelId
+                )
               : null;
+            if (!matchedHotel) {
+              throw new Error(`Hotel ${hotelId} not found in listing fallback`);
+            }
             const organizationId = matchedHotel ? extractCentraOrganizationId(matchedHotel.image_urls) : undefined;
+            const centraHotelId = extractCentraHotelId(matchedHotel.image_urls);
             console.log(`[partner-api] Matched hotel from list: ${matchedHotel ? JSON.stringify({
               id: matchedHotel.id,
-              centraHotelId: extractCentraHotelId(matchedHotel.image_urls),
+              centraHotelId,
               organizationId,
               firstImageUrl: matchedHotel.image_urls?.[0] || null,
             }) : 'not found'}`);
-            console.log(`[partner-api] Resolved organizationId: ${organizationId || 'not found'}`);
-            console.log(`[partner-api] Retrying detail fetch with fallback organizationId: ${organizationId || 'none'}`);
-            data = await partnerFetch(apiBaseUrl, clientId, clientSecret, endpoint, organizationId);
+            if (centraHotelId) {
+              try {
+                upstreamHotelId = centraHotelId;
+                console.log(`[partner-api] Retrying detail with Centra hotel ID ${centraHotelId}`);
+                data = await partnerFetch(
+                  apiBaseUrl,
+                  clientId,
+                  clientSecret,
+                  `/api/partner/hotels/${centraHotelId}/content`,
+                  organizationId
+                );
+              } catch (retryErr) {
+                console.log(`[partner-api] Centra hotel ID retry failed, returning listing data: ${retryErr.message}`);
+                data = matchedHotel;
+              }
+            } else {
+              data = matchedHotel;
+            }
             debug = {
               hotelId,
-              requestOrganizationId: organizationId || null,
+              upstreamHotelId,
               fallbackAttempted,
-              ...buildHotelDetailDebugInfo(organizationId),
             };
           }
           console.log(`[partner-api] Upstream endpoint called: ${apiBaseUrl}${endpoint}`);
-          console.log(`[partner-api] Upstream parsed response: ${JSON.stringify(data)}`);
           console.log(`[partner-api] Success — returning hotel ${hotelId}`);
           sendJson(res, 200, { success: true, data, debug });
         } catch (err) {
@@ -384,8 +435,6 @@ function partnerApiDevPlugin() {
             error: err.message,
             debug: {
               hotelId,
-              requestOrganizationId: req.headers['x-partner-organization-id'] || null,
-              ...buildHotelDetailDebugInfo(req.headers['x-partner-organization-id']),
             },
           });
         }

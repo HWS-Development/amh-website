@@ -126,12 +126,12 @@ const FilterDrawer = ({
     }
     if (local.amenity_ids?.length > 0) {
       list = list.filter((r) =>
-        local.amenity_ids.some((aid) => (r.amenity_ids || []).includes(aid))
+        local.amenity_ids.every((aid) => (r.amenity_ids || []).includes(aid))
       );
     }
     if (local.service_ids?.length > 0) {
       list = list.filter((r) =>
-        local.service_ids.some((sid) => (r.service_ids || []).includes(sid))
+        local.service_ids.every((sid) => (r.service_ids || []).includes(sid))
       );
     }
     if (local.rating) {
@@ -140,20 +140,17 @@ const FilterDrawer = ({
     return list.length;
   }, [riadsMap, local]);
 
-  // Neighborhoods for the selected city:
-  // 1) Prefer the canonical catalog (mgh_neighborhoods has city_id),
-  // 2) fall back to hotels-derived list if catalog lacks city_id.
+  // Neighborhoods and their city IDs are derived from the Centra hotel feed.
   const localNeighborhoods = useMemo(() => {
     if (!local.city_id) return [];
 
-    const catalogScoped = neighborhoods.filter(
+    const scopedNeighborhoods = neighborhoods.filter(
       (n) => n.city_id != null && String(n.city_id) === String(local.city_id)
     );
-    if (catalogScoped.length > 0) {
-      return catalogScoped.map((n) => ({ id: String(n.id), label: n.label }));
+    if (scopedNeighborhoods.length > 0) {
+      return scopedNeighborhoods.map((n) => ({ id: String(n.id), label: n.label }));
     }
 
-    // Fallback: derive from riads in the chosen city
     const map = new Map();
     riadsMap
       .filter((r) => String(r.city_id) === String(local.city_id))
