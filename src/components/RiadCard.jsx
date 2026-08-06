@@ -6,6 +6,7 @@ import AmenitiesModal from "@/components/AmenitiesModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { buildPropertyDetailHref } from "@/lib/partnerHotelsApi";
+import { formatInternationalAddress } from "@/lib/partnerHotelTransform";
 
 const MAX_AMENITIES = 3;
 const PRIORITY_AMENITY_IDS = [
@@ -34,6 +35,7 @@ const RiadCard = ({ riad }) => {
   const visibleAmenities = prioritizedAmenities.slice(0, MAX_AMENITIES);
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
   const detailHref = buildPropertyDetailHref(riad.property_type_id, riad.name);
+  const location = formatInternationalAddress(riad);
 
   const hasRating =
     typeof riad.rating_avg === "number" && !Number.isNaN(riad.rating_avg);
@@ -109,12 +111,12 @@ const RiadCard = ({ riad }) => {
         )}
 
         {/* LOCATION */}
-        <div className="mt-2 flex items-center gap-1.5 text-xs text-brand-ink/55">
-          <MapPin className="w-3 h-3 shrink-0" />
-          <span className="line-clamp-1">
-            {[riad.neighborhood, riad.city].filter(Boolean).join(", ")}
-          </span>
-        </div>
+        {location && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-brand-ink/55">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="line-clamp-1">{location}</span>
+          </div>
+        )}
 
         {/* AMENITIES */}
         {visibleAmenities.length > 0 && (

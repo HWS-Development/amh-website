@@ -78,6 +78,14 @@ export function normalizeOptionId(value) {
     .replace(/^_+|_+$/g, "");
 }
 
+export function formatInternationalAddress(location) {
+  const { street, city, country } = location || {};
+  return [street, city, country]
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter(Boolean)
+    .join(", ");
+}
+
 function firstText(values, language) {
   for (const value of values) {
     const text = resolvePartnerText(value, language);
@@ -290,10 +298,9 @@ export function mapPartnerHotelToRiad(hotel, language, catalogs) {
     organizationId: extractCentraOrganizationId(rawImageUrls),
     name: firstText([hotel.hoteName, hotel.hotelName, hotel.hotel_name, hotel.name, id], language),
     description: firstText([hotel.description], language),
-    address: firstText([hotel.address], language),
-    country: hotel.country === "MA" ? "Morocco" : (typeof hotel.country === "string" ? hotel.country : null),
+    country: firstText([hotel.country], language) || null,
     city,
-    street: typeof hotel.street === "string" ? hotel.street : null,
+    street: firstText([hotel.street], language) || null,
     city_id: cityId,
     neighborhood_id: neighborhoodId,
     property_type_id: propertyTypeId,

@@ -10,14 +10,10 @@ import { MapPin, CalendarDays, Users, Minus, Plus, Search as SearchIcon, BedDoub
 import { usePartnerHotels } from '@/lib/partnerHotelsApi';
 import { usePartnerCatalogs } from '@/lib/partnerCatalogsApi';
 import { deriveDestinationsFromRiads, mapPartnerHotelToRiad } from '@/lib/partnerHotelTransform';
-import { useNavigate } from 'react-router-dom';
 
-/* ────────────────────────────────────────────────────────────────────
-   Guests + Rooms stepper popover (Airbnb-style)
-   – Three discrete steppers: Adults / Children / Rooms
-   – Hard limits: adults 1-12, children 0-8, rooms 1-6
-   – Returns derived totals for label + URL params
-   ──────────────────────────────────────────────────────────────────── */
+const MAX_ROOMS = 6;
+const CHILD_AGES = Array.from({ length: 13 }, (_, age) => age);
+
 const Stepper = ({ label, hint, value, min, max, onChange, Icon }) => {
   const dec = () => onChange(Math.max(min, value - 1));
   const inc = () => onChange(Math.min(max, value + 1));
@@ -61,14 +57,115 @@ const Stepper = ({ label, hint, value, min, max, onChange, Icon }) => {
   );
 };
 
+const RoomAllocationEditor = ({
+  roomAllocations,
+  onAdultsChange,
+  onChildrenChange,
+  onChildAgeChange,
+  onAddRoom,
+  onRemoveRoom,
+  onDone,
+  t,
+}) => (
+  <>
+    <div className="max-h-[min(58vh,30rem)] overflow-y-auto pr-1">
+      {roomAllocations.map((room, roomIndex) => (
+        <section
+          key={roomIndex}
+          className={cn('pb-2', roomIndex > 0 && 'border-t border-brand-ink/10 pt-3')}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 font-montserrat text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-brand-action">
+              <BedDouble className="h-4 w-4" />
+              {t('roomNumber', { number: roomIndex + 1 })}
+            </div>
+            {roomAllocations.length > 1 && (
+              <button
+                type="button"
+                onClick={() => onRemoveRoom(roomIndex)}
+                className="font-montserrat text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-brand-ink/45 hover:text-brand-action transition-colors"
+              >
+                {t('removeRoom')}
+              </button>
+            )}
+          </div>
+
+          <Stepper
+            label={t('adults')}
+            hint={t('adultsHint')}
+            Icon={Users}
+            value={room.adults}
+            min={1}
+            max={12}
+            onChange={(value) => onAdultsChange(roomIndex, value)}
+          />
+          <div className="h-px bg-brand-ink/8" />
+          <Stepper
+            label={t('children')}
+            hint={t('childrenHint')}
+            Icon={Baby}
+            value={room.childAges.length}
+            min={0}
+            max={8}
+            onChange={(value) => onChildrenChange(roomIndex, value)}
+          />
+
+          {room.childAges.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 pb-3">
+              {room.childAges.map((age, childIndex) => (
+                <label key={childIndex} className="block">
+                  <span className="mb-1 block font-montserrat text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-brand-ink/55">
+                    {t('childNumber', { number: childIndex + 1 })}
+                  </span>
+                  <select
+                    value={age ?? ''}
+                    onChange={(event) => onChildAgeChange(roomIndex, childIndex, Number(event.target.value))}
+                    className="h-9 w-full border border-brand-ink/15 bg-white px-2 font-montserrat text-xs text-brand-ink outline-none focus:border-brand-action"
+                    aria-label={t('childAge', { number: childIndex + 1 })}
+                  >
+                    <option value="" disabled>{t('selectAge')}</option>
+                    {CHILD_AGES.map((childAge) => (
+                      <option key={childAge} value={childAge}>
+                        {t('age', { count: childAge })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+
+    {roomAllocations.length < MAX_ROOMS && (
+      <button
+        type="button"
+        onClick={onAddRoom}
+        className="mt-2 flex w-full items-center justify-center gap-2 border border-brand-action/30 py-2.5 font-montserrat text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-brand-action hover:bg-brand-action/5 transition-colors"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        {t('addRoom')}
+      </button>
+    )}
+
+    <button
+      type="button"
+      onClick={onDone}
+      className="mt-3 w-full bg-brand-ink text-white font-montserrat uppercase tracking-[0.18em] text-xs py-2.5 hover:bg-brand-action transition-colors"
+    >
+      {t('done')}
+    </button>
+  </>
+);
+
 const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, onSearch }) => {
   const { t, currentLanguage } = useLanguage();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [destination, setDestination] = useState('');
-  const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(0);
-  const [rooms, setRooms] = useState(1);
+  const [roomAllocations, setRoomAllocations] = useState([
+    { adults: 2, childAges: [] },
+  ]);
   const [destOpen, setDestOpen] = useState(false);
   const [guestsOpen, setGuestsOpen] = useState(false);
   const stripRef = useRef(null);
@@ -82,7 +179,67 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
     ];
   }, [hotels, currentLanguage, partnerCatalogs, t]);
 
+  const adults = roomAllocations.reduce((total, room) => total + room.adults, 0);
+  const children = roomAllocations.reduce((total, room) => total + room.childAges.length, 0);
+  const rooms = roomAllocations.length;
   const totalPersons = adults + children;
+
+  const updateRoomAdults = (roomIndex, value) => {
+    setRoomAllocations((current) => current.map((room, index) => (
+      index === roomIndex ? { ...room, adults: value } : room
+    )));
+  };
+
+  const updateRoomChildren = (roomIndex, value) => {
+    setRoomAllocations((current) => current.map((room, index) => {
+      if (index !== roomIndex) return room;
+      const childAges = room.childAges.slice(0, value);
+      while (childAges.length < value) childAges.push(null);
+      return { ...room, childAges };
+    }));
+  };
+
+  const updateChildAge = (roomIndex, childIndex, age) => {
+    setRoomAllocations((current) => current.map((room, index) => {
+      if (index !== roomIndex) return room;
+      const childAges = [...room.childAges];
+      childAges[childIndex] = age;
+      return { ...room, childAges };
+    }));
+  };
+
+  const addRoom = () => {
+    setRoomAllocations((current) => (
+      current.length < MAX_ROOMS
+        ? [...current, { adults: 1, childAges: [] }]
+        : current
+    ));
+  };
+
+  const removeRoom = (roomIndex) => {
+    setRoomAllocations((current) => (
+      current.length > 1 ? current.filter((_, index) => index !== roomIndex) : current
+    ));
+  };
+
+  const validateChildAges = () => {
+    const hasMissingAge = roomAllocations.some((room) => (
+      room.childAges.some((age) => !Number.isInteger(age))
+    ));
+    if (!hasMissingAge) return true;
+
+    setGuestsOpen(true);
+    toast({
+      title: t('missingChildAges'),
+      description: t('missingChildAgesDesc'),
+      variant: 'destructive',
+    });
+    return false;
+  };
+
+  const closeGuests = () => {
+    if (validateChildAges()) setGuestsOpen(false);
+  };
 
   const handleSearchClick = (e) => {
     e.preventDefault();
@@ -96,31 +253,28 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
       return;
     }
 
+    if (!validateChildAges()) return;
+
     const checkin = format(date.from, 'yyyy-MM-dd');
     const checkout = format(date.to, 'yyyy-MM-dd');
 
-    // SimpleBooking guests param: A = adult, C = child, separated by %2C
-    const guestParams = [
-      ...Array(adults).fill('A'),
-      ...Array(children).fill('C'),
-    ].join('%2C');
+    const guestParams = roomAllocations.map((room) => [
+      ...Array(room.adults).fill('A'),
+      ...room.childAges.map(String),
+    ].join(',')).join('|');
 
     const simplebookingBase = import.meta.env.VITE_SIMPLEBOOKING_BASE || 'https://www.simplebooking.it/portal/256';
-    const url = `${simplebookingBase}?lang=${currentLanguage.toUpperCase()}&cur=EUR&in=${checkin}&out=${checkout}&guests=${guestParams}&rooms=${rooms}&map=JPPSV`;
+    const params = new URLSearchParams({
+      lang: currentLanguage.toUpperCase(),
+      cur: 'EUR',
+      in: checkin,
+      out: checkout,
+      guests: guestParams,
+      map: 'JPPSV',
+    });
+    const url = `${simplebookingBase}?${params.toString()}`;
 
     if (onSearch) onSearch();
-    if (destination) {
-      const params = new URLSearchParams({
-        city: destination,
-        checkin,
-        checkout,
-        adults: String(adults),
-        children: String(children),
-        rooms: String(rooms),
-      });
-      navigate(`/all-riads?${params.toString()}`);
-      return;
-    }
     window.open(url, '_blank');
   };
 
@@ -205,18 +359,16 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
             </div>
           </PopoverTrigger>
           <PopoverContent className="w-[min(92vw,340px)] p-4 shadow-2xl border-brand-ink/5" align="center">
-            <Stepper label={t('adults')} hint={t('adultsHint')} Icon={Users} value={adults} min={1} max={12} onChange={setAdults} />
-            <div className="h-px bg-brand-ink/8" />
-            <Stepper label={t('children')} hint={t('childrenHint')} Icon={Baby} value={children} min={0} max={8} onChange={setChildren} />
-            <div className="h-px bg-brand-ink/8" />
-            <Stepper label={t('roomsLabel')} hint={t('roomsHint')} Icon={BedDouble} value={rooms} min={1} max={6} onChange={setRooms} />
-            <button
-              type="button"
-              onClick={() => setGuestsOpen(false)}
-              className="mt-3 w-full bg-brand-ink text-white font-montserrat uppercase tracking-[0.18em] text-xs py-2.5 hover:bg-brand-action transition-colors"
-            >
-              {t('done')}
-            </button>
+            <RoomAllocationEditor
+              roomAllocations={roomAllocations}
+              onAdultsChange={updateRoomAdults}
+              onChildrenChange={updateRoomChildren}
+              onChildAgeChange={updateChildAge}
+              onAddRoom={addRoom}
+              onRemoveRoom={removeRoom}
+              onDone={closeGuests}
+              t={t}
+            />
           </PopoverContent>
         </Popover>
 
@@ -295,19 +447,17 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
               <span className={labelClass}>{guestsRoomsLabel}</span>
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-[340px] p-4 shadow-2xl border-brand-ink/5" align="start">
-            <Stepper label={t('adults')} hint={t('adultsHint')} Icon={Users} value={adults} min={1} max={12} onChange={setAdults} />
-            <div className="h-px bg-brand-ink/8" />
-            <Stepper label={t('children')} hint={t('childrenHint')} Icon={Baby} value={children} min={0} max={8} onChange={setChildren} />
-            <div className="h-px bg-brand-ink/8" />
-            <Stepper label={t('roomsLabel')} hint={t('roomsHint')} Icon={BedDouble} value={rooms} min={1} max={6} onChange={setRooms} />
-            <button
-              type="button"
-              onClick={() => setGuestsOpen(false)}
-              className="mt-3 w-full bg-brand-ink text-white font-montserrat uppercase tracking-[0.18em] text-xs py-2.5 hover:bg-brand-action transition-colors"
-            >
-              {t('done')}
-            </button>
+          <PopoverContent className="w-[380px] p-4 shadow-2xl border-brand-ink/5" align="start">
+            <RoomAllocationEditor
+              roomAllocations={roomAllocations}
+              onAdultsChange={updateRoomAdults}
+              onChildrenChange={updateRoomChildren}
+              onChildAgeChange={updateChildAge}
+              onAddRoom={addRoom}
+              onRemoveRoom={removeRoom}
+              onDone={closeGuests}
+              t={t}
+            />
           </PopoverContent>
         </Popover>
 

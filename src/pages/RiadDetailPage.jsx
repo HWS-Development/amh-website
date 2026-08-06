@@ -27,7 +27,7 @@ import { getTranslated } from "@/lib/utils";
 import { optimizeImageUrl } from "@/lib/imageUtils";
 import { buildPropertyDetailHref, usePartnerHotelById, usePartnerHotels, extractCentraHotelId, idToLabel, slugifyPropertyName } from "@/lib/partnerHotelsApi";
 import { usePartnerCatalogs } from "@/lib/partnerCatalogsApi";
-import { mapPartnerHotelToRiad } from "@/lib/partnerHotelTransform";
+import { formatInternationalAddress, mapPartnerHotelToRiad } from "@/lib/partnerHotelTransform";
 import BackToTopButton from "@/components/BackToTopButton";
 import NotFoundPage from "@/pages/NotFoundPage";
 
@@ -76,7 +76,7 @@ const normalizeMapText = (value = "") =>
     .toLowerCase()
     .trim();
 
-const buildGoogleMapsPlaceQuery = ({ name, address, neighborhood, city, country, position }) => {
+const buildGoogleMapsPlaceQuery = ({ name, street, neighborhood, city, country, position }) => {
   const parts = [];
   const addPart = (value) => {
     const text = String(value || "").trim();
@@ -87,16 +87,11 @@ const buildGoogleMapsPlaceQuery = ({ name, address, neighborhood, city, country,
   };
 
   addPart(name);
-  addPart(address);
-  if (!address) {
-    addPart(neighborhood);
-    addPart(city);
-  }
+  addPart(street || neighborhood);
+  addPart(city);
 
   if (parts.length > 0) {
-    const countryText = country || "Maroc";
-    const hasCountry = normalizeMapText(parts.join(" ")).match(/\b(maroc|morocco)\b/);
-    if (!hasCountry) addPart(countryText);
+    addPart(country || "MA");
     return parts.join(", ");
   }
 
@@ -304,7 +299,7 @@ const normalizePartnerHotel = (hotel, language, catalogs) => {
     city: mapped.city,
     neighborhood: mapped.neighborhood,
     propertyType: mapped.propertyType,
-    street: typeof hotel.street === 'string' ? hotel.street : (typeof hotel.street === 'object' && hotel.street !== null ? getTranslated(hotel.street, 'en') : null),
+    street: mapped.street,
     latitude: hotel.latitude ?? hotel.lat ?? null,
     longitude: hotel.longitude ?? hotel.lng ?? hotel.lon ?? null,
   };
@@ -439,9 +434,7 @@ const RiadDetailPage = () => {
 
   const name = riad ? getTranslated(riad.name, currentLanguage) : "";
   const description = riad ? getTranslated(riad.description, currentLanguage) : "";
-  const address = riad
-    ? (getTranslated(riad.address, currentLanguage) || [riad.street, riad.city, riad.country].filter(Boolean).join(", "))
-    : "";
+  const internationalAddress = formatInternationalAddress(riad);
   const city = riad?.city || "";
   const neighborhood = riad?.neighborhood || "";
   const propertyType = riad?.propertyType || (riad?.property_type_id ? idToLabel(riad.property_type_id) : "");
@@ -488,7 +481,7 @@ const RiadDetailPage = () => {
     : [];
   const mapPlaceQuery = buildGoogleMapsPlaceQuery({
     name,
-    address,
+    street: riad?.street,
     neighborhood,
     city,
     country: riad?.country,
@@ -504,7 +497,8 @@ const RiadDetailPage = () => {
   const googleMapsEmbedUrl = mapPlaceQuery
     ? `https://www.google.com/maps?q=${encodedMapPlaceQuery}&output=embed`
     : null;
-  const displayAddress = address || [neighborhood, city].filter(Boolean).join(", ") || mapPlaceQuery;
+  const locationLabel = internationalAddress || [neighborhood, city, riad?.country].filter(Boolean).join(", ");
+  const displayAddress = locationLabel || mapPlaceQuery;
 
   const phoneNumber = riad?.phone_number || riad?.phone || null;
   const email = riad?.email || null;
@@ -831,11 +825,11 @@ const RiadDetailPage = () => {
               <h1 className="font-montserrat font-bold uppercase text-white text-[clamp(1.8rem,3.5vw,3.2rem)] leading-[1.15] max-w-2xl tracking-[0.04em] [text-shadow:0_4px_30px_rgba(0,0,0,0.5)]">
                 {name}
               </h1>
-              {(neighborhood || city) && (
+              {locationLabel && (
                 <div className="flex items-center gap-2 mt-5 text-white/50">
                   <MapPin className="w-3.5 h-3.5 text-brand-action" />
                   <span className="text-[0.7rem] uppercase tracking-[0.2em] font-medium">
-                    {[neighborhood, city].filter(Boolean).join(" \u00b7 ")}
+                    {locationLabel}
                   </span>
                 </div>
               )}
