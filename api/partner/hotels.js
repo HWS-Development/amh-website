@@ -6,7 +6,7 @@
  *   ?city_id=xxx
  *   ?property_type_id=xxx
  *   ?amenity_ids=id1,id2,id3   (hotel must have ALL specified amenities)
- *   ?search=text                (matches name, city, neighborhood)
+ *   ?search=text                (matches hotelName, city, neighborhood)
  *
  * Credentials and access tokens never leave the server.
  */
@@ -48,10 +48,10 @@ function applyFilters(hotels, params) {
   if (search && search.trim()) {
     const q = normalize(search);
     filtered = filtered.filter(h => {
-      const name = normalize(h.name?.en || h.name?.fr || h.name || '');
+      const hotelName = normalize(h.hotelName || '');
       const city = normalize(h.city_id ? String(h.city_id) : '');
       const neighborhood = normalize(h.neighborhood_id ? String(h.neighborhood_id) : '');
-      return name.includes(q) || city.includes(q) || neighborhood.includes(q);
+      return hotelName.includes(q) || city.includes(q) || neighborhood.includes(q);
     });
   }
 

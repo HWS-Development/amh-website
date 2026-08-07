@@ -29,8 +29,8 @@ export function extractCentraOrganizationId(imageUrls = []) {
   return null;
 }
 
-export function slugifyPropertyName(name = '') {
-  return String(name)
+export function slugifyPropertyName(value = '') {
+  return String(value)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // strip diacritics
     .toLowerCase()
@@ -40,9 +40,9 @@ export function slugifyPropertyName(name = '') {
     .slice(0, 80);
 }
 
-export function buildPropertyDetailHref(propertyType, name) {
+export function buildPropertyDetailHref(propertyType, hotelName) {
   const typeSlug = slugifyPropertyName(propertyType) || 'property';
-  const nameSlug = slugifyPropertyName(name);
+  const nameSlug = slugifyPropertyName(hotelName);
   return nameSlug ? `/${typeSlug}/${nameSlug}` : '/all-properties';
 }
 

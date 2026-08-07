@@ -127,7 +127,7 @@ const AllRiadsPage = () => {
       const q = normalize(search);
       list = list.filter(
         (r) =>
-          normalize(r.name).includes(q) ||
+          normalize(r.hotelName).includes(q) ||
           normalize(r.city).includes(q) ||
           normalize(r.neighborhood).includes(q)
       );

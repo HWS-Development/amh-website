@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import PropertySearchModal from "./PropertySearchModal";
 import { useLanguage } from '@/contexts/LanguageContext';
 
-export default function SearchButton({ riads, locale }) {
+export default function SearchButton({ riads }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
 
@@ -28,7 +28,7 @@ export default function SearchButton({ riads, locale }) {
         <kbd className="rounded border bg-neutral-50 px-1.5 text-[10px] hidden ">K</kbd>
       </button>
 
-      <PropertySearchModal open={open} onClose={() => setOpen(false)} riads={riads} locale={locale} />
+      <PropertySearchModal open={open} onClose={() => setOpen(false)} riads={riads} />
     </>
   );
 }

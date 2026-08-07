@@ -76,7 +76,7 @@ const normalizeMapText = (value = "") =>
     .toLowerCase()
     .trim();
 
-const buildGoogleMapsPlaceQuery = ({ name, street, neighborhood, city, country, position }) => {
+const buildGoogleMapsPlaceQuery = ({ hotelName, street, neighborhood, city, country, position }) => {
   const parts = [];
   const addPart = (value) => {
     const text = String(value || "").trim();
@@ -86,7 +86,7 @@ const buildGoogleMapsPlaceQuery = ({ name, street, neighborhood, city, country, 
     parts.push(text);
   };
 
-  addPart(name);
+  addPart(hotelName);
   addPart(street || neighborhood);
   addPart(city);
 
@@ -98,7 +98,6 @@ const buildGoogleMapsPlaceQuery = ({ name, street, neighborhood, city, country, 
   return position ? `${position[0]},${position[1]}` : "";
 };
 
-const RIAD_SLUG_LANGUAGES = ["fr", "en", "es"];
 const CENTRA_HOTEL_ID_PATTERN = /^HT-[A-Z0-9]+$/i;
 const HOTEL_ID_PATTERN = /^(?:HT-[A-Z0-9]+|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 
@@ -112,29 +111,8 @@ const getHotelRouteId = (hotel) =>
 const getHotelPropertyTypeId = (hotel) =>
   hotel?.property_type_id || hotel?.propertyTypeId || null;
 
-const getHotelNameCandidates = (hotel, currentLanguage) => {
-  const languages = [currentLanguage, ...RIAD_SLUG_LANGUAGES].filter(Boolean);
-  const sources = [hotel?.hoteName, hotel?.hotelName, hotel?.hotel_name, hotel?.name, hotel?.name_tr];
-  const names = [];
-
-  sources.forEach((source) => {
-    if (!source) return;
-    languages.forEach((language) => {
-      const translated = getTranslated(source, language);
-      if (translated) names.push(translated);
-    });
-    if (typeof source === "string") names.push(source);
-  });
-
-  return Array.from(new Set(names.map((name) => String(name).trim()).filter(Boolean)));
-};
-
-const hotelMatchesSlug = (hotel, slug, currentLanguage) => {
-  if (!slug) return false;
-  return getHotelNameCandidates(hotel, currentLanguage).some(
-    (name) => slugifyPropertyName(name) === slug,
-  );
-};
+const hotelMatchesSlug = (hotel, slug) =>
+  Boolean(slug && hotel?.hotelName && slugifyPropertyName(hotel.hotelName) === slug);
 
 const GalleryModal = ({ open, images, startIndex, onClose }) => {
   if (!open) return null;
@@ -353,14 +331,14 @@ const RiadDetailPage = () => {
     const matchingType = normalizedPropertyType
       ? hotelList.find((hotel) =>
           slugifyPropertyName(getHotelPropertyTypeId(hotel)) === normalizedPropertyType &&
-          hotelMatchesSlug(hotel, normalizedRouteSlug, currentLanguage)
+          hotelMatchesSlug(hotel, normalizedRouteSlug)
         )
       : null;
 
     return matchingType || hotelList.find(
-      (hotel) => hotelMatchesSlug(hotel, normalizedRouteSlug, currentLanguage)
+      (hotel) => hotelMatchesSlug(hotel, normalizedRouteSlug)
     ) || null;
-  }, [hotelList, routeHotelId, normalizedRouteSlug, routePropertyType, currentLanguage]);
+  }, [hotelList, routeHotelId, normalizedRouteSlug, routePropertyType]);
   const resolvedHotelId = getHotelRouteId(matchedHotel) || routeHotelId;
   const listedCentraHotelId = extractCentraHotelId(matchedHotel?.image_urls || matchedHotel?.imageUrls);
   const waitForHotelList = listLoading && routeHotelId && !CENTRA_HOTEL_ID_PATTERN.test(routeHotelId);
@@ -382,10 +360,10 @@ const RiadDetailPage = () => {
   }, [hotelList, matchedHotel, resolvedHotelId]);
 
   useEffect(() => {
-    if (!matchedHotel) return;
-    const canonicalName = getHotelNameCandidates(hotelData || matchedHotel, currentLanguage)[0];
+    if (!matchedHotel || !hotelData?.hotelName) return;
+    const canonicalHotelName = hotelData.hotelName;
     const canonicalPropertyType = getHotelPropertyTypeId(hotelData) || getHotelPropertyTypeId(matchedHotel);
-    const canonicalHref = buildPropertyDetailHref(canonicalPropertyType, canonicalName);
+    const canonicalHref = buildPropertyDetailHref(canonicalPropertyType, canonicalHotelName);
     const currentHref = legacySlug ? `/riad/${id}/${legacySlug}` : `/${routePropertyType}/${slug}`;
     if (canonicalHref && canonicalHref !== currentHref) {
       navigate(canonicalHref, { replace: true });
@@ -432,7 +410,7 @@ const RiadDetailPage = () => {
     }
   }, [hotelData, hotelError, hotelLoading, fallbackHotel, listLoading, resolvedHotelId, currentLanguage, partnerCatalogs, toast]);
 
-  const name = riad ? getTranslated(riad.name, currentLanguage) : "";
+  const hotelName = riad ? getTranslated(riad.hotelName, currentLanguage) : "";
   const description = riad ? getTranslated(riad.description, currentLanguage) : "";
   const internationalAddress = formatInternationalAddress(riad);
   const city = riad?.city || "";
@@ -441,19 +419,19 @@ const RiadDetailPage = () => {
   const analyticsRiadId = riad ? (getHotelRouteId(riad) || resolvedHotelId) : null;
 
   useEffect(() => {
-    if (!analyticsRiadId || !name || trackedRiadViewRef.current === analyticsRiadId) return;
+    if (!analyticsRiadId || !hotelName || trackedRiadViewRef.current === analyticsRiadId) return;
     if (typeof window.gtag !== "function") return;
 
     trackedRiadViewRef.current = analyticsRiadId;
     window.gtag("event", "view_item", {
       items: [{
         item_id: analyticsRiadId,
-        item_name: name,
+        item_name: hotelName,
         item_category: propertyType || "Riad",
         ...(city ? { item_category2: city } : {}),
       }],
     });
-  }, [analyticsRiadId, name, city, propertyType]);
+  }, [analyticsRiadId, hotelName, city, propertyType]);
 
   const images = useMemo(() => {
     if (!riad) return [];
@@ -480,7 +458,7 @@ const RiadDetailPage = () => {
     ? extraInfo.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
     : [];
   const mapPlaceQuery = buildGoogleMapsPlaceQuery({
-    name,
+    hotelName,
     street: riad?.street,
     neighborhood,
     city,
@@ -514,7 +492,7 @@ const RiadDetailPage = () => {
     if (!enterLayer.current || !exitLayer.current) return;
 
     enterLayer.current.src = optimizeImageUrl(images[newIdx], { quality: 60 });
-    enterLayer.current.alt = `${name} ${newIdx + 1}`;
+    enterLayer.current.alt = `${hotelName} ${newIdx + 1}`;
     enterLayer.current.style.zIndex = 2;
     exitLayer.current.style.zIndex = 1;
 
@@ -551,13 +529,13 @@ const RiadDetailPage = () => {
     if (progressBarRef.current) {
       gsap.fromTo(progressBarRef.current, { scaleX: 0 }, { scaleX: 1, duration: 5.4, ease: "none" });
     }
-  }, [images, name]);
+  }, [images, hotelName]);
 
   useEffect(() => {
     if (images.length === 0) return;
     if (imgLayerA.current) {
       imgLayerA.current.src = optimizeImageUrl(images[0], { quality: 60 });
-      imgLayerA.current.alt = `${name} 1`;
+      imgLayerA.current.alt = `${hotelName} 1`;
       imgLayerA.current.style.opacity = 1;
       imgLayerA.current.style.zIndex = 2;
     }
@@ -569,7 +547,7 @@ const RiadDetailPage = () => {
     if (progressBarRef.current) {
       gsap.fromTo(progressBarRef.current, { scaleX: 0 }, { scaleX: 1, duration: 5.4, ease: "none" });
     }
-  }, [images, name]);
+  }, [images, hotelName]);
 
   /* ─── Hero entrance sequence ─── */
   useEffect(() => {
@@ -755,7 +733,7 @@ const RiadDetailPage = () => {
   return (
     <>
       <Helmet>
-        <title>{name} &middot; LA CENTRALE DES RIADS</title>
+        <title>{hotelName} &middot; LA CENTRALE DES RIADS</title>
         <meta name="description" content={description?.substring(0, 160)} />
       </Helmet>
 
@@ -823,7 +801,7 @@ const RiadDetailPage = () => {
                 </div>
               )}
               <h1 className="font-montserrat font-bold uppercase text-white text-[clamp(1.8rem,3.5vw,3.2rem)] leading-[1.15] max-w-2xl tracking-[0.04em] [text-shadow:0_4px_30px_rgba(0,0,0,0.5)]">
-                {name}
+                {hotelName}
               </h1>
               {locationLabel && (
                 <div className="flex items-center gap-2 mt-5 text-white/50">
@@ -1158,7 +1136,7 @@ const RiadDetailPage = () => {
                         <div className="flex items-center gap-2.5">
                           <MapPin className="w-4 h-4 text-brand-action" />
                           <span className="text-sm font-semibold text-brand-ink font-montserrat tracking-wide">
-                            {name}
+                            {hotelName}
                           </span>
                         </div>
                         {googleMapsSearchUrl && (
@@ -1175,7 +1153,7 @@ const RiadDetailPage = () => {
                       </div>
                       <div className="h-[400px] md:h-[500px] relative overflow-hidden">
                         <iframe
-                          title={name}
+                          title={hotelName}
                           src={googleMapsEmbedUrl}
                           className="w-full h-full border-0"
                           loading="lazy"

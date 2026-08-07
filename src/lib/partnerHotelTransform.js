@@ -296,7 +296,7 @@ export function mapPartnerHotelToRiad(hotel, language, catalogs) {
   return {
     id,
     organizationId: extractCentraOrganizationId(rawImageUrls),
-    name: firstText([hotel.hoteName, hotel.hotelName, hotel.hotel_name, hotel.name, id], language),
+    hotelName: firstText([hotel.hotelName], language),
     description: firstText([hotel.description], language),
     country: firstText([hotel.country], language) || null,
     city,

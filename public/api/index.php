@@ -301,9 +301,9 @@ try {
             if ($search && trim($search)) {
                 $q = mb_strtolower(trim($search));
                 $hotels = array_values(array_filter($hotels, function($h) use ($q) {
-                    $name = mb_strtolower($h['name']['fr'] ?? $h['name']['en'] ?? $h['name'] ?? '');
+                    $hotelName = mb_strtolower((string)($h['hotelName'] ?? ''));
                     $city = mb_strtolower((string)($h['city_id'] ?? ''));
-                    return str_contains($name, $q) || str_contains($city, $q);
+                    return str_contains($hotelName, $q) || str_contains($city, $q);
                 }));
             }
         }

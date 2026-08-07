@@ -3,29 +3,19 @@ import Fuse from "fuse.js";
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { buildPropertyDetailHref } from '@/lib/partnerHotelsApi';
 
-const getPropertyName = (property, locale) => {
-  const name = property?.name;
-  return property?.name_tr?.[locale]
-    || property?.name_tr?.en
-    || property?.name_tr?.fr
-    || (typeof name === 'object' ? name?.[locale] || name?.en || name?.fr : name)
-    || '';
-};
-
-export default function PropertySearchModal({ open, onClose, riads, locale = "fr" }) {
+export default function PropertySearchModal({ open, onClose, riads }) {
   const norm = (s) => String(s || "")
   .normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
   const data = useMemo(() => riads.map(r => ({
     ...r,
-    displayName: getPropertyName(r, locale),
-    searchName: norm(getPropertyName(r, locale)),
-  })), [riads, locale]);
+    searchHotelName: norm(r.hotelName),
+  })), [riads]);
 
   const fuse = useMemo(() => new Fuse(data, {
     threshold: 0.28,
     ignoreLocation: true,
-    keys: ["searchName", "city", "quartier"],
+    keys: ["searchHotelName", "city", "quartier"],
   }), [data]);
 
   const [q, setQ] = useState("");
@@ -48,7 +38,7 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
       if (e.key === "Enter" && results[i]) {
         window.location.href = buildPropertyDetailHref(
           results[i].property_type_id || results[i].propertyTypeId,
-          results[i].displayName
+          results[i].hotelName
         );
       }
     };
@@ -79,12 +69,12 @@ export default function PropertySearchModal({ open, onClose, riads, locale = "fr
             <li
               key={r.id}
               onMouseEnter={() => setI(idx)}
-              onClick={() => (window.location.href = buildPropertyDetailHref(r.property_type_id || r.propertyTypeId, r.displayName))}
+              onClick={() => (window.location.href = buildPropertyDetailHref(r.property_type_id || r.propertyTypeId, r.hotelName))}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${i===idx ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
             >
-              <OptimizedImage src={r.image_urls?.[0]} alt={r.displayName} className="h-14 w-20 rounded-lg object-cover" />
+              <OptimizedImage src={r.image_urls?.[0]} alt={r.hotelName} className="h-14 w-20 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-semibold">{r.displayName}</div>
+                <div className="truncate font-semibold">{r.hotelName}</div>
                 <div className="truncate text-sm text-neutral-500">{r.city} · {r.quartier}</div>
               </div>
               <span className="rounded-lg bg-black px-3 py-1.5 text-xs text-white">Ouvrir</span>

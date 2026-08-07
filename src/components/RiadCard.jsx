@@ -34,7 +34,7 @@ const RiadCard = ({ riad }) => {
   ].filter((entry) => Boolean(entry.label));
   const visibleAmenities = prioritizedAmenities.slice(0, MAX_AMENITIES);
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
-  const detailHref = buildPropertyDetailHref(riad.property_type_id, riad.name);
+  const detailHref = buildPropertyDetailHref(riad.property_type_id, riad.hotelName);
   const location = formatInternationalAddress(riad);
 
   const hasRating =
@@ -46,13 +46,13 @@ const RiadCard = ({ riad }) => {
       <div className="relative overflow-hidden bg-brand-beige">
         <Link
           to={detailHref}
-          aria-label={riad.name}
+          aria-label={riad.hotelName}
           className="block relative aspect-[3/4] md:aspect-[4/5]"
         >
           {riad.imageUrl ? (
             <OptimizedImage
               src={riad.imageUrl}
-              alt={riad.name}
+              alt={riad.hotelName}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-editorial group-hover:scale-[1.06]"
             />
           ) : (
@@ -93,7 +93,7 @@ const RiadCard = ({ riad }) => {
         {/* TITLE — serif editorial */}
         <Link to={detailHref}>
           <h3 className="font-display text-[clamp(1.1rem,1.4vw,1.35rem)] leading-tight text-brand-ink line-clamp-1 group-hover:text-brand-action transition-colors duration-500 ease-editorial">
-            {riad.name}
+            {riad.hotelName}
           </h3>
         </Link>
 
@@ -148,7 +148,7 @@ const RiadCard = ({ riad }) => {
                   open={amenitiesOpen}
                   onOpenChange={setAmenitiesOpen}
                   amenities={prioritizedAmenities.map((p) => p.label)}
-                  riadName={riad.name}
+                  riadName={riad.hotelName}
                 />
               </>
             )}

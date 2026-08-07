@@ -16,7 +16,7 @@ const RiadListItem = ({ riad }) => {
   const { t } = useLanguage();
   const featureLabels = [...(riad.amenities || []), ...(riad.services || [])];
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
-  const detailHref = buildPropertyDetailHref(riad.property_type_id, riad.name);
+  const detailHref = buildPropertyDetailHref(riad.property_type_id, riad.hotelName);
   const location = formatInternationalAddress(riad);
 
   const hasRating =
@@ -30,7 +30,7 @@ const RiadListItem = ({ riad }) => {
           {riad.imageUrl ? (
             <OptimizedImage
               src={riad.imageUrl}
-              alt={riad.name}
+              alt={riad.hotelName}
               className="h-44 w-full md:h-32 md:w-52 object-cover"
             />
           ) : (
@@ -60,7 +60,7 @@ const RiadListItem = ({ riad }) => {
         {/* TITLE */}
         <Link to={detailHref}>
           <h3 className="text-lg font-semibold text-gray-950 truncate group-hover:text-brand-action transition-colors">
-            {riad.name}
+            {riad.hotelName}
           </h3>
         </Link>
         {riad.description && (
@@ -109,7 +109,7 @@ const RiadListItem = ({ riad }) => {
                   open={amenitiesOpen}
                   onOpenChange={setAmenitiesOpen}
                   amenities={featureLabels}
-                  riadName={riad.name}
+                  riadName={riad.hotelName}
                 />
               </>
             )}
