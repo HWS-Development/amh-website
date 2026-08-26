@@ -270,7 +270,7 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
       in: checkin,
       out: checkout,
       guests: guestParams,
-      map: 'JPPSV',
+      // SimpleBooking map parameter removed. To restore it, add: map: 'JPPSV'.
     });
     const url = `${simplebookingBase}?${params.toString()}`;
 
