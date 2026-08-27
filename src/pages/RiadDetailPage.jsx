@@ -466,6 +466,13 @@ const RiadDetailPage = () => {
     country: riad?.country,
     position,
   });
+  const mapAddressQuery = buildGoogleMapsPlaceQuery({
+    street: riad?.street,
+    neighborhood,
+    city,
+    country: riad?.country,
+    position,
+  });
   const encodedMapPlaceQuery = encodeURIComponent(mapPlaceQuery);
   const googleMapsSearchUrl = mapPlaceQuery
     ? `https://www.google.com/maps/search/?api=1&query=${encodedMapPlaceQuery}`
@@ -1153,8 +1160,8 @@ const RiadDetailPage = () => {
                         <GooglePlaceMap
                           title={hotelName}
                           query={mapPlaceQuery}
+                          fallbackQuery={mapAddressQuery}
                           position={position}
-                          mapsUrl={googleMapsSearchUrl}
                         />
                       </div>
                     </div>

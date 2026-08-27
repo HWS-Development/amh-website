@@ -27,12 +27,13 @@ const loadGoogleMaps = (apiKey) => {
   return googleMapsPromise;
 };
 
-const GooglePlaceMap = ({ position, query, title, mapsUrl }) => {
+const GooglePlaceMap = ({ position, query, fallbackQuery, title }) => {
   const containerRef = useRef(null);
   const [hasError, setHasError] = useState(false);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const latitude = Number(position?.[0]);
   const longitude = Number(position?.[1]);
+  const fallbackMapUrl = `https://www.google.com/maps?q=${encodeURIComponent(fallbackQuery || query)}&z=14&output=embed`;
 
   useEffect(() => {
     if (!apiKey || !containerRef.current) return;
@@ -95,14 +96,13 @@ const GooglePlaceMap = ({ position, query, title, mapsUrl }) => {
 
   if (!apiKey || hasError) {
     return (
-      <a
-        href={mapsUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="flex h-full items-center justify-center bg-brand-beige/30 px-8 text-center font-montserrat text-sm text-brand-ink/60 transition-colors hover:bg-brand-beige/50"
-      >
-        {title}
-      </a>
+      <iframe
+        title={title}
+        src={fallbackMapUrl}
+        className="h-full w-full border-0"
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
     );
   }
 
