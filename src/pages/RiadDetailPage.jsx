@@ -29,6 +29,7 @@ import { buildPropertyDetailHref, usePartnerHotelById, usePartnerHotels, extract
 import { usePartnerCatalogs } from "@/lib/partnerCatalogsApi";
 import { formatInternationalAddress, mapPartnerHotelToRiad } from "@/lib/partnerHotelTransform";
 import BackToTopButton from "@/components/BackToTopButton";
+import GooglePlaceMap from "@/components/GooglePlaceMap";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -471,9 +472,6 @@ const RiadDetailPage = () => {
     : null;
   const googleMapsDirectionsUrl = mapPlaceQuery
     ? `https://www.google.com/maps/dir/?api=1&destination=${encodedMapPlaceQuery}`
-    : null;
-  const googleMapsEmbedUrl = mapPlaceQuery
-    ? `https://www.google.com/maps?q=${encodedMapPlaceQuery}&output=embed`
     : null;
   const locationLabel = internationalAddress || [neighborhood, city, riad?.country].filter(Boolean).join(", ");
   const displayAddress = locationLabel || mapPlaceQuery;
@@ -1068,7 +1066,7 @@ const RiadDetailPage = () => {
           </div>
 
           {/* ═══════ Address + Map Section ═══════ */}
-          {googleMapsEmbedUrl && (
+          {mapPlaceQuery && (
             <div ref={mapSectionRef} className="mt-24 md:mt-32 relative overflow-hidden">
               {/* Full-bleed warm background layer (parallax) */}
               <div
@@ -1152,12 +1150,11 @@ const RiadDetailPage = () => {
                         )}
                       </div>
                       <div className="h-[400px] md:h-[500px] relative overflow-hidden">
-                        <iframe
+                        <GooglePlaceMap
                           title={hotelName}
-                          src={googleMapsEmbedUrl}
-                          className="w-full h-full border-0"
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
+                          query={mapPlaceQuery}
+                          position={position}
+                          mapsUrl={googleMapsSearchUrl}
                         />
                       </div>
                     </div>
