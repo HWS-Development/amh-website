@@ -67,7 +67,8 @@ const GooglePlaceMap = ({ position, query, fallbackQuery, title }) => {
           : { lat: 31.7917, lng: -7.0926 };
         const map = new maps.Map(containerRef.current, {
           center: initialCenter,
-          zoom: hasPosition ? 15 : 6,
+          zoom: hasPosition ? 15 : 9,
+          minZoom: 9,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: true,
@@ -81,9 +82,21 @@ const GooglePlaceMap = ({ position, query, fallbackQuery, title }) => {
         });
 
         const setMarker = (location) => {
+          const center = typeof location.toJSON === "function" ? location.toJSON() : location;
           marker = new maps.Marker({ map, position: location, title });
           map.setCenter(location);
           map.setZoom(15);
+          map.setOptions({
+            restriction: {
+              latLngBounds: {
+                north: center.lat + 1.5,
+                south: center.lat - 1.5,
+                east: center.lng + 1.5,
+                west: center.lng - 1.5,
+              },
+              strictBounds: true,
+            },
+          });
         };
 
         if (hasPosition) {
