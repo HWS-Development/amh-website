@@ -30,10 +30,26 @@ const loadGoogleMaps = (apiKey) => {
 const GooglePlaceMap = ({ position, query, fallbackQuery, title }) => {
   const containerRef = useRef(null);
   const [hasError, setHasError] = useState(false);
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const [apiKey, setApiKey] = useState(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "");
   const latitude = Number(position?.[0]);
   const longitude = Number(position?.[1]);
   const fallbackMapUrl = `https://www.google.com/maps?q=${encodeURIComponent(fallbackQuery || query)}&z=14&output=embed`;
+
+  useEffect(() => {
+    if (apiKey) return;
+
+    let disposed = false;
+    fetch("/api/config")
+      .then((response) => response.ok ? response.json() : null)
+      .then((config) => {
+        if (!disposed && config?.googleMapsApiKey) setApiKey(config.googleMapsApiKey);
+      })
+      .catch(() => {});
+
+    return () => {
+      disposed = true;
+    };
+  }, [apiKey]);
 
   useEffect(() => {
     if (!apiKey || !containerRef.current) return;

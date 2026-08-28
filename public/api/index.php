@@ -13,12 +13,7 @@ header('Content-Type: application/json; charset=utf-8');
 $API_BASE_URL      = getenv('API_BASE_URL')      ?: 'https://api.centra.global/api';
 $CLIENT_ID         = getenv('PARTNER_APP_CLIENT_ID');
 $CLIENT_SECRET     = getenv('PARTNER_APP_CLIENT_SECRET');
-
-if (!$CLIENT_ID || !$CLIENT_SECRET) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Missing PARTNER_APP_CLIENT_ID or PARTNER_APP_CLIENT_SECRET']);
-    exit;
-}
+$GOOGLE_MAPS_API_KEY = ''; // LWS: paste the restricted browser key here.
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -184,6 +179,19 @@ if ($method !== 'GET') {
 $path = parse_url($uri, PHP_URL_PATH);
 // Remove trailing slash
 $path = rtrim($path, '/');
+
+// Public runtime configuration used by the static frontend on LWS.
+if ($path === '/api/config') {
+    header('Cache-Control: no-store');
+    echo json_encode(['googleMapsApiKey' => $GOOGLE_MAPS_API_KEY]);
+    exit;
+}
+
+if (!$CLIENT_ID || !$CLIENT_SECRET) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Missing PARTNER_APP_CLIENT_ID or PARTNER_APP_CLIENT_SECRET']);
+    exit;
+}
 
 try {
     // ── Route: GET /api/partner/catalogs ──
