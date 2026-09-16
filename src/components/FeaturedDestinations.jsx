@@ -29,7 +29,7 @@ export default function FeaturedDestinations() {
       setError(null);
       try {
         const data = await listDestinations({
-          slugs: ["marrakech", "essaouira", "ouarzazate"],
+          slugs: ["marrakech", "essaouira", "ouarzazate", "fes"],
         });
         if (!isMounted) return;
         const mapped = (data || []).map((dest) => ({
@@ -60,7 +60,7 @@ export default function FeaturedDestinations() {
       <div className="content-wrapper-wide relative">
         <RevealOnView>
           <SectionHeader
-            eyebrow={t("destinationsEyebrow") || "Three cities, one soul"}
+            eyebrow={t("destinationsEyebrow") || "Four cities, one soul"}
             title={t("exploreOurDestinations")}
             subtitle={t("discoverTheSoulOfMorocco")}
           />
@@ -89,7 +89,7 @@ export default function FeaturedDestinations() {
 
         {!loading && !error && (
           <>
-            <StaggerGroup className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-7 mt-2" stagger={0.12}>
+            <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 mt-2" stagger={0.12}>
               {destinations.map((dest, index) => {
                 const imgAlt = dest.name ? `${dest.name} destination` : "Destination";
                 return (
