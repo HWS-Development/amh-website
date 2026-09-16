@@ -11,12 +11,33 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const DestinationFAQ = ({ faq, sectionRef }) => {
-  const { t } = useLanguage();
+const FALLBACK_FAQ = {
+  fes: [
+    {
+      q: "Fès est-elle sûre pour les touristes ?",
+      a: "Oui, Fès est généralement très sûre. Comme dans toute grande ville, restez vigilant dans les zones très fréquentées."
+    },
+    {
+      q: "Combien de temps prévoir pour visiter Fès ?",
+      a: "Deux à trois jours suffisent pour découvrir la médina, les médersas, les tanneries et les souks principaux."
+    },
+    {
+      q: "Quelle est la meilleure période pour visiter Fès ?",
+      a: "Le printemps (mars-mai) et l'automne (septembre-novembre) offrent les températures les plus agréables."
+    }
+  ]
+};
+
+const DestinationFAQ = ({ faq, sectionRef, slug }) => {
+  const { t, currentLanguage } = useLanguage();
   const headerRef = useRef(null);
 
+  const resolvedFaq = (faq && faq.length > 0)
+    ? faq
+    : (FALLBACK_FAQ[slug] || []);
+
   useEffect(() => {
-    if (!faq?.length || !headerRef.current) return;
+    if (!resolvedFaq?.length || !headerRef.current) return;
     const ctx = gsap.context(() => {
       gsap.from(headerRef.current, {
         y: 30,
@@ -30,9 +51,9 @@ const DestinationFAQ = ({ faq, sectionRef }) => {
       });
     }, headerRef);
     return () => ctx.revert();
-  }, [faq]);
+  }, [resolvedFaq]);
 
-  if (!faq || faq.length === 0) return null;
+  if (!resolvedFaq || resolvedFaq.length === 0) return null;
 
   return (
     <section id="faq" ref={sectionRef} className="py-20 md:py-32 bg-white relative">

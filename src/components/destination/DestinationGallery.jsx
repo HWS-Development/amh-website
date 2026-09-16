@@ -11,6 +11,7 @@ const FALLBACK_GALLERIES = {
   marrakech: ['/images/koutoubia.jpg', '/images/hero_koutoubia.webp'],
   essaouira: ['/images/essaouira1.jpg', '/images/hero_essaouira.webp'],
   ouarzazate: ['/images/ouarzazate1.jpg', '/images/hero_ouarzazate.webp'],
+  fes: ['/images/hero_ouarzazate.webp', '/images/hero_koutoubia.webp', '/images/hero_essaouira.webp'],
 };
 
 const DEFAULT_FALLBACK = ['/images/hero_koutoubia.webp'];

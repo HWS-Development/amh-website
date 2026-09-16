@@ -307,6 +307,7 @@ const DestinationPage = () => {
         />
         <DestinationFAQ
           faq={faq}
+          slug={slug}
           sectionRef={(el) => (sectionsRef.current["faq"] = el)}
         />
         <DestinationGallery
