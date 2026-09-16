@@ -91,7 +91,7 @@ export default function FeaturedDestinations() {
           <>
             <StaggerGroup className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-7 mt-2" stagger={0.12}>
               {destinations.map((dest, index) => {
-                const imgAlt = t("destinationAlt", { name: dest.name || "" });
+                const imgAlt = dest.name ? `${dest.name} destination` : "Destination";
                 return (
                   <div key={dest.slug} className="group [perspective:1200px]">
                     <Link
