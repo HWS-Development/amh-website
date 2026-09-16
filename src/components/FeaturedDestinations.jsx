@@ -160,7 +160,7 @@ export default function FeaturedDestinations() {
                           </div>
 
                           {/* Animated CTA underline */}
-                          <div className="mt-5 flex items-center gap-3">
+                          <div className="mt-5 flex items-center justify-center gap-3">
                             <div className="h-px w-0 bg-gradient-to-r from-white to-transparent transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:w-full" />
                             <span className="font-montserrat text-white/0 group-hover:text-white/90 text-[0.6rem] uppercase tracking-[0.28em] font-semibold transition-all duration-500 whitespace-nowrap">
                               {t("exploreDestination") || "Explore"}
