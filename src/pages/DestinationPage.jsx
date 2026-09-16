@@ -159,9 +159,10 @@ const DestinationPage = () => {
     destination.seo_description,
     currentLanguage
   );
-  const seo_keywords = destination.seo_keywords?.[currentLanguage]
-    ? destination.seo_keywords[currentLanguage].join(', ')
-    : '';
+  const seoKeywordsValue = destination.seo_keywords?.[currentLanguage];
+  const seo_keywords = Array.isArray(seoKeywordsValue)
+    ? seoKeywordsValue.join(', ')
+    : (typeof seoKeywordsValue === 'string' ? seoKeywordsValue : '');
 
   const {
     hero_image_urls,
