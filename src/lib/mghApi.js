@@ -1,76 +1,69 @@
 /**
- * Temporary experiences and destinations client.
+ * Public MGH content client.
  *
- * These are the only public-site entities still read from Supabase. Hotel,
- * taxonomy, neighborhood, contact, and booking data come from Centra.
+ * Destinations and experiences come from the official MGH Dashboard public
+ * API. Hotel, taxonomy, neighborhood, contact, and booking data come from
+ * Centra.
  */
 
-import { supabase } from '@/lib/customSupabaseClient';
+const MGH_PUBLIC_API_URL = 'https://mgh-dashboard.hospitalitywebservices.com/api/public';
+
+const fetchMghPublicData = async (path, { signal } = {}) => {
+  const response = await fetch(`${MGH_PUBLIC_API_URL}${path}`, {
+    headers: { Accept: 'application/json' },
+    signal,
+  });
+
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`MGH public API request failed (${response.status})`);
+  }
+
+  const payload = await response.json();
+  return payload?.data ?? null;
+};
 
 // ─── Experiences ───────────────────────────────────────────────────────────
 
 export async function listExperiences({ slugs, limit, signal } = {}) {
-  let q = supabase.from('mgh_experiences').select('*').eq('is_published', true);
-  if (slugs?.length) q = q.in('slug', slugs);
-  q = q.order('sort_order', { ascending: true, nullsFirst: false });
-  if (limit) q = q.limit(limit);
-  if (signal) q = q.abortSignal(signal);
-  const { data, error } = await q;
-  if (signal?.aborted) return [];
-  if (error) throw error;
-  return data || [];
+  const params = new URLSearchParams();
+  if (slugs?.length) params.set('slugs', slugs.join(','));
+  params.set('limit', String(limit || 500));
+
+  const data = await fetchMghPublicData(`/experiences?${params}`, { signal });
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getExperienceBySlug(slug, { signal } = {}) {
-  let q = supabase
-    .from('mgh_experiences')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_published', true);
-  if (signal) q = q.abortSignal(signal);
-  const { data, error } = await q.maybeSingle();
-  if (signal?.aborted) return null;
-  if (error) throw error;
-  return data || null;
+  if (!slug) return null;
+  return fetchMghPublicData(`/experiences/${encodeURIComponent(slug)}`, { signal });
 }
 
 export async function listExperiencesBySlugs(slugs, { signal } = {}) {
   if (!slugs || slugs.length === 0) return [];
-  let q = supabase
-    .from('mgh_experiences')
-    .select('*')
-    .in('slug', slugs)
-    .eq('is_published', true);
-  if (signal) q = q.abortSignal(signal);
-  const { data, error } = await q;
-  if (signal?.aborted) return [];
-  if (error) throw error;
-  return data || [];
+  const params = new URLSearchParams({
+    slugs: slugs.join(','),
+    limit: String(Math.min(slugs.length, 50)),
+  });
+  const data = await fetchMghPublicData(`/experiences/by-slugs?${params}`, { signal });
+  if (!Array.isArray(data)) return [];
+
+  const bySlug = new Map(data.map((experience) => [experience.slug, experience]));
+  return slugs.map((slug) => bySlug.get(slug)).filter(Boolean);
 }
 
 // ─── Destinations ──────────────────────────────────────────────────────────
 
 export async function listDestinations({ slugs, limit, signal } = {}) {
-  let q = supabase.from('mgh_destinations').select('*').eq('is_published', true);
-  if (slugs?.length) q = q.in('slug', slugs);
-  q = q.order('sort_order', { ascending: true, nullsFirst: false });
-  if (limit) q = q.limit(limit);
-  if (signal) q = q.abortSignal(signal);
-  const { data, error } = await q;
-  if (signal?.aborted) return [];
-  if (error) throw error;
-  return data || [];
+  const params = new URLSearchParams();
+  if (slugs?.length) params.set('slugs', slugs.join(','));
+  params.set('limit', String(limit || 500));
+
+  const data = await fetchMghPublicData(`/destinations?${params}`, { signal });
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getDestinationBySlug(slug, { signal } = {}) {
-  let q = supabase
-    .from('mgh_destinations')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_published', true);
-  if (signal) q = q.abortSignal(signal);
-  const { data, error } = await q.maybeSingle();
-  if (signal?.aborted) return null;
-  if (error) throw error;
-  return data || null;
+  if (!slug) return null;
+  return fetchMghPublicData(`/destinations/${encodeURIComponent(slug)}`, { signal });
 }
