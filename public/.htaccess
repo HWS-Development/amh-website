@@ -13,13 +13,17 @@
 </IfModule>
 
 <IfModule mod_headers.c>
-  Header set X-Powered-By "Hostinger Horizons"
+  Header set X-Powered-By "LWS"
 
-  # Cache everything on CDN by default
-  Header set Cache-Control "public, s-maxage=604800, max-age=0"
+  # Keep SPA HTML fresh so deployments are visible immediately.
+  Header set Cache-Control "no-cache, no-store, must-revalidate"
+  Header set Pragma "no-cache"
+  Header set Expires "0"
   
-  # Cache in browser all assets
-  <If "%{REQUEST_URI} =~ m#^/assets/.*$#">
-    Header set Cache-Control "public, max-age=604800"
+  # Cache fingerprinted/static files in the browser.
+  <If "%{REQUEST_URI} =~ m#^/(assets|images)/.*$#">
+    Header set Cache-Control "public, max-age=604800, immutable"
+    Header unset Pragma
+    Header unset Expires
   </If>
 </IfModule>
