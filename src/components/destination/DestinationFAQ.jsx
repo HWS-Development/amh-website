@@ -67,8 +67,8 @@ const DestinationFAQ = ({ faq, sectionRef, slug }) => {
           </h2>
         </div>
 
-        <Accordion type="single" collapsible className="w-full border-t border-brand-ink/8">
-          {faq.map((item, index) => (
+        <Accordion type="single" collapsible defaultValue="item-0" className="w-full border-t border-brand-ink/8">
+          {resolvedFaq.map((item, index) => (
             <AccordionItem
               key={index}
               value={`item-${index}`}
