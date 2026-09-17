@@ -29,7 +29,7 @@ const DestinationHeader = ({ name, subtitle, heroImage }) => {
         delay: 0.2,
       });
       gsap.to(sectionRef.current, {
-        y: () => sectionRef.current.offsetHeight * 0.15,
+        y: () => -sectionRef.current.offsetHeight * 0.05,
         ease: "none",
         scrollTrigger: {
           trigger: sectionRef.current,
@@ -45,7 +45,7 @@ const DestinationHeader = ({ name, subtitle, heroImage }) => {
   return (
     <section
       ref={sectionRef}
-      className="relative h-screen min-h-[600px] md:min-h-[700px] flex items-center justify-center overflow-hidden"
+      className="relative h-screen min-h-[600px] md:min-h-[700px] flex items-center justify-center"
     >
       {heroImage && (
         <OptimizedImage
@@ -62,29 +62,29 @@ const DestinationHeader = ({ name, subtitle, heroImage }) => {
 
       <div
         ref={textRef}
-        className="relative z-10 text-center px-6 max-w-4xl mx-auto"
+        className="relative z-10 text-center px-6 max-w-4xl mx-auto flex flex-col items-center justify-center min-h-0"
       >
-        <span className="block font-montserrat uppercase tracking-[0.4em] text-[0.65rem] text-white/60 mb-6">
+        <span className="block font-montserrat uppercase tracking-[0.4em] text-[0.65rem] text-white/60 mb-6 shrink-0">
           {t("destinations") || "Destinations"}
         </span>
-        <h1 className="font-display text-white text-[clamp(2.8rem,6vw,6rem)] leading-[0.95] tracking-tight font-medium">
+        <h1 className="font-display text-white text-[clamp(2.5rem,5.5vw,5.5rem)] leading-[1.05] tracking-tight font-medium shrink-0">
           {name}
         </h1>
         {subtitle && (
-          <p className="mt-5 font-montserrat text-white/60 text-[clamp(0.85rem,1.2vw,1.1rem)] uppercase tracking-[0.35em] font-light max-w-2xl mx-auto">
+          <p className="mt-4 font-montserrat text-white/60 text-[clamp(0.8rem,1.1vw,1rem)] uppercase tracking-[0.3em] font-light max-w-2xl mx-auto shrink-0">
             {subtitle}
           </p>
         )}
-        <div className="mt-8 flex justify-center">
-          <span className="block w-12 h-[2px] bg-brand-action" />
+        <div className="mt-6 flex justify-center shrink-0">
+          <span className="block w-10 h-[2px] bg-brand-action" />
         </div>
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/40">
-        <span className="font-montserrat text-[0.55rem] uppercase tracking-[0.35em]">
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/40 shrink-0">
+        <span className="font-montserrat text-[0.5rem] uppercase tracking-[0.35em]">
           {t("scroll") || "Scroll"}
         </span>
-        <span className="block w-px h-10 bg-gradient-to-b from-white/40 to-transparent" />
+        <span className="block w-px h-8 bg-gradient-to-b from-white/40 to-transparent" />
       </div>
     </section>
   );
