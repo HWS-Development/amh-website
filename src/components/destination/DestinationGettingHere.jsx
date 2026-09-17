@@ -64,7 +64,10 @@ const DestinationGettingHere = ({ gettingHere, sectionRef }) => {
           className="mt-12 grid gap-6 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]"
         >
           {gettingHere.map((item, index) => {
-            const Icon = iconMap[item.mode] || iconMap.default;
+            const mode = item.mode || item.title || "";
+            const normalizedMode = mode.toLowerCase();
+            const iconKey = Object.keys(iconMap).find((key) => normalizedMode.includes(key));
+            const Icon = iconMap[iconKey] || iconMap.default;
             return (
               <div
                 key={index}
@@ -74,10 +77,10 @@ const DestinationGettingHere = ({ gettingHere, sectionRef }) => {
                   <Icon className="w-5 h-5 text-brand-action" />
                 </div>
                 <h3 className="mt-5 font-display text-xl text-brand-ink">
-                  {item.title}
+                  {mode}
                 </h3>
                 <p className="mt-2 font-montserrat text-[0.82rem] text-brand-ink/60 leading-relaxed">
-                  {item.content}
+                  {item.description || item.content}
                 </p>
               </div>
             );

@@ -72,6 +72,7 @@ const DestinationGallery = ({ slug, gallery, destinationName, sectionRef }) => {
     "md:col-span-1 md:row-span-1",
     "md:col-span-1 md:row-span-1",
   ];
+  const compactGallery = resolvedGallery.length <= 2;
 
   return (
     <section id="gallery" ref={sectionRef} className="py-20 md:py-32 bg-[#faf9f7] relative">
@@ -87,13 +88,15 @@ const DestinationGallery = ({ slug, gallery, destinationName, sectionRef }) => {
 
         <div
           ref={gridRef}
-          className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 auto-rows-[200px] md:auto-rows-[250px]"
+          className={compactGallery
+            ? "grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"
+            : "grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 auto-rows-[200px] md:auto-rows-[250px]"}
         >
           {resolvedGallery.slice(0, 6).map((url, index) => (
             <button
               key={index}
               onClick={() => openLightbox(index)}
-              className={`overflow-hidden group relative ${aspectClasses[index] || "md:col-span-1 md:row-span-1"}`}
+              className={`overflow-hidden group relative ${compactGallery ? "h-[300px] md:h-[460px]" : (aspectClasses[index] || "md:col-span-1 md:row-span-1")}`}
             >
               <OptimizedImage
                 src={url}
