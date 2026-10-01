@@ -1,12 +1,17 @@
 import { useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowUpRight, CalendarDays, MapPin } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMghDestinations } from '@/lib/mghApi';
 import { getTranslated } from '@/lib/utils';
+import { usePartnerHotels } from '@/lib/partnerHotelsApi';
+import { usePartnerCatalogs } from '@/lib/partnerCatalogsApi';
+import { mapPartnerHotelToRiad } from '@/lib/partnerHotelTransform';
+import { matchSimpleBookingHotels } from '@/lib/simplebookingHotelMatch';
 import hotels from '@/lib/simplebookingHotels.json';
 import NotFoundPage from '@/pages/NotFoundPage';
+import RiadCard from '@/components/RiadCard';
 
 const normalize = (value) => String(value || '')
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -30,12 +35,26 @@ const BookingSearchPage = () => {
   const { t, currentLanguage } = useLanguage();
   const [params] = useSearchParams();
   const { data: destinations = [], isLoading, isError } = useMghDestinations();
+  const { data: partnerHotels = [], isLoading: hotelsLoading, isError: hotelsError } = usePartnerHotels();
+  const { data: partnerCatalogs } = usePartnerCatalogs();
   const slug = params.get('city');
   const destination = destinations.find((item) => item.slug === slug);
   const name = destination && getTranslated(destination.name_tr ?? destination.name, currentLanguage);
-  const availableHotels = useMemo(() => hotels.filter((hotel) => (
+  const cityHotels = useMemo(() => hotels.filter((hotel) => (
     slug && normalize(hotel.city).includes(normalize(slug))
   )), [slug]);
+  const availableHotels = useMemo(() => matchSimpleBookingHotels(cityHotels, partnerHotels)
+    .filter(({ partnerHotel }) => partnerHotel)
+    .map(({ bookingHotel, partnerHotel }) => {
+      const riad = mapPartnerHotelToRiad(partnerHotel, currentLanguage, partnerCatalogs);
+      return {
+        bookingHotel,
+        riad: {
+          ...riad,
+          country: t('morocco'),
+        },
+      };
+    }), [cityHotels, partnerHotels, currentLanguage, partnerCatalogs, t]);
 
   if (isLoading) return <div className="min-h-screen bg-brand-beige/20 pt-32 text-center">{t('loading')}</div>;
   if (!destination) return isError ? <div className="min-h-screen pt-32 text-center">{t('somethingWentWrong')}</div> : <NotFoundPage />;
@@ -55,6 +74,9 @@ const BookingSearchPage = () => {
           <p className="mt-4 max-w-2xl font-montserrat text-sm leading-relaxed text-brand-ink/65">
             {t('bookingSearchIntro')}
           </p>
+          <p className="mt-2 max-w-2xl font-montserrat text-xs leading-relaxed text-brand-ink/55">
+            {t('bookingSearchAvailabilityNote')}
+          </p>
           {params.get('in') && params.get('out') && (
             <p className="mt-5 inline-flex items-center gap-2 font-montserrat text-xs text-brand-ink/70">
               <CalendarDays className="h-4 w-4 text-brand-action" />
@@ -62,7 +84,11 @@ const BookingSearchPage = () => {
             </p>
           )}
 
-          {availableHotels.length === 0 ? (
+          {hotelsLoading ? (
+            <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-brand-action" aria-label={t('loading')} /></div>
+          ) : hotelsError ? (
+            <div className="mt-12 border border-brand-ink/10 bg-white p-8 font-montserrat text-sm text-brand-ink/75">{t('somethingWentWrong')}</div>
+          ) : availableHotels.length === 0 ? (
             <div className="mt-12 border border-brand-ink/10 bg-white p-8 md:p-12">
               <p className="font-montserrat text-sm leading-relaxed text-brand-ink/75">{t('bookingSearchEmpty', { city: name })}</p>
               <Link to={`/destinations/${encodeURIComponent(slug)}`} className="mt-6 inline-flex items-center gap-2 font-montserrat text-xs font-semibold uppercase tracking-wider text-brand-action hover:text-brand-ink">
@@ -74,19 +100,13 @@ const BookingSearchPage = () => {
               <p className="mt-12 font-montserrat text-xs font-semibold uppercase tracking-[0.18em] text-brand-ink/50">
                 {t('bookingSearchCount', { count: availableHotels.length })}
               </p>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                {availableHotels.map((hotel) => (
-                  <article key={hotel.id} className="flex flex-col justify-between gap-8 border border-brand-ink/10 bg-white p-6 md:p-8 shadow-sm">
-                    <div>
-                      <h2 className="font-display text-2xl text-brand-ink">{hotel.name}</h2>
-                      <p className="mt-3 flex items-center gap-2 font-montserrat text-xs text-brand-ink/60">
-                        <MapPin className="h-4 w-4 text-brand-action" /> {hotel.city}
-                      </p>
-                    </div>
-                    <a href={buildBookingUrl(hotel.id, params, currentLanguage)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-between gap-4 bg-brand-ink px-5 py-3 font-montserrat text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:bg-brand-action">
-                      {t('bookYourStay')} <ArrowUpRight className="h-4 w-4" />
-                    </a>
-                  </article>
+              <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {availableHotels.map(({ bookingHotel, riad }) => (
+                  <RiadCard
+                    key={bookingHotel.id}
+                    riad={riad}
+                    bookingHref={buildBookingUrl(bookingHotel.id, params, currentLanguage)}
+                  />
                 ))}
               </div>
             </>
