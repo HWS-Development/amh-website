@@ -361,6 +361,8 @@
   "bookingSearchAvailabilityNote": "Les établissements présentés sont reliés à SimpleBooking. Leurs disponibilités pour vos dates seront confirmées dans le moteur de réservation.",
   "bookingSearchCount_one": "{{count}} établissement dans le moteur de réservation",
   "bookingSearchCount_other": "{{count}} établissements dans le moteur de réservation",
+  "bookingSearchRange": "Résultats {{start}}–{{end}} sur {{total}}",
+  "bookingPagination": "Pages de résultats",
   "bookingViewDetails": "Voir les détails",
   "bookingSearchEmpty": "Aucun établissement à {{city}} n'est actuellement relié à ce moteur de réservation. Découvrez la destination en attendant."
 }

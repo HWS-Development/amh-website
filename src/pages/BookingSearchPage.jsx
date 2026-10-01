@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowUpRight, CalendarDays, Loader2 } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMghDestinations } from '@/lib/mghApi';
 import { getTranslated } from '@/lib/utils';
@@ -12,6 +12,8 @@ import { matchSimpleBookingHotels } from '@/lib/simplebookingHotelMatch';
 import hotels from '@/lib/simplebookingHotels.json';
 import NotFoundPage from '@/pages/NotFoundPage';
 import RiadCard from '@/components/RiadCard';
+
+const HOTELS_PER_PAGE = 12;
 
 const normalize = (value) => String(value || '')
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -33,7 +35,7 @@ const buildBookingUrl = (hotelId, params, language) => {
 
 const BookingSearchPage = () => {
   const { t, currentLanguage } = useLanguage();
-  const [params] = useSearchParams();
+  const [params, setSearchParams] = useSearchParams();
   const { data: destinations = [], isLoading, isError } = useMghDestinations();
   const { data: partnerHotels = [], isLoading: hotelsLoading, isError: hotelsError } = usePartnerHotels();
   const { data: partnerCatalogs } = usePartnerCatalogs();
@@ -43,8 +45,17 @@ const BookingSearchPage = () => {
   const cityHotels = useMemo(() => hotels.filter((hotel) => (
     slug && normalize(hotel.city).includes(normalize(slug))
   )), [slug]);
-  const availableHotels = useMemo(() => matchSimpleBookingHotels(cityHotels, partnerHotels)
-    .filter(({ partnerHotel }) => partnerHotel)
+  const matchedHotels = useMemo(() => matchSimpleBookingHotels(cityHotels, partnerHotels)
+    .filter(({ partnerHotel }) => partnerHotel), [cityHotels, partnerHotels]);
+  const totalPages = Math.max(1, Math.ceil(matchedHotels.length / HOTELS_PER_PAGE));
+  const rawPage = params.get('page');
+  const requestedPage = Number(rawPage);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0
+    ? Math.min(requestedPage, totalPages)
+    : 1;
+  const start = (page - 1) * HOTELS_PER_PAGE;
+  const visibleHotels = useMemo(() => matchedHotels
+    .slice(start, start + HOTELS_PER_PAGE)
     .map(({ bookingHotel, partnerHotel }) => {
       const riad = mapPartnerHotelToRiad(partnerHotel, currentLanguage, partnerCatalogs);
       return {
@@ -54,7 +65,37 @@ const BookingSearchPage = () => {
           country: t('morocco'),
         },
       };
-    }), [cityHotels, partnerHotels, currentLanguage, partnerCatalogs, t]);
+    }), [matchedHotels, start, currentLanguage, partnerCatalogs, t]);
+  const pageNumbers = totalPages <= 7
+    ? Array.from({ length: totalPages }, (_, index) => index + 1)
+    : [...new Set([1, totalPages, ...Array.from({ length: 5 }, (_, index) => page + index - 2)])]
+      .filter((number) => number >= 1 && number <= totalPages)
+      .sort((a, b) => a - b);
+  const resultsRef = useRef(null);
+  const previousPageRef = useRef(page);
+
+  useEffect(() => {
+    if (hotelsLoading || hotelsError || rawPage === null || rawPage === String(page)) return;
+    const next = new URLSearchParams(params);
+    next.set('page', String(page));
+    setSearchParams(next, { replace: true, preventScrollReset: true });
+  }, [hotelsLoading, hotelsError, rawPage, page, params, setSearchParams]);
+
+  useEffect(() => {
+    if (previousPageRef.current !== page) {
+      previousPageRef.current = page;
+      resultsRef.current?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    }
+  }, [page]);
+
+  const goToPage = (nextPage) => {
+    const next = new URLSearchParams(params);
+    next.set('page', String(nextPage));
+    setSearchParams(next);
+  };
 
   if (isLoading) return <div className="min-h-screen bg-brand-beige/20 pt-32 text-center">{t('loading')}</div>;
   if (!destination) return isError ? <div className="min-h-screen pt-32 text-center">{t('somethingWentWrong')}</div> : <NotFoundPage />;
@@ -88,7 +129,7 @@ const BookingSearchPage = () => {
             <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-brand-action" aria-label={t('loading')} /></div>
           ) : hotelsError ? (
             <div className="mt-12 border border-brand-ink/10 bg-white p-8 font-montserrat text-sm text-brand-ink/75">{t('somethingWentWrong')}</div>
-          ) : availableHotels.length === 0 ? (
+          ) : matchedHotels.length === 0 ? (
             <div className="mt-12 border border-brand-ink/10 bg-white p-8 md:p-12">
               <p className="font-montserrat text-sm leading-relaxed text-brand-ink/75">{t('bookingSearchEmpty', { city: name })}</p>
               <Link to={`/destinations/${encodeURIComponent(slug)}`} className="mt-6 inline-flex items-center gap-2 font-montserrat text-xs font-semibold uppercase tracking-wider text-brand-action hover:text-brand-ink">
@@ -96,12 +137,15 @@ const BookingSearchPage = () => {
               </Link>
             </div>
           ) : (
-            <>
-              <p className="mt-12 font-montserrat text-xs font-semibold uppercase tracking-[0.18em] text-brand-ink/50">
-                {t('bookingSearchCount', { count: availableHotels.length })}
-              </p>
+            <div ref={resultsRef} className="mt-12 scroll-mt-28">
+              <div className="flex flex-wrap items-center justify-between gap-3 font-montserrat text-xs font-semibold uppercase tracking-[0.18em] text-brand-ink/50">
+                <p>{t('bookingSearchCount', { count: matchedHotels.length })}</p>
+                {totalPages > 1 && (
+                  <p>{t('bookingSearchRange', { start: start + 1, end: Math.min(start + HOTELS_PER_PAGE, matchedHotels.length), total: matchedHotels.length })}</p>
+                )}
+              </div>
               <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {availableHotels.map(({ bookingHotel, riad }) => (
+                {visibleHotels.map(({ bookingHotel, riad }) => (
                   <RiadCard
                     key={bookingHotel.id}
                     riad={riad}
@@ -109,7 +153,25 @@ const BookingSearchPage = () => {
                   />
                 ))}
               </div>
-            </>
+              {totalPages > 1 && (
+                <nav aria-label={t('bookingPagination')} className="mt-12 flex flex-wrap items-center justify-center gap-2 font-montserrat text-sm">
+                  <button type="button" onClick={() => goToPage(page - 1)} disabled={page === 1} aria-label={t('previous')} className="grid h-11 w-11 place-items-center border border-brand-ink/15 text-brand-ink transition-colors hover:border-brand-action hover:text-brand-action disabled:cursor-not-allowed disabled:opacity-35">
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {pageNumbers.map((number, index) => [
+                    index > 0 && number - pageNumbers[index - 1] > 1 && (
+                      <span key={`gap-${number}`} aria-hidden="true" className="px-1 text-brand-ink/50">…</span>
+                    ),
+                    <button key={number} type="button" onClick={() => goToPage(number)} aria-label={`${t('page')} ${number}`} aria-current={number === page ? 'page' : undefined} className={`h-11 w-11 border font-semibold transition-colors ${number === page ? 'border-brand-ink bg-brand-ink text-white' : 'border-brand-ink/15 text-brand-ink hover:border-brand-action hover:text-brand-action'}`}>
+                      {number}
+                    </button>,
+                  ])}
+                  <button type="button" onClick={() => goToPage(page + 1)} disabled={page === totalPages} aria-label={t('next')} className="grid h-11 w-11 place-items-center border border-brand-ink/15 text-brand-ink transition-colors hover:border-brand-action hover:text-brand-action disabled:cursor-not-allowed disabled:opacity-35">
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </nav>
+              )}
+            </div>
           )}
         </div>
       </div>
