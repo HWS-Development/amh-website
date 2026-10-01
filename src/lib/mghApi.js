@@ -6,6 +6,9 @@
  * Centra.
  */
 
+import { useQuery } from '@tanstack/react-query';
+import { getTranslated } from '@/lib/utils';
+
 const MGH_PUBLIC_API_URL = 'https://mgh-dashboard.hospitalitywebservices.com/api/public';
 
 const fetchMghPublicData = async (path, { signal } = {}) => {
@@ -61,6 +64,35 @@ export async function listDestinations({ slugs, limit, signal } = {}) {
 
   const data = await fetchMghPublicData(`/destinations?${params}`, { signal });
   return Array.isArray(data) ? data : [];
+}
+
+export function useMghDestinations() {
+  return useQuery({
+    queryKey: ['mgh-destinations'],
+    queryFn: ({ signal }) => listDestinations({ signal }),
+    staleTime: 60 * 1000,
+  });
+}
+
+// Keep the published MGH catalog as the source of city choices while using
+// Centra IDs where a hotel/neighborhood filter needs one.
+export function mapDestinationsToHotelCities(destinations, hotelCities, language) {
+  const normalize = (value) => String(value || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/fez/g, 'fes').replace(/[^a-z0-9]/g, '');
+
+  return destinations.map((destination) => {
+    const name = getTranslated(destination.name_tr ?? destination.name, language);
+    const city = hotelCities.find((entry) => [entry.id, entry.name, entry.label]
+      .some((value) => normalize(value) === normalize(destination.slug) || normalize(value) === normalize(name)));
+    return {
+      id: city?.id || destination.slug,
+      slug: destination.slug,
+      name,
+      label: name,
+      hotelCount: city?.hotelCount || 0,
+    };
+  });
 }
 
 export async function getDestinationBySlug(slug, { signal } = {}) {

@@ -90,7 +90,7 @@ const DestinationsLandingPage = () => {
               className="font-montserrat text-[0.7rem] font-semibold uppercase tracking-[0.42em] text-brand-action mb-6 inline-flex items-center gap-2"
             >
               <Compass className="w-3.5 h-3.5" />
-              {t('destinationsEyebrow') || 'Trois villes, une âme'}
+              {t('destinationsEyebrow')}
             </motion.p>
 
             <motion.h1
@@ -126,7 +126,7 @@ const DestinationsLandingPage = () => {
               className="mt-12 flex flex-wrap items-center gap-8 md:gap-12 pt-8 border-t border-brand-ink/10"
             >
               {[
-                { value: destinations.length || 3, label: t('destinations') || 'Destinations' },
+                 { value: destinations.length, label: t('destinations') || 'Destinations' },
                 { value: partnerHotels.length, label: t('classifiedRiads') || 'Classified riads' },
                 { value: 100, suffix: '%', label: t('directBooking') || 'Direct booking' },
               ].map((s, i) => (

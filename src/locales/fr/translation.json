@@ -124,7 +124,7 @@
   "unforgettableExperiencesDesc": "Des souks animés de Marrakech aux rivages tranquilles d'Essaouira, plongez dans des expériences qui définissent la culture et l'hospitalité marocaines.",
   "experiencesEyebrow": "Voyages d'exception",
   "experienceLabel": "Expérience",
-  "destinationsEyebrow": "Quatre villes, une même âme",
+  "destinationsEyebrow": "Explorez le Maroc",
   "goToCollection": "Voir la Collection",
   "officialAssociation": "Association Officielle",
   "discoverRiads": "Découvrir les riads",
@@ -334,7 +334,7 @@
   "directions": "Itinéraire",
   "duration": "Durée",
   "experienceHighlights": "Au programme",
-  "experiencesPageDesc": "Des voyages choisis à travers Marrakech, Ouarzazate, Agafay et Essaouira — sélectionnés par votre hôte.",
+  "experiencesPageDesc": "Découvrez les expériences proposées à travers le Maroc, sélectionnées par votre hôte.",
   "experiencesPageTitle": "Expériences à travers le Maroc",
   "exploreDestination": "Explorer la destination",
   "filterBy": "Filtrer par",
@@ -355,5 +355,9 @@
   "trustStatCommission": "Commission",
   "trustStatDirect": "Réservation directe",
   "trustStatRiads": "Riads classés",
-  "viewRiads": "Voir les riads"
+  "viewRiads": "Voir les riads",
+  "bookingSearchTitle": "Réserver à {{city}}",
+  "bookingSearchIntro": "Choisissez un établissement pour consulter ses disponibilités et réserver directement dans le moteur de réservation.",
+  "bookingSearchCount": "{{count}} établissement disponible dans le moteur de réservation",
+  "bookingSearchEmpty": "Aucun établissement à {{city}} n'est actuellement relié à ce moteur de réservation. Découvrez la destination en attendant."
 }

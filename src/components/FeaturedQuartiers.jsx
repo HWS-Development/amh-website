@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePartnerHotels } from '@/lib/partnerHotelsApi';
 import { usePartnerCatalogs } from '@/lib/partnerCatalogsApi';
+import { mapDestinationsToHotelCities, useMghDestinations } from '@/lib/mghApi';
 import { deriveDestinationsFromRiads, deriveNeighborhoodsFromRiads, mapPartnerHotelToRiad } from '@/lib/partnerHotelTransform';
 import { ArrowUpRight, Loader2 } from 'lucide-react';
 import OptimizedImage from '@/components/ui/OptimizedImage';
@@ -137,8 +138,18 @@ export default function FeaturedQuartiers() {
     () => hotels.map((hotel) => mapPartnerHotelToRiad(hotel, currentLanguage, partnerCatalogs)),
     [hotels, currentLanguage, partnerCatalogs]
   );
-  const cities = useMemo(() => deriveDestinationsFromRiads(riads), [riads]);
-  const rows = useMemo(() => deriveNeighborhoodsFromRiads(riads), [riads]);
+  const hotelCities = useMemo(() => deriveDestinationsFromRiads(riads), [riads]);
+  const { data: mghDestinations = [] } = useMghDestinations();
+  const cities = useMemo(
+    () => mapDestinationsToHotelCities(mghDestinations, hotelCities, currentLanguage),
+    [mghDestinations, hotelCities, currentLanguage]
+  );
+  const rows = useMemo(() => {
+    const cityNames = new Map(cities.map((city) => [String(city.id), city.name]));
+    return deriveNeighborhoodsFromRiads(riads)
+      .filter((neighborhood) => cityNames.has(String(neighborhood.city_id)))
+      .map((neighborhood) => ({ ...neighborhood, city: cityNames.get(String(neighborhood.city_id)) }));
+  }, [riads, cities]);
 
   const byCity = useMemo(() => {
     const map = new Map(cities.map((city) => [city.id, []]));

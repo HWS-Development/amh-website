@@ -9,6 +9,8 @@ import "swiper/css/pagination";
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import BookingStrip from "@/components/BookingStrip";
+import { useMghDestinations } from "@/lib/mghApi";
+import { getTranslated } from "@/lib/utils";
 
 /* ─── Framer variants ─────────────────────────────────────────────────── */
 const expVariants = {
@@ -20,6 +22,7 @@ const expVariants = {
 /* ═══════════════════════════════════════════════════════════ HERO ══════ */
 const HeroSection = () => {
   const { t, currentLanguage, date, onDateChange } = useLanguage();
+  const { data: destinations = [] } = useMghDestinations();
 
   const sectionRef  = useRef(null);
   const topBarRef   = useRef(null);
@@ -37,32 +40,16 @@ const HeroSection = () => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  /* One slide per experience — order from the brief. */
-  const slides = useMemo(() => [
-    {
-      key: "marrakech",
-      image: "/images/hero_koutoubia.webp",
-      experienceTitle: t("heroSliderMarrakech"),
-      experienceDesc:  t("heroSliderMarrakechDesc"),
-      dest: t("marrakech"),
-    },
-    {
-      key: "ouarzazate",
-      image: "/images/hero_ouarzazate.webp",
-      experienceTitle: t("heroSliderOuarzazate"),
-      experienceDesc:  t("heroSliderOuarzazateDesc"),
-      dest: t("ouarzazate"),
-    },
-    {
-      key: "essaouira",
-      image: "/images/hero_essaouira.webp",
-      experienceTitle: t("heroSliderEssaouira"),
-      experienceDesc:  t("heroSliderEssaouiraDesc"),
-      dest: t("essaouira"),
-    },
-  ], [t, currentLanguage]);
+  const slides = useMemo(() => destinations
+    .filter((destination) => destination.hero_image_urls?.[0])
+    .map((destination) => ({
+      key: destination.slug,
+      image: destination.hero_image_urls[0],
+      title: getTranslated(destination.subtitle_tr ?? destination.subtitle, currentLanguage),
+      dest: getTranslated(destination.name_tr ?? destination.name, currentLanguage),
+    })), [destinations, currentLanguage]);
 
-  const current = slides[activeIdx];
+  const current = slides[activeIdx % slides.length];
 
   const handleSlideChange = useCallback((swiper) => {
     setActiveIdx(swiper.realIndex);
@@ -104,7 +91,8 @@ const HeroSection = () => {
     >
       {/* ════════════ FULL-BLEED MAIN IMAGE ═════════════════════════════ */}
       <div className="absolute inset-0" ref={mainImgRef}>
-        <Swiper
+        {slides.length > 0 && <Swiper
+          key={slides.map((slide) => slide.key).join(',')}
           modules={[Autoplay, EffectFade, Keyboard]}
           effect="fade"
           fadeEffect={{ crossFade: true }}
@@ -130,7 +118,7 @@ const HeroSection = () => {
               )}
             </SwiperSlide>
           ))}
-        </Swiper>
+        </Swiper>}
 
         {/* Subtle dark overlays for readability */}
         <div
@@ -305,7 +293,7 @@ const HeroSection = () => {
                       textShadow: "0 1px 10px rgba(0,0,0,0.5)",
                     }}
                   >
-                    {t("liveTheExperience") || "Vivez l'expérience"} · {current?.dest}
+                    {t("destination")} · {current?.dest}
                   </span>
                   <span
                     style={{
@@ -318,7 +306,7 @@ const HeroSection = () => {
                       textShadow: "0 1px 14px rgba(0,0,0,0.55)",
                     }}
                   >
-                    {current?.experienceTitle}
+                    {current?.title}
                   </span>
                 </div>
               </motion.div>
@@ -326,7 +314,7 @@ const HeroSection = () => {
           </div>
 
           {/* Slide indicators + counter */}
-          <div className="flex items-center gap-2">
+          {slides.length > 0 && <div className="flex items-center gap-2">
             {slides.map((s, i) => (
               <motion.div
                 key={s.key}
@@ -339,7 +327,7 @@ const HeroSection = () => {
             <span style={{ marginLeft: 10, fontSize: 9, letterSpacing: "0.3em", color: "rgba(245,237,224,0.4)" }}>
               <strong style={{ color: "#c4804a" }}>{String(activeIdx + 1).padStart(2, "0")}</strong> / {String(slides.length).padStart(2, "0")}
             </span>
-          </div>
+          </div>}
         </div>
       </div>
 

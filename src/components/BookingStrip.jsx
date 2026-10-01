@@ -1,15 +1,14 @@
 import React, { useState, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, getTranslated } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { MapPin, CalendarDays, Users, Minus, Plus, Search as SearchIcon, BedDouble, Baby } from 'lucide-react';
-import { usePartnerHotels } from '@/lib/partnerHotelsApi';
-import { usePartnerCatalogs } from '@/lib/partnerCatalogsApi';
-import { deriveDestinationsFromRiads, mapPartnerHotelToRiad } from '@/lib/partnerHotelTransform';
+import { useMghDestinations } from '@/lib/mghApi';
 
 const MAX_ROOMS = 6;
 const CHILD_AGES = Array.from({ length: 13 }, (_, age) => age);
@@ -161,6 +160,7 @@ const RoomAllocationEditor = ({
 
 const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, onSearch }) => {
   const { t, currentLanguage } = useLanguage();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [destination, setDestination] = useState('');
   const [roomAllocations, setRoomAllocations] = useState([
@@ -169,15 +169,16 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
   const [destOpen, setDestOpen] = useState(false);
   const [guestsOpen, setGuestsOpen] = useState(false);
   const stripRef = useRef(null);
-  const { data: hotels = [] } = usePartnerHotels();
-  const { data: partnerCatalogs } = usePartnerCatalogs();
+  const { data: mghDestinations = [], isLoading: destinationsLoading } = useMghDestinations();
   const destinations = useMemo(() => {
-    const riads = hotels.map((hotel) => mapPartnerHotelToRiad(hotel, currentLanguage, partnerCatalogs));
     return [
       { value: '', label: t('allDestinations') },
-      ...deriveDestinationsFromRiads(riads).map((city) => ({ value: city.id, label: city.name })),
+      ...mghDestinations.map((city) => ({
+        value: city.slug,
+        label: getTranslated(city.name_tr ?? city.name, currentLanguage),
+      })),
     ];
-  }, [hotels, currentLanguage, partnerCatalogs, t]);
+  }, [mghDestinations, currentLanguage, t]);
 
   const adults = roomAllocations.reduce((total, room) => total + room.adults, 0);
   const children = roomAllocations.reduce((total, room) => total + room.childAges.length, 0);
@@ -265,17 +266,22 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
 
     const simplebookingBase = import.meta.env.VITE_SIMPLEBOOKING_BASE || 'https://www.simplebooking.it/portal/256';
     const params = new URLSearchParams({
-      lang: currentLanguage.toUpperCase(),
+      lang: currentLanguage.split('-')[0].toUpperCase(),
       cur: 'EUR',
       in: checkin,
       out: checkout,
       guests: guestParams,
-      // SimpleBooking map parameter removed. To restore it, add: map: 'JPPSV'.
     });
-    const url = `${simplebookingBase}?${params.toString()}`;
 
     if (onSearch) onSearch();
-    window.open(url, '_blank');
+    if (destination) {
+      // The portal has no configured places. Show its hotels in this MGH city,
+      // then open the chosen hotel's booking engine with dates and guests.
+      params.set('city', destination);
+      navigate(`/booking-search?${params.toString()}`);
+    } else {
+      window.open(`${simplebookingBase}?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const selectedDestLabel = useMemo(() => {
@@ -307,7 +313,8 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
               <span className={labelClass}>{selectedDestLabel}</span>
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-[min(92vw,320px)] p-1.5 shadow-2xl border-brand-ink/5" align="center">
+          <PopoverContent className="w-[min(92vw,320px)] max-h-[min(60vh,24rem)] overflow-y-auto p-1.5 shadow-2xl border-brand-ink/5" align="center">
+            {destinationsLoading && <p className="px-3 py-2.5 text-xs font-montserrat">{t('loading')}</p>}
             {destinations.map((d) => (
               <button
                 key={d.value}
@@ -396,7 +403,8 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
               <span className={labelClass}>{selectedDestLabel}</span>
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-1.5 shadow-2xl border-brand-ink/5" align="start">
+          <PopoverContent className="w-56 max-h-[min(60vh,24rem)] overflow-y-auto p-1.5 shadow-2xl border-brand-ink/5" align="start">
+            {destinationsLoading && <p className="px-3 py-2.5 text-xs font-montserrat">{t('loading')}</p>}
             {destinations.map((d) => (
               <button
                 key={d.value}

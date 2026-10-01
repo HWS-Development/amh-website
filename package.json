@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node tools/generate-llms.js || true && vite build",
+    "sync:simplebooking": "node tools/sync-simplebooking-hotels.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

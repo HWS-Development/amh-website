@@ -7,25 +7,14 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const FALLBACK_GALLERIES = {
-  marrakech: ['/images/koutoubia.jpg', '/images/hero_koutoubia.webp'],
-  essaouira: ['/images/essaouira1.jpg', '/images/hero_essaouira.webp'],
-  ouarzazate: ['/images/ouarzazate1.jpg', '/images/hero_ouarzazate.webp'],
-  fes: ['/images/hero_ouarzazate.webp', '/images/hero_koutoubia.webp', '/images/hero_essaouira.webp'],
-};
-
-const DEFAULT_FALLBACK = ['/images/hero_koutoubia.webp'];
-
-const DestinationGallery = ({ slug, gallery, destinationName, sectionRef }) => {
+const DestinationGallery = ({ gallery, destinationName, sectionRef }) => {
   const { t } = useLanguage();
   const headerRef = useRef(null);
   const gridRef = useRef(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const resolvedGallery = (gallery && gallery.length > 0)
-    ? gallery
-    : (FALLBACK_GALLERIES[slug] || DEFAULT_FALLBACK);
+  const resolvedGallery = gallery || [];
 
   useEffect(() => {
     if (!resolvedGallery?.length || !gridRef.current) return;
@@ -73,6 +62,8 @@ const DestinationGallery = ({ slug, gallery, destinationName, sectionRef }) => {
     "md:col-span-1 md:row-span-1",
   ];
   const compactGallery = resolvedGallery.length <= 2;
+
+  if (!resolvedGallery.length) return null;
 
   return (
     <section id="gallery" ref={sectionRef} className="py-20 md:py-32 bg-[#faf9f7] relative">

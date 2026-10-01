@@ -124,7 +124,7 @@
   "unforgettableExperiencesDesc": "Desde los bulliciosos zocos de Marrakech hasta las tranquilas costas de Esauira, sumérjase en experiencias que definen la cultura y la hospitalidad marroquíes.",
   "experiencesEyebrow": "Viajes seleccionados",
   "experienceLabel": "Experiencia",
-  "destinationsEyebrow": "Cuatro ciudades, una sola alma",
+  "destinationsEyebrow": "Explora Marruecos",
   "goToCollection": "Ir a la Colección",
   "officialAssociation": "Asociación Oficial",
   "discoverRiads": "Descubrir los riads",
@@ -316,5 +316,9 @@
   "showMore": "Mostrar más",
   "view": "Ver",
   "viewAll": "Ver todo",
-  "bookingConditions": "Condiciones de reserva"
+  "bookingConditions": "Condiciones de reserva",
+  "bookingSearchTitle": "Reservar en {{city}}",
+  "bookingSearchIntro": "Elija un alojamiento para consultar la disponibilidad y reservar directamente en su motor de reservas.",
+  "bookingSearchCount": "{{count}} alojamiento disponible en el motor de reservas",
+  "bookingSearchEmpty": "Ningún alojamiento en {{city}} está conectado actualmente a este motor de reservas. Descubra el destino mientras tanto."
 }

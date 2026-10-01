@@ -17,6 +17,7 @@ import { useQueryParams, StringParam, NumberParam } from "use-query-params";
 import { usePartnerHotels } from "@/lib/partnerHotelsApi";
 import { usePartnerCatalogs } from "@/lib/partnerCatalogsApi";
 import { getAvailableFilterOptions, mapPartnerHotelToRiad } from "@/lib/partnerHotelTransform";
+import { mapDestinationsToHotelCities, useMghDestinations } from "@/lib/mghApi";
 import gsap from "gsap";
 
 const ITEMS_PER_PAGE = 12;
@@ -66,6 +67,7 @@ const AllRiadsPage = () => {
   const view = query.view === "list" ? "list" : "cards";
 
   const { data: hotelsData, isLoading: hotelsLoading, error: hotelsError } = usePartnerHotels();
+  const { data: mghDestinations = [] } = useMghDestinations();
   const { data: partnerCatalogs } = usePartnerCatalogs();
 
   const riadsMap = useMemo(() => {
@@ -88,8 +90,14 @@ const AllRiadsPage = () => {
   }, [hotelsData, currentLanguage, partnerCatalogs]);
 
   const filterOptions = useMemo(
-    () => getAvailableFilterOptions(riadsMap),
-    [riadsMap]
+    () => {
+      const options = getAvailableFilterOptions(riadsMap);
+      return {
+        ...options,
+        cities: mapDestinationsToHotelCities(mghDestinations, options.cities, currentLanguage),
+      };
+    },
+    [riadsMap, mghDestinations, currentLanguage]
   );
   // Initial loading state
   useEffect(() => {
@@ -203,7 +211,7 @@ const AllRiadsPage = () => {
 
     const matchById = (entries, value) => {
       if (!value) return null;
-      return entries.find((e) => e.id === value || normalize(e.label) === normalize(value))?.id || null;
+      return entries.find((e) => e.id === value || e.slug === value || normalize(e.label) === normalize(value))?.id || null;
     };
 
     setFilters((prev) => ({

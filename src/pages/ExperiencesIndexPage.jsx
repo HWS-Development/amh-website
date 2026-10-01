@@ -16,7 +16,7 @@ import {
   Filter,
   Loader2,
 } from 'lucide-react';
-import { listExperiences } from '@/lib/mghApi';
+import { listExperiences, useMghDestinations } from '@/lib/mghApi';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslated } from '@/lib/utils';
 import OptimizedImage from '@/components/ui/OptimizedImage';
@@ -35,6 +35,7 @@ const ExperiencesIndexPage = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
+  const { data: mghDestinations = [] } = useMghDestinations();
   const reduce = useReducedMotion();
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, -60]);
@@ -88,7 +89,7 @@ const ExperiencesIndexPage = () => {
   const pageTitle = t('experiencesPageTitle') || 'Experiences across Morocco';
   const pageDescription =
     t('experiencesPageDesc') ||
-    'Curated journeys through Marrakech, Ouarzazate, Agafay and Essaouira — handpicked by your host.';
+    'Discover experiences across Morocco, selected by your host.';
 
   return (
     <>
@@ -159,8 +160,8 @@ const ExperiencesIndexPage = () => {
               className="mt-12 flex flex-wrap items-center gap-8 md:gap-12 pt-8 border-t border-brand-ink/10"
             >
               {[
-                { value: items.length || 4, label: t('experiences') || 'Experiences' },
-                { value: 3, label: t('destinations') || 'Destinations' },
+                 { value: items.length, label: t('experiences') || 'Experiences' },
+                 { value: mghDestinations.length, label: t('destinations') || 'Destinations' },
                 { value: 100, suffix: '%', label: t('curatedByHost') || 'Curated by host' },
               ].map((s, i) => (
                 <div key={i}>

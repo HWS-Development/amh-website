@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { listDestinations } from "@/lib/mghApi";
+import { useMghDestinations } from "@/lib/mghApi";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ArrowUpRight, Loader2, MapPin } from "lucide-react";
 import { getTranslated } from "@/lib/utils";
@@ -17,42 +17,8 @@ import {
 
 export default function FeaturedDestinations() {
   const { t, currentLanguage } = useLanguage();
-  const [destinations, setDestinations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data: destinations = [], isLoading: loading, error } = useMghDestinations();
   const reduce = useReducedMotion();
-
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await listDestinations({
-          slugs: ["marrakech", "essaouira", "ouarzazate", "fes"],
-        });
-        if (!isMounted) return;
-        const mapped = (data || []).map((dest) => ({
-          slug: dest.slug,
-          name: getTranslated(dest.name_tr ?? dest.name, currentLanguage) || "",
-          subtitle:
-            getTranslated(dest.subtitle_tr ?? dest.subtitle, currentLanguage) ||
-            "",
-          img: dest.hero_image_urls?.[0] || null,
-        }));
-        setDestinations(mapped);
-      } catch (err) {
-        if (!isMounted) return;
-        console.error("Error fetching featured destinations:", err);
-        setError(t("somethingWentWrong"));
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
-  }, [currentLanguage, t]);
 
   return (
     <section className="section-padding bg-white relative overflow-hidden">
@@ -60,7 +26,7 @@ export default function FeaturedDestinations() {
       <div className="content-wrapper-wide relative">
         <RevealOnView>
           <SectionHeader
-            eyebrow={t("destinationsEyebrow") || "Four cities, one soul"}
+            eyebrow={t("destinationsEyebrow")}
             title={t("exploreOurDestinations")}
             subtitle={t("discoverTheSoulOfMorocco")}
           />
@@ -77,7 +43,7 @@ export default function FeaturedDestinations() {
 
         {!loading && error && (
           <div className="mx-auto max-w-xl border border-red-200 bg-red-50 p-4 text-red-800 text-sm">
-            <p className="font-medium">{error}</p>
+            <p className="font-medium">{t("somethingWentWrong")}</p>
             <button
               className="mt-3 underline text-sm"
               onClick={() => window.location.reload()}
@@ -89,23 +55,26 @@ export default function FeaturedDestinations() {
 
         {!loading && !error && (
           <>
-            <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 mt-2" stagger={0.12}>
+            <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 md:gap-7 mt-2" stagger={0.12}>
               {destinations.map((dest, index) => {
-                const imgAlt = dest.name ? `${dest.name} destination` : "Destination";
+                const name = getTranslated(dest.name_tr ?? dest.name, currentLanguage) || "";
+                const subtitle = getTranslated(dest.subtitle_tr ?? dest.subtitle, currentLanguage) || "";
+                const img = dest.hero_image_urls?.[0] || null;
+                const imgAlt = name ? `${name} destination` : "Destination";
                 return (
                   <div key={dest.slug} className="group [perspective:1200px]">
                     <Link
                       to={`/destinations/${dest.slug}`}
                       className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-action focus-visible:ring-offset-4"
-                      aria-label={`${dest.name} — ${t("exploreDestination") || "Explore destination"}`}
+                      aria-label={`${name} — ${t("exploreDestination") || "Explore destination"}`}
                     >
                       <TiltCard
                         intensity={6}
                         className="relative overflow-hidden aspect-[3/4] md:aspect-[4/5] bg-brand-beige shadow-[0_10px_30px_-15px_rgba(0,0,0,0.25)] transition-shadow duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:shadow-[0_30px_80px_-25px_rgba(0,0,0,0.5)]"
                       >
-                        {dest.img ? (
+                        {img ? (
                           <OptimizedImage
-                            src={dest.img}
+                            src={img}
                             alt={imgAlt}
                             fetchPriority="low"
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1600ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.09]"
@@ -143,11 +112,11 @@ export default function FeaturedDestinations() {
                                 transition={{ duration: 0.6, delay: 0.1 }}
                                 className="font-display text-white text-[clamp(1.6rem,2.5vw,2.4rem)] leading-[1.05] tracking-tight font-medium drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
                               >
-                                {dest.name}
+                                {name}
                               </motion.h3>
-                              {dest.subtitle && (
+                              {subtitle && (
                                 <p className="mt-2 text-white/85 text-[0.8rem] font-montserrat leading-relaxed line-clamp-2 max-w-[28ch]">
-                                  {dest.subtitle}
+                                  {subtitle}
                                 </p>
                               )}
                             </div>

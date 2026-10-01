@@ -291,8 +291,8 @@ const DestinationPage = () => {
           sectionRef={(el) => (sectionsRef.current["getting-here"] = el)}
         />
         <DestinationWhatToDo
-          slug={slug}
           whatToDo={what_to_do}
+          heroImage={hero_image_urls?.[0]}
           sectionRef={(el) => (sectionsRef.current["what-to-do"] = el)}
         />
         <DestinationGoodToKnow
@@ -307,11 +307,9 @@ const DestinationPage = () => {
         />
         <DestinationFAQ
           faq={faq}
-          slug={slug}
           sectionRef={(el) => (sectionsRef.current["faq"] = el)}
         />
         <DestinationGallery
-          slug={slug}
           gallery={gallery_urls}
           destinationName={name}
           sectionRef={(el) => (sectionsRef.current["gallery"] = el)}

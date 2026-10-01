@@ -124,7 +124,7 @@
   "unforgettableExperiencesDesc": "From the bustling souks of Marrakech to the tranquil shores of Essaouira, immerse yourself in experiences that define Moroccan culture and hospitality.",
   "experiencesEyebrow": "Curated journeys",
   "experienceLabel": "Experience",
-  "destinationsEyebrow": "Four cities, one soul",
+  "destinationsEyebrow": "Explore Morocco",
   "goToCollection": "Go to Collection",
   "officialAssociation": "Official Association",
   "discoverRiads": "Discover the riads",
@@ -334,7 +334,7 @@
   "directions": "Directions",
   "duration": "Duration",
   "experienceHighlights": "Experience highlights",
-  "experiencesPageDesc": "Curated journeys through Marrakech, Ouarzazate, Agafay and Essaouira — handpicked by your host.",
+  "experiencesPageDesc": "Discover experiences across Morocco, selected by your host.",
   "experiencesPageTitle": "Experiences across Morocco",
   "exploreDestination": "Explore destination",
   "filterBy": "Filter by",
@@ -355,5 +355,9 @@
   "trustStatCommission": "No commission",
   "trustStatDirect": "Direct booking",
   "trustStatRiads": "Classified riads",
-  "viewRiads": "View riads"
+  "viewRiads": "View riads",
+  "bookingSearchTitle": "Book in {{city}}",
+  "bookingSearchIntro": "Choose a property to check availability and book directly in its booking engine.",
+  "bookingSearchCount": "{{count}} property available in the booking engine",
+  "bookingSearchEmpty": "No property in {{city}} is currently connected to this booking engine. Explore the destination in the meantime."
 }

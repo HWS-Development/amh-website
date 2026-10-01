@@ -7,6 +7,7 @@ import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePartnerHotels } from '@/lib/partnerHotelsApi';
 import { usePartnerCatalogs } from '@/lib/partnerCatalogsApi';
+import { mapDestinationsToHotelCities, useMghDestinations } from '@/lib/mghApi';
 import {
   deriveDestinationsFromRiads,
   deriveNeighborhoodsFromRiads,
@@ -25,14 +26,24 @@ const MedinaQuartiersPage = () => {
   const [search, setSearch] = useState('');
   const selectedCity = searchParams.get('city') || '';
   const { data: hotels = [], isLoading, error } = usePartnerHotels();
+  const { data: mghDestinations = [] } = useMghDestinations();
   const { data: partnerCatalogs } = usePartnerCatalogs();
 
   const riads = useMemo(
     () => hotels.map((hotel) => mapPartnerHotelToRiad(hotel, currentLanguage, partnerCatalogs)),
     [hotels, currentLanguage, partnerCatalogs]
   );
-  const cities = useMemo(() => deriveDestinationsFromRiads(riads), [riads]);
-  const neighborhoods = useMemo(() => deriveNeighborhoodsFromRiads(riads), [riads]);
+  const hotelCities = useMemo(() => deriveDestinationsFromRiads(riads), [riads]);
+  const cities = useMemo(
+    () => mapDestinationsToHotelCities(mghDestinations, hotelCities, currentLanguage),
+    [mghDestinations, hotelCities, currentLanguage]
+  );
+  const neighborhoods = useMemo(() => {
+    const cityNames = new Map(cities.map((city) => [String(city.id), city.name]));
+    return deriveNeighborhoodsFromRiads(riads)
+      .filter((neighborhood) => cityNames.has(String(neighborhood.city_id)))
+      .map((neighborhood) => ({ ...neighborhood, city: cityNames.get(String(neighborhood.city_id)) }));
+  }, [riads, cities]);
   const visibleNeighborhoods = useMemo(() => {
     const query = normalize(search);
     return neighborhoods.filter((neighborhood) => {
