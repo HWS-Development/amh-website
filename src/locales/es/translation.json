@@ -317,16 +317,8 @@
   "view": "Ver",
   "viewAll": "Ver todo",
   "bookingConditions": "Condiciones de reserva",
-  "bookingSearchTitle": "Reservar en {{city}}",
-  "bookingSearchIntro": "Elija un alojamiento para consultar la disponibilidad y reservar directamente en su motor de reservas.",
-  "bookingSearchAvailabilityNote": "Estos alojamientos están conectados a SimpleBooking. La disponibilidad para sus fechas se confirmará en el motor de reservas.",
-  "bookingSearchCount_one": "{{count}} alojamiento en el motor de reservas",
-  "bookingSearchCount_other": "{{count}} alojamientos en el motor de reservas",
-  "bookingSearchRange": "Resultados {{start}}–{{end}} de {{total}}",
-  "bookingPagination": "Páginas de resultados",
-  "bookingViewDetails": "Ver detalles",
   "bookYourStay": "Reserve su estancia",
   "exploreDestination": "Explorar el destino",
   "morocco": "Marruecos",
-  "bookingSearchEmpty": "Ningún alojamiento en {{city}} está conectado actualmente a este motor de reservas. Descubra el destino mientras tanto."
+  "bookingCityUnsupported": "SimpleBooking todavía no filtra por destino."
 }

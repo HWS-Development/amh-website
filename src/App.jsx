@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
         import { Navigate, Routes, Route } from 'react-router-dom';
         import { Toaster } from '@/components/ui/toaster';
         import HomePage from '@/pages/HomePage';
@@ -17,10 +17,22 @@ import React, { useState } from 'react';
         import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6';
         import NotFoundPage from '@/pages/NotFoundPage';
         import DestinationsLandingPage from '@/pages/DestinationsLandingPage';
-        import BookingSearchPage from '@/pages/BookingSearchPage';
         import MedinaQuartiersPage from '@/pages/MedinaQuartiersPage';
         import QuartierDetailPage from '@/pages/QuartierDetailPage';
         import AboutPage from '@/pages/AboutPage';
+
+        const LegacyBookingRedirect = () => {
+          useEffect(() => {
+            const target = new URL(import.meta.env.VITE_SIMPLEBOOKING_BASE || 'https://www.simplebooking.it/portal/256');
+            const source = new URLSearchParams(window.location.search);
+            for (const key of ['lang', 'cur', 'in', 'out', 'guests']) {
+              const value = source.get(key);
+              if (value) target.searchParams.set(key, value);
+            }
+            window.location.replace(target.toString());
+          }, []);
+          return null;
+        };
 
         const AppContent = () => {
           const [date, setDate] = useState({ from: undefined, to: undefined });
@@ -35,7 +47,7 @@ import React, { useState } from 'react';
                   <Route path="/riad/:id/:legacySlug" element={<RiadDetailPage />} />
                   <Route path="/destinations" element={<DestinationsLandingPage />} />
                   <Route path="/destinations/:slug" element={<DestinationPage />} />
-                  <Route path="/booking-search" element={<BookingSearchPage />} />
+                  <Route path="/booking-search" element={<LegacyBookingRedirect />} />
                   <Route path="/experiences" element={<ExperiencesIndexPage />} />
                   <Route path="/experiences/:slug" element={<ExperiencePage />} />
                   <Route path="/quartiers" element={<MedinaQuartiersPage />} />

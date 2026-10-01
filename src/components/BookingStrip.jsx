@@ -1,5 +1,4 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -160,7 +159,6 @@ const RoomAllocationEditor = ({
 
 const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, onSearch }) => {
   const { t, currentLanguage } = useLanguage();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [destination, setDestination] = useState('');
   const [roomAllocations, setRoomAllocations] = useState([
@@ -264,24 +262,19 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
       ...room.childAges.map(String),
     ].join(',')).join('|');
 
-    const simplebookingBase = import.meta.env.VITE_SIMPLEBOOKING_BASE || 'https://www.simplebooking.it/portal/256';
-    const params = new URLSearchParams({
+    const simplebookingUrl = new URL(import.meta.env.VITE_SIMPLEBOOKING_BASE || 'https://www.simplebooking.it/portal/256');
+    const params = {
       lang: currentLanguage.split('-')[0].toUpperCase(),
       cur: 'EUR',
       in: checkin,
       out: checkout,
       guests: guestParams,
-    });
+    };
+    Object.entries(params).forEach(([key, value]) => simplebookingUrl.searchParams.set(key, value));
 
     if (onSearch) onSearch();
-    if (destination) {
-      // The portal has no configured places. Show its hotels in this MGH city,
-      // then open the chosen hotel's booking engine with dates and guests.
-      params.set('city', destination);
-      navigate(`/booking-search?${params.toString()}`);
-    } else {
-      window.open(`${simplebookingBase}?${params.toString()}`, '_blank', 'noopener,noreferrer');
-    }
+    // This portal exposes no places (placeId), so it cannot apply a city filter.
+    window.location.assign(simplebookingUrl.toString());
   };
 
   const selectedDestLabel = useMemo(() => {
@@ -314,6 +307,7 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
             </div>
           </PopoverTrigger>
           <PopoverContent className="w-[min(92vw,320px)] max-h-[min(60vh,24rem)] overflow-y-auto p-1.5 shadow-2xl border-brand-ink/5" align="center">
+            <p className="border-b border-brand-ink/10 px-3 py-2 text-[0.65rem] leading-relaxed text-brand-ink/60">{t('bookingCityUnsupported')}</p>
             {destinationsLoading && <p className="px-3 py-2.5 text-xs font-montserrat">{t('loading')}</p>}
             {destinations.map((d) => (
               <button
@@ -404,6 +398,7 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
             </div>
           </PopoverTrigger>
           <PopoverContent className="w-56 max-h-[min(60vh,24rem)] overflow-y-auto p-1.5 shadow-2xl border-brand-ink/5" align="start">
+            <p className="border-b border-brand-ink/10 px-3 py-2 text-[0.65rem] leading-relaxed text-brand-ink/60">{t('bookingCityUnsupported')}</p>
             {destinationsLoading && <p className="px-3 py-2.5 text-xs font-montserrat">{t('loading')}</p>}
             {destinations.map((d) => (
               <button

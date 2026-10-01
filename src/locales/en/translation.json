@@ -356,13 +356,5 @@
   "trustStatDirect": "Direct booking",
   "trustStatRiads": "Classified riads",
   "viewRiads": "View riads",
-  "bookingSearchTitle": "Book in {{city}}",
-  "bookingSearchIntro": "Choose a property to check availability and book directly in its booking engine.",
-  "bookingSearchAvailabilityNote": "These properties are connected to SimpleBooking. Availability for your dates will be confirmed in the booking engine.",
-  "bookingSearchCount_one": "{{count}} property in the booking engine",
-  "bookingSearchCount_other": "{{count}} properties in the booking engine",
-  "bookingSearchRange": "Showing {{start}}–{{end}} of {{total}}",
-  "bookingPagination": "Result pages",
-  "bookingViewDetails": "View details",
-  "bookingSearchEmpty": "No property in {{city}} is currently connected to this booking engine. Explore the destination in the meantime."
+  "bookingCityUnsupported": "SimpleBooking does not filter by destination yet."
 }

@@ -18,7 +18,7 @@ const PRIORITY_AMENITY_IDS = [
   "garden",
 ];
 
-const RiadCard = ({ riad, bookingHref }) => {
+const RiadCard = ({ riad }) => {
   const { t } = useLanguage();
   const amenityEntries = (riad.amenity_ids || []).map((id, index) => ({
     id,
@@ -97,7 +97,7 @@ const RiadCard = ({ riad, bookingHref }) => {
           </h3>
         </Link>
 
-        {!bookingHref && riad.description && (
+        {riad.description && (
           <p className="mt-1.5 text-xs text-brand-ink/60 line-clamp-2 leading-relaxed">
             {riad.description}
           </p>
@@ -156,28 +156,17 @@ const RiadCard = ({ riad, bookingHref }) => {
         )}
 
         {/* CTA — refined link button (editorial) */}
-        <div className="mt-auto pt-5 space-y-2.5">
+        <div className="mt-auto pt-5">
           <Link
             to={detailHref}
             className="group/btn relative flex items-center justify-between w-full px-4 py-3 border border-brand-ink/15 text-brand-ink hover:border-brand-action hover:text-brand-action hover:bg-brand-action/[0.03] transition-all duration-500 ease-editorial"
           >
             <span className="relative">
-              <span className="font-montserrat text-[0.68rem] font-semibold uppercase tracking-[0.28em]">{t(bookingHref ? 'bookingViewDetails' : 'moreDetails')}</span>
+              <span className="font-montserrat text-[0.68rem] font-semibold uppercase tracking-[0.28em]">{t('moreDetails')}</span>
               <span className="absolute left-0 -bottom-px h-px w-0 bg-brand-action transition-all duration-500 ease-editorial group-hover/btn:w-full" />
             </span>
             <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-500 ease-editorial group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
           </Link>
-          {bookingHref && (
-            <a
-              href={bookingHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group/book flex items-center justify-between w-full px-4 py-3 bg-brand-action text-white hover:bg-brand-ink transition-colors duration-500 ease-editorial"
-            >
-              <span className="font-montserrat text-[0.68rem] font-semibold uppercase tracking-[0.28em]">{t('reserveNow')}</span>
-              <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-500 ease-editorial group-hover/book:translate-x-0.5 group-hover/book:-translate-y-0.5" />
-            </a>
-          )}
         </div>
       </div>
     </article>
