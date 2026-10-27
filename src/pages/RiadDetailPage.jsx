@@ -23,7 +23,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/components/ui/use-toast";
-import { getTranslated } from "@/lib/utils";
+import { getTelephoneHref, getTranslated } from "@/lib/utils";
 import { optimizeImageUrl } from "@/lib/imageUtils";
 import { buildPropertyDetailHref, usePartnerHotelById, usePartnerHotels, extractCentraHotelId, idToLabel, slugifyPropertyName } from "@/lib/partnerHotelsApi";
 import { usePartnerCatalogs } from "@/lib/partnerCatalogsApi";
@@ -484,6 +484,7 @@ const RiadDetailPage = () => {
   const displayAddress = locationLabel || mapPlaceQuery;
 
   const phoneNumber = riad?.phone_number || riad?.phone || null;
+  const telephoneHref = getTelephoneHref(phoneNumber);
   const email = riad?.email || null;
   const website = riad?.website || null;
   const beLink = riad?.beLink || null;
@@ -958,11 +959,18 @@ const RiadDetailPage = () => {
                 {/* Bottom: actions + read more */}
                 <div className="shrink-0 px-8 md:px-10 pb-10 md:pb-12 pt-4">
                   <div className="flex flex-col gap-3">
-                    {phoneNumber && (
-                      <div className="w-full h-[52px] bg-white border border-brand-ink/10 text-brand-ink/70 flex items-center justify-center gap-3 px-6 font-montserrat">
-                        <Phone className="w-4 h-4 text-brand-action shrink-0" />
-                        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em]">{phoneNumber}</span>
-                      </div>
+                    {telephoneHref && (
+                      <a
+                        href={telephoneHref}
+                        aria-label={`${t('callUs')} : ${phoneNumber}`}
+                        className="group w-full min-h-[52px] bg-white border border-brand-ink/10 text-brand-ink/70 flex items-center justify-center gap-3 px-4 py-2 font-montserrat hover:bg-brand-action hover:text-white hover:border-brand-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-action focus-visible:ring-offset-2 transition-colors duration-300"
+                      >
+                        <Phone className="w-4 h-4 text-brand-action group-hover:text-white shrink-0 transition-colors duration-300" aria-hidden="true" />
+                        <span className="flex flex-col items-center gap-1">
+                          <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em]">{t('callUs')}</span>
+                          <span className="text-xs tabular-nums tracking-wide">{phoneNumber}</span>
+                        </span>
+                      </a>
                     )}
 
                     {email && (
