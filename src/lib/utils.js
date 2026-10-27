@@ -11,7 +11,7 @@ export function getTelephoneHref(value) {
   if (!/^(?:\+|00)?\d+$/.test(number)) return null;
   number = number.replace(/^00/, '+');
   // Moroccan properties also supply national numbers or omit the leading +.
-  if (/^212\d{9}$/.test(number)) number = `+${number}`;
+  if (/^2120?\d{9}$/.test(number)) number = `+${number}`;
   else if (/^0[5-7]\d{8}$/.test(number)) number = `+212${number.slice(1)}`;
   number = number.replace(/^\+2120(?=\d{9}$)/, '+212');
   return /^\+?\d{7,15}$/.test(number) ? `tel:${number}` : null;

@@ -483,8 +483,8 @@ const RiadDetailPage = () => {
   const locationLabel = internationalAddress || [neighborhood, city, riad?.country].filter(Boolean).join(", ");
   const displayAddress = locationLabel || mapPlaceQuery;
 
-  const phoneNumber = riad?.phone_number || riad?.phone || null;
-  const telephoneHref = getTelephoneHref(phoneNumber);
+  const telephoneHref = getTelephoneHref(riad?.phone_number || riad?.phone);
+  const phoneNumber = telephoneHref?.slice('tel:'.length) || null;
   const email = riad?.email || null;
   const website = riad?.website || null;
   const beLink = riad?.beLink || null;
