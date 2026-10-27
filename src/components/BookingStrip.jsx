@@ -8,6 +8,7 @@ import { cn, getTranslated } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { MapPin, CalendarDays, Users, Minus, Plus, Search as SearchIcon, BedDouble, Baby } from 'lucide-react';
 import { useMghDestinations } from '@/lib/mghApi';
+import { applySimpleBookingDestination, getSimpleBookingPlaceId } from '@/lib/simpleBooking';
 
 const MAX_ROOMS = 6;
 const CHILD_AGES = Array.from({ length: 13 }, (_, age) => age);
@@ -174,6 +175,7 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
       ...mghDestinations.map((city) => ({
         value: city.slug,
         label: getTranslated(city.name_tr ?? city.name, currentLanguage),
+        disabled: !getSimpleBookingPlaceId(city.slug),
       })),
     ];
   }, [mghDestinations, currentLanguage, t]);
@@ -271,9 +273,9 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
       guests: guestParams,
     };
     Object.entries(params).forEach(([key, value]) => simplebookingUrl.searchParams.set(key, value));
+    applySimpleBookingDestination(simplebookingUrl, destination);
 
     if (onSearch) onSearch();
-    // This portal exposes no places (placeId), so it cannot apply a city filter.
     window.location.assign(simplebookingUrl.toString());
   };
 
@@ -307,18 +309,19 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
             </div>
           </PopoverTrigger>
           <PopoverContent className="w-[min(92vw,320px)] max-h-[min(60vh,24rem)] overflow-y-auto p-1.5 shadow-2xl border-brand-ink/5" align="center">
-            <p className="border-b border-brand-ink/10 px-3 py-2 text-[0.65rem] leading-relaxed text-brand-ink/60">{t('bookingCityUnsupported')}</p>
             {destinationsLoading && <p className="px-3 py-2.5 text-xs font-montserrat">{t('loading')}</p>}
             {destinations.map((d) => (
               <button
                 key={d.value}
+                disabled={d.disabled}
                 onClick={() => { setDestination(d.value); setDestOpen(false); }}
                 className={cn(
-                  'w-full text-left px-3 py-2.5 text-xs font-medium font-montserrat hover:bg-brand-beige transition-colors',
+                  'w-full text-left px-3 py-2.5 text-xs font-medium font-montserrat hover:bg-brand-beige transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent',
                   destination === d.value && 'bg-brand-beige text-brand-action'
                 )}
               >
                 {d.label}
+                {d.disabled && <span className="mt-1 block text-[0.6rem] font-normal">{t('bookingDestinationUnavailable')}</span>}
               </button>
             ))}
           </PopoverContent>
@@ -398,18 +401,19 @@ const BookingStrip = ({ date, onDateChange, isSticky = false, isMobile = false, 
             </div>
           </PopoverTrigger>
           <PopoverContent className="w-56 max-h-[min(60vh,24rem)] overflow-y-auto p-1.5 shadow-2xl border-brand-ink/5" align="start">
-            <p className="border-b border-brand-ink/10 px-3 py-2 text-[0.65rem] leading-relaxed text-brand-ink/60">{t('bookingCityUnsupported')}</p>
             {destinationsLoading && <p className="px-3 py-2.5 text-xs font-montserrat">{t('loading')}</p>}
             {destinations.map((d) => (
               <button
                 key={d.value}
+                disabled={d.disabled}
                 onClick={() => { setDestination(d.value); setDestOpen(false); }}
                 className={cn(
-                  'w-full text-left px-3 py-2.5 text-xs font-medium font-montserrat hover:bg-brand-beige transition-colors',
+                  'w-full text-left px-3 py-2.5 text-xs font-medium font-montserrat hover:bg-brand-beige transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent',
                   destination === d.value && 'bg-brand-beige text-brand-action'
                 )}
               >
                 {d.label}
+                {d.disabled && <span className="mt-1 block text-[0.6rem] font-normal">{t('bookingDestinationUnavailable')}</span>}
               </button>
             ))}
           </PopoverContent>

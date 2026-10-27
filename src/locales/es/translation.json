@@ -321,5 +321,5 @@
   "bookYourStay": "Reserve su estancia",
   "exploreDestination": "Explorar el destino",
   "morocco": "Marruecos",
-  "bookingCityUnsupported": "SimpleBooking todavía no filtra por destino."
+  "bookingDestinationUnavailable": "Destino no disponible en este motor de reservas."
 }

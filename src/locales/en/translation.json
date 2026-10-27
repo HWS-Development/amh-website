@@ -356,5 +356,5 @@
   "trustStatDirect": "Direct booking",
   "trustStatRiads": "Classified riads",
   "viewRiads": "View riads",
-  "bookingCityUnsupported": "SimpleBooking does not filter by destination yet."
+  "bookingDestinationUnavailable": "Destination not available in this booking engine."
 }

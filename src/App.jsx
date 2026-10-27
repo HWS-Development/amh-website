@@ -20,6 +20,7 @@ import React, { useEffect, useState } from 'react';
         import MedinaQuartiersPage from '@/pages/MedinaQuartiersPage';
         import QuartierDetailPage from '@/pages/QuartierDetailPage';
         import AboutPage from '@/pages/AboutPage';
+        import { applySimpleBookingDestination } from '@/lib/simpleBooking';
 
         const LegacyBookingRedirect = () => {
           useEffect(() => {
@@ -29,6 +30,7 @@ import React, { useEffect, useState } from 'react';
               const value = source.get(key);
               if (value) target.searchParams.set(key, value);
             }
+            applySimpleBookingDestination(target, source.get('city'));
             window.location.replace(target.toString());
           }, []);
           return null;
