@@ -24,6 +24,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/components/ui/use-toast";
 import { getTelephoneHref, getTranslated } from "@/lib/utils";
+import { trackRiadContactClick } from "@/lib/riadContactTracking";
 import { optimizeImageUrl } from "@/lib/imageUtils";
 import { buildPropertyDetailHref, usePartnerHotelById, usePartnerHotels, extractCentraHotelId, idToLabel, slugifyPropertyName } from "@/lib/partnerHotelsApi";
 import { usePartnerCatalogs } from "@/lib/partnerCatalogsApi";
@@ -962,6 +963,8 @@ const RiadDetailPage = () => {
                     {telephoneHref && (
                       <a
                         href={telephoneHref}
+                        data-riad-contact="appeler"
+                        onClick={(event) => trackRiadContactClick(event, 'appeler', hotelName)}
                         aria-label={`${t('callUs')} : ${phoneNumber}`}
                         className="group w-full min-h-[52px] bg-white border border-brand-ink/10 text-brand-ink/70 flex items-center justify-center gap-3 px-4 py-2 font-montserrat hover:bg-brand-action hover:text-white hover:border-brand-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-action focus-visible:ring-offset-2 transition-colors duration-300"
                       >
@@ -976,6 +979,8 @@ const RiadDetailPage = () => {
                     {email && (
                       <a
                         href={`mailto:${email}`}
+                        data-riad-contact="email"
+                        onClick={(event) => trackRiadContactClick(event, 'email', hotelName)}
                         aria-label="Email"
                         className="w-full h-[52px] border border-brand-ink/10 text-brand-ink/40 flex items-center justify-center gap-3 hover:bg-brand-action hover:text-white hover:border-brand-action transition-all duration-400"
                       >
@@ -987,6 +992,8 @@ const RiadDetailPage = () => {
                     {website && (
                       <a
                         href={normalizeExternalUrl(website)}
+                        data-riad-contact="site_riad"
+                        onClick={(event) => trackRiadContactClick(event, 'site_riad', hotelName)}
                         target="_blank"
                         rel="noreferrer"
                         className="group w-full h-[52px] inline-flex items-center justify-center gap-3 px-6 bg-white border border-brand-ink/10 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-brand-ink/70 hover:text-brand-ink hover:border-brand-action/40 hover:bg-white transition-all duration-500 font-montserrat"
@@ -1002,6 +1009,8 @@ const RiadDetailPage = () => {
                     {(beLink || riad?.simple_booking_link || website) && (
                       <a
                         href={beLink || riad?.simple_booking_link || normalizeExternalUrl(website)}
+                        data-riad-contact="reserver"
+                        onClick={(event) => trackRiadContactClick(event, 'reserver', hotelName)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="group w-full h-[52px] inline-flex items-center justify-center gap-3 bg-brand-action text-white px-6 text-[0.65rem] font-semibold uppercase tracking-[0.2em] hover:bg-brand-ink transition-all duration-500 font-montserrat"
