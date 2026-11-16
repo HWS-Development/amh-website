@@ -422,7 +422,7 @@ const RiadDetailPage = () => {
 
   useEffect(() => {
     if (!analyticsRiadId || !hotelName || trackedRiadViewRef.current === analyticsRiadId) return;
-    if (typeof window.gtag !== "function") return;
+    if (typeof window.gtag !== "function" || !window.hwsConsent?.allowed('analytics')) return;
 
     trackedRiadViewRef.current = analyticsRiadId;
     window.gtag("event", "view_item", {

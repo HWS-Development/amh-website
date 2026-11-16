@@ -26,3 +26,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </QueryClientProvider>
   </React.StrictMode>
 );
+
+import '@hws/cookie-consent';
+import './consent-tracking.js';

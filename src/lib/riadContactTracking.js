@@ -1,3 +1,5 @@
+import { allowed } from '@hws/cookie-consent';
+
 const GA4_ID = 'G-BS4V21E0H6';
 const ADS_CONVERSION = 'AW-18514629947/oYl7CJPf16wdELuqu_xE';
 const CONTACT_TYPES = new Set(['appeler', 'email', 'site_riad', 'reserver']);
@@ -21,6 +23,7 @@ export function trackRiadContactClick(event, type, riadName) {
     ['clic_contact', { send_to: GA4_ID, ...params }],
     ['conversion', { send_to: ADS_CONVERSION }],
   ]) {
+    if (!allowed(name === 'conversion' ? 'marketing' : 'analytics')) continue;
     try {
       window.gtag('event', name, payload);
     } catch {
